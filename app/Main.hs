@@ -1,12 +1,11 @@
 module Main where
 
-import Lib
+import Parser
 
-import Data.EDN
-import qualified Data.ByteString.Lazy as BS
+import System.Environment
 
 main :: IO ()
 main = do
-  f <- readFile "test/test.clj"
-  let p = parse parseTop "" f
-  putStrLn $ show p
+  (path:rest) <- getArgs
+  f <- readFile path
+  parseTest parseTop f
