@@ -18,3 +18,6 @@ cabal.sandbox.config
 .stack-work/
 cabal.project.local
 .HTF/
+
+# prevent test output files to pollute repo
+/*.clj
