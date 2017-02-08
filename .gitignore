@@ -19,5 +19,12 @@ cabal.sandbox.config
 cabal.project.local
 .HTF/
 
+# test projects
+test/repos/*
+!test/repos/.gitkeep
+
 # prevent test output files to pollute repo
 /*.clj
+
+# scripts dependencies
+scripts/node_modules

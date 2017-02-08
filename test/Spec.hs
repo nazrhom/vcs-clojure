@@ -9,6 +9,7 @@ main = do
   mapM_ testFile cljFiles
   where
     makePath = (</>) "./test"
+    
 isCljFile :: FilePath -> Bool
 isCljFile f = takeExtension f == ".clj"
 
