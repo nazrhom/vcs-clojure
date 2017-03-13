@@ -40,7 +40,9 @@ data View s where
   Tag :: SSEC c -> HList (TypeOf c) -> View SExpr
 
 instance Show (View s) where
-  show (Tag S_Add xs) = show xs
+  show (Tag S_Add xs) = "(S_Add " ++ show xs ++ ")"
+  show (Tag S_Square xs) = "(S_Square " ++ show xs ++ ")"
+  show (Tag S_Value xs) = "(S_Value " ++ show xs ++ ")"
 
 view :: SExpr -> View SExpr
 view (Add a b) = Tag S_Add (a .*. b .*. HNil)
@@ -79,10 +81,11 @@ data HList l where
   HCons :: e -> HList l -> HList (e ': l)
 
 instance Show (HList '[]) where
-  show HNil = ""
+  show HNil = "[]"
 
 instance (Show e, Show (HList l)) => Show (HList (e : l)) where
-  show (HCons x xs) = show x ++ " " ++ show xs
+  show (HCons x HNil) = show x ++ "]"
+  show (HCons x xs) = "[" ++ show x ++ ", " ++ show xs
 
 hhead :: HList (e : l) -> e
 hhead (HCons e l) = e
