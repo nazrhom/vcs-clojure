@@ -5,6 +5,7 @@ import PrettyPrint
 
 import System.IO
 import Options.Applicative
+import Data.Monoid 
 
 main :: IO ()
 main = do

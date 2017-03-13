@@ -1,3 +1,4 @@
+{-#LANGUAGE DataKinds#-}
 module Parser
     ( parseTop
     , parse

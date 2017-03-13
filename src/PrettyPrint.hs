@@ -20,16 +20,13 @@ ppExpr (Dispatch e) = char '#' <> ppExpr e
 ppExpr (Collection Parens es) = parens $ ppSepList es
 ppExpr (Collection Vec es) = brackets $ ppSepList es
 ppExpr (Collection Set es) = braces $ ppSepList es
--- ppExpr (Collection Array es) = brackets $ hsep $ punctuate comma (map ppExpr es)
--- ppExpr (Collection Bindings es) = brackets $ ppSepPair es comma
--- ppExpr (Collection Map es) = braces $ ppSepPair es linebreak
 ppExpr (Comment s) = char ';' <> text s <> linebreak
 ppExpr (Term t) = ppTerm t
 
 ppTerm :: Term -> Doc
 ppTerm (TaggedString String s) = dquotes $ text s
 ppTerm (TaggedString Metadata s) = char '^' <> text s
-ppTerm (TaggedString Var s) = text s -- can be refined by inspecting (maybe parsing) s
+ppTerm (TaggedString Var s) = text s 
 
 ppSepList :: SepList Expr -> Doc
 ppSepList Nil         = empty
