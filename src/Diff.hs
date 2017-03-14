@@ -1,8 +1,45 @@
-{-#LANGUAGE GADTs, DataKinds, TypeFamilies, TypeOperators, TypeInType, PolyKinds, AllowAmbiguousTypes, StandaloneDeriving, RankNTypes, FlexibleContexts, FlexibleInstances#-}
+{-#LANGUAGE GADTs, DataKinds, TypeFamilies, TypeOperators, TypeInType, PolyKinds, AllowAmbiguousTypes, StandaloneDeriving, RankNTypes, FlexibleContexts, FlexibleInstances, TypeFamilyDependencies, ScopedTypeVariables#-}
 module Diff where
 
 import Data.Kind
+import Data.Type.Equality
 import Parser
+
+-- HLIST
+
+data HList l where
+  HNil :: HList '[]
+  HCons :: e -> HList l -> HList (e ': l)
+
+instance Show (HList '[]) where
+  show HNil = "[]"
+
+instance (Show e, Show (HList l)) => Show (HList (e : l)) where
+  show (HCons x HNil) = show x ++ "]"
+  show (HCons x xs) = "[" ++ show x ++ ", " ++ show xs
+
+type family SafeHead (l :: [*]) :: * where
+  SafeHead (e ': l) = e
+  SafeHead '[]      = ()
+
+type family SafeTail (l :: [*]) :: [*] where
+  SafeTail (e ': l) = l
+  SafeTail '[]      = '[]
+
+hhead :: HList (e : l) -> e
+hhead (HCons e l) = e
+
+htail :: HList (e : l) -> HList l
+htail (HCons e l) = l
+
+type e :*: l = HCons e l
+infixr 2 :*:
+
+(.*.) :: e -> HList l -> HList (e : l)
+(.*.) = HCons
+
+infixr 2 .*.
+infixr 2 `HCons`
 
 data SExpr where
   Add :: SExpr -> SExpr -> SExpr
@@ -19,10 +56,6 @@ data SEC =
   | CValue
   deriving (Eq, Show)
 
-data SEA =
-    ASExpr SExpr
-  | AVal Val
-
 data SSEC (c :: SEC) where
   S_Add :: SSEC 'CAdd
   S_Square :: SSEC 'CSquare
@@ -31,7 +64,14 @@ data SSEC (c :: SEC) where
 deriving instance Eq (SSEC c)
 deriving instance Show (SSEC c)
 
-type family TypeOf e where
+instance TestEquality (SSEC) where
+  testEquality S_Add S_Add = Just Refl
+  testEquality S_Square S_Square = Just Refl
+  testEquality S_Value S_Value = Just Refl
+  testEquality _ _ = Nothing
+
+
+type family TypeOf e = r | r -> e where
   TypeOf CAdd = '[SExpr, SExpr]
   TypeOf CSquare = '[SExpr]
   TypeOf CValue = '[Val]
@@ -54,56 +94,81 @@ inj S_Add (x `HCons` y `HCons` HNil) = Add x y
 inj S_Square (x `HCons` HNil) = Square x
 inj S_Value (x `HCons` HNil) = Value x
 
-spine :: SExpr -> SExpr -> SExprSpine Trivial Trivial
-spine x y | x == y = SScp
-           | otherwise = case (view x, view y) of
-             ((Tag c1 l1), (Tag c2 l2)) ->
-              if (consMatch c1 c2)
-              then SSCns c1 (undefined)
-              else SSChg c1 c2 (trivial l1 l2)
-
-consMatch :: SSEC a -> SSEC b -> Bool
-consMatch S_Add S_Add = True
-consMatch S_Square S_Square = True
-consMatch S_Value S_Value = True
-consMatch _ _ = False
-
 type family All p i where
-  All p (x:xs) = ((p x x), (All p xs))
+  All p (x:xs) = (p x x, (All p xs))
+  All p '[] = ()
+
+allHead :: All p i -> p (SafeHead i) (SafeHead i)
+allHead = undefined
+
+type family AllL p i where
+  AllL p (x:xs) = (p x x) : (AllL p xs)
+  AllL p '[]    = '[]
 
 data SExprSpine (k :: * -> * -> *) (p :: [*] -> [*] -> *) where
   SScp :: SExprSpine k p
-  SSCns :: SSEC i -> (All k (TypeOf i)) -> SExprSpine k p
+  SSCns :: SSEC i -> HList (AllL k (TypeOf i)) -> SExprSpine k p
   SSChg :: SSEC i -> SSEC j -> p (TypeOf i) (TypeOf j) -> SExprSpine k p
 
-data HList l where
-  HNil :: HList '[]
-  HCons :: e -> HList l -> HList (e ': l)
+instance Show (SExprSpine k p) where
+  show SScp = "Copy"
+  show (SSCns i p) = "Cns " ++ show i
+  show (SSChg i j p) = "Chg " ++ show i ++ " " ++ show j
 
-instance Show (HList '[]) where
-  show HNil = "[]"
+spine :: SExpr -> SExpr -> SExprSpine TrivialP TrivialL
+spine x y | x == y = SScp
+           | otherwise = case (view x, view y) of
+             ((Tag c1 l1), (Tag c2 l2)) -> case testEquality c1 c2 of
+               Just Refl -> SSCns c1 (allLTrivialP l1)
+               Nothing -> SSChg c1 c2 (trivialL l1 l2)
 
-instance (Show e, Show (HList l)) => Show (HList (e : l)) where
-  show (HCons x HNil) = show x ++ "]"
-  show (HCons x xs) = "[" ++ show x ++ ", " ++ show xs
+applyS :: (forall e . k e e -> e -> Maybe e) ->
+          (forall s d . p s d -> HList s -> Maybe (HList d)) ->
+          SExprSpine k p ->
+          SExpr ->
+          Maybe SExpr
+applyS doK doP SScp x = Just x
+applyS doK doP (SSChg i j p) x = case view x of
+  (Tag c d) -> case testEquality c i of
+    Just Refl -> inj j <$> doP p d
+    Nothing -> Nothing
+applyS doK doP (SSCns i ps) x = case view x of
+  (Tag c d) -> case testEquality c i of
+    Just Refl -> inj i <$> sAll doK ps d
+  where
+    sAll :: (forall e . k e e -> e -> Maybe e) ->
+            HList (AllL k l) -> HList l -> Maybe (HList l)
+    sAll doK HNil HNil = Just HNil
+    sAll doK (HCons a as) (HCons b bs) = do
+      k <- doK a b
+      ks <- sAll doK as bs
+      return (k .*. ks)
 
-hhead :: HList (e : l) -> e
-hhead (HCons e l) = e
+-- ALIGNMENT
 
-htail :: HList (e : l) -> HList l
-htail (HCons e l) = l
+-- TODO: Make trivial polykinded?
+data TrivialP a b where
+  PP :: a -> b -> TrivialP a b
+  deriving Show
 
-type e :*: l = HCons e l
-infixr 2 :*:
+data TrivialL a b where
+  LL :: HList a -> HList b -> TrivialL a b
 
-(.*.) :: e -> HList l -> HList (e : l)
-(.*.) = HCons
+deriving instance (Show (HList a), Show (HList b)) => Show (TrivialL a b)
 
-infixr 2 .*.
-infixr 2 `HCons`
+trivialL :: HList a -> HList b -> TrivialL a b
+trivialL a b = LL a b
 
-data Trivial l r where
-  P1 :: a -> b -> Trivial l r
+trivialP :: a -> b -> TrivialP a b
+trivialP a b = PP a b
+
+allTrivialP :: HList l -> All TrivialP l
+allTrivialP (HCons a b) = (trivialP a a, allTrivialP b)
+allTrivialP HNil = ()
+
+allLTrivialP :: HList l -> HList (AllL TrivialP l)
+allLTrivialP (HCons a b) = (trivialP a a) `HCons` (allLTrivialP b)
+allLTrivialP HNil = HNil
 
 data AI s d where
   A0 :: AI '[] '[]
@@ -112,22 +177,18 @@ data AI s d where
   AX :: a -> b -> AI s d -> AI (a : s) (b : d)
 
 
-sExprToSEC :: SExpr -> SEC
-sExprToSEC (Add a b) = CAdd
-sExprToSEC (Square a) = CSquare
-sExprToSEC (Value a) = CValue
-
--- asHList (Add a b) = a .*. b .*. HNil
--- asHList (Square a) = a .*. HNil
--- asHList (Value a) = a .*. HNil
--- sExprToSSEC :: SExpr -> SSEC SEC
--- sExprToSSEC = undefined
-
-trivial :: HList a -> HList b -> Trivial a b
-trivial a b = P1 a b
-
 align :: HList a -> HList b -> [AI a b]
 align HNil HNil = return A0
 align HNil (HCons b bs) = Ains b <$> align HNil bs
 align (HCons a as) HNil = Adel a <$> align as HNil
 align (HCons a as) (HCons b bs) = (AX a b <$> align as bs) ++ (Adel a <$> align as (b .*. bs)) ++ (Ains b <$> align (a .*. as) bs)
+
+
+-- Test
+a = Value (I 1)
+b = Value (I 1)
+c = Value (I 2)
+d = Value (I 2)
+sum1 = Add a b
+sum2 = Add c d
+square1 = Square a
