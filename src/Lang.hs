@@ -7,7 +7,7 @@ import Data.Type.Equality
 data SExpr where
   Add :: SExpr -> SExpr -> SExpr
   Square :: SExpr -> SExpr
-  Value :: Val -> SExpr
+  Value :: Int -> SExpr
   deriving (Eq, Show)
 
 data Val = IVal Int | BVal Bool
@@ -34,7 +34,12 @@ instance TestEquality SSEC where
   testEquality S_Value S_Value = Just Refl
   testEquality _ _ = Nothing
 
-type family TypeOf e = r | r -> e where
+type family TypeOf e where
   TypeOf CAdd = '[SExpr, SExpr]
   TypeOf CSquare = '[SExpr]
-  TypeOf CValue = '[Val]
+  TypeOf CValue = '[Int]
+
+type family UniverseOf a where
+  UniverseOf CAdd = SExpr
+  UniverseOf CSquare = SExpr
+  UniverseOf CValue = SExpr

@@ -6,40 +6,58 @@ import GHC.Exts
 import Data.Typeable
 import Data.Type.Equality hiding (apply)
 
+import Data.Maybe
 import HList
 import Lang
 
 --- SPINE
 
 data View s where
-  Tag :: SSEC c -> HList (TypeOf c) -> View SExpr
+  Tag :: SSEC c -> AtomList s (TypeOf c) -> View s
 
 instance Show (View s) where
   show (Tag S_Add xs) = "(S_Add " ++ show xs ++ ")"
   show (Tag S_Square xs) = "(S_Square " ++ show xs ++ ")"
   show (Tag S_Value xs) = "(S_Value " ++ show xs ++ ")"
 
-view :: SExpr -> View SExpr
-view (Add a b) = Tag S_Add (a .*. b .*. HNil)
-view (Square a) = Tag S_Square (a .*. HNil)
-view (Value v) = Tag S_Value (v .*. HNil)
+class Viewable a where
+  view :: a -> View a
 
-inj :: SSEC c -> HList (TypeOf c) -> SExpr
-inj S_Add (x `HCons` y `HCons` HNil) = Add x y
-inj S_Square (x `HCons` HNil) = Square x
-inj S_Value (x `HCons` HNil) = Value x
+
+instance Viewable SExpr where
+  view = viewS
+
+viewS :: SExpr -> View SExpr
+viewS (Add a b) = Tag S_Add (I a .@. I b  .@. ANil)
+viewS (Square a) = Tag S_Square (I a .@. ANil)
+viewS (Value v) = Tag S_Value (KInt v .@. ANil)
+
+inj :: SSEC c -> AtomList a (TypeOf c) -> a
+inj = undefined
+-- inj c l = inj' c (toHList l)
+
+-- inj'' :: View a -> a
+-- inj'' (Tag c d) = inj c d
+-- inj S_Add l = inj' S_Add (toHList l)
+-- inj S_Square l = inj' S_Square (toHList l)
+-- inj S_Value l = inj' S_Value (toHList l)
+--
+inj' :: SSEC c -> HList (TypeOf c) -> SExpr
+inj' S_Add (x `HCons` y `HCons` HNil) = Add x y
+inj' S_Square (x `HCons` HNil) = Square x
+inj' S_Value (x `HCons` HNil) = Value x
 
 type family All (c :: k -> Constraint) (xs :: [k]) :: Constraint
 type instance All c '[] = ()
 type instance All c (x ': xs) = (c x, All c xs)
 
-type family AllL p i where
-  AllL p (x:xs) = (p x x) : (AllL p xs)
-  AllL p '[]    = '[]
+data AllL (k :: * -> * -> *) (s :: [*]) where
+  None :: AllL k '[]
+  Chain :: k x x -> AllL k xs -> AllL k (x ': xs)
 
 data SExprSpine (k :: * -> * -> *) (p :: [*] -> [*] -> *) where
   SScp :: SExprSpine k p
-  SSCns :: SSEC i -> HList (AllL k (TypeOf i)) -> SExprSpine k p
+  SSCns :: SSEC i -> AllL k (TypeOf i) -> SExprSpine k p
   SSChg :: SSEC i -> SSEC j -> p (TypeOf i) (TypeOf j) -> SExprSpine k p
 
 instance Show (SExprSpine k p) where
@@ -47,18 +65,18 @@ instance Show (SExprSpine k p) where
   show (SSCns i p) = "Cns " ++ show i
   show (SSChg i j p) = "Chg " ++ show i ++ " " ++ show j
 
-spine :: SExpr -> SExpr -> SExprSpine TrivialA TrivialP
+spine :: (Viewable a, Eq a) => a -> a -> SExprSpine TrivialA TrivialP
 spine x y | x == y = SScp
            | otherwise = case (view x, view y) of
              ((Tag c1 l1), (Tag c2 l2)) -> case testEquality c1 c2 of
-               Just Refl -> SSCns c1 (allLTrivialA l1)
-               Nothing -> SSChg c1 c2 (trivialP l1 l2)
+               Just Refl -> SSCns c1 (zipAList l1 l2)
+               Nothing -> SSChg c1 c2 (trivialP (toHList l1) (toHList l2))
 
-applyS :: (forall e . k e e -> e -> Maybe e) ->
-          (forall s d . p s d -> HList s -> Maybe (HList d)) ->
+applyS :: Viewable a => (forall e . k e e -> Atom a e -> Maybe (Atom a e)) ->
+          (forall s d . p s d -> AtomList a s -> Maybe (AtomList a d)) ->
           SExprSpine k p ->
-          SExpr ->
-          Maybe SExpr
+          a ->
+          Maybe a
 applyS doK doP SScp x = Just x
 applyS doK doP (SSChg i j p) x = case view x of
   (Tag c d) -> case testEquality c i of
@@ -69,187 +87,179 @@ applyS doK doP (SSCns i ps) x = case view x of
     Just Refl -> inj i <$> sAll doK ps d
     Nothing -> Nothing
   where
-    sAll :: (forall e . k e e -> e -> Maybe e) ->
-            HList (AllL k l) -> HList l -> Maybe (HList l)
-    sAll doK HNil HNil = Just HNil
-    sAll doK (HCons a as) (HCons b bs) = do
+    sAll :: (forall e . k e e -> Atom a e -> Maybe (Atom a e)) ->
+            (AllL k l) -> AtomList a l -> Maybe (AtomList a l)
+    sAll doK None ANil = Just ANil
+    sAll doK (Chain a as) (ACons b bs) = do
       k <- doK a b
       ks <- sAll doK as bs
-      return (k .*. ks)
+      return (k .@. ks)
 
 -- ALIGNMENT
 
--- TODO: Make trivial polykinded?
 data TrivialA a b where
-  AL :: a -> b -> TrivialA a b
+  TA :: a -> b -> TrivialA a b
   deriving Show
 
 data TrivialP a b where
-  PL :: HList a -> HList b -> TrivialP a b
+  TP :: HList a -> HList b -> TrivialP a b
 
 deriving instance (Show (HList a), Show (HList b)) => Show (TrivialP a b)
 
 trivialP :: HList a -> HList b -> TrivialP a b
-trivialP a b = PL a b
+trivialP a b = TP a b
 
 trivialA :: a -> b -> TrivialA a b
-trivialA a b = AL a b
+trivialA a b = TA a b
 
+zipAList :: AtomList rec a -> AtomList rec a -> (AllL TrivialA a)
+zipAList ANil ANil = None
+zipAList (ACons a as) (ACons b bs) = (trivialA (evalA a) (evalA b)) `Chain` (zipAList as bs)
 
-allLTrivialA :: HList l -> HList (AllL TrivialA l)
-allLTrivialA (HCons a b) = (trivialA a a) `HCons` (allLTrivialA b)
-allLTrivialA HNil = HNil
+data Al (rec :: *) (k :: * -> * -> *) s d where
+  A0 :: Al rec k '[] '[]
+  Adel :: Atom rec a -> Al rec k s d -> Al rec k (a : s) d
+  Ains :: Atom rec a -> Al rec k s d -> Al rec k s (a : d)
+  AX :: k a a -> Al rec k s d -> Al rec k (a : s) (a : d)
 
-data AI (k :: * -> * -> *) s d where
-  A0 :: AI k '[] '[]
-  Adel :: a  -> AI k s d -> AI k (a : s) d
-  Ains :: a -> AI k s d -> AI k s (a : d)
-  AX :: k a b -> AI k s d -> AI k (a : s) (b : d)
-
--- instance TestEquality Eq where
---   testEquality a b = if a == b then Just Refl else Nothing
---
--- align :: (All Eq a, All Eq b) => HList a -> HList b -> [AI TrivialA a b]
--- align HNil HNil = return A0
--- align HNil (HCons b bs) = Ains b <$> align HNil bs
--- align (HCons a as) HNil = Adel a <$> align as HNil
--- align x@(HCons a as) y@(HCons b bs) = case a == b of
---   Just Refl -> (AX (AL a b) <$> align as bs) ++ (Adel a <$> align as (b .*. bs)) ++ (Ains b <$> align (a .*. as) bs)
---   Nothing -> (Adel a <$> align as (b .*. bs)) ++ (Ains b <$> align (a .*. as) bs)
-
-align :: AtomList a -> AtomList b -> [AI TrivialA a b]
+align :: AtomList a h -> AtomList a h' -> [Al a TrivialA h h']
 align ANil ANil = return A0
-align ANil (ACons b sb bs) = Ains (evalA b) <$> align ANil bs
-align (ACons a sa as) ANil = Adel (evalA a) <$> align as ANil
-align x@(ACons a sa as) y@(ACons b sb bs) = case testEquality sa sb of
-  Just Refl -> (AX (AL (evalA a) (evalA b)) <$> align as bs) ++ (Adel (evalA a) <$> align as (ACons b sb bs)) ++ (Ains (evalA b) <$> align (ACons a sa as) bs)
-  Nothing -> (Adel (evalA a) <$> align as (ACons b sb bs)) ++ (Ains (evalA b) <$> align (ACons a sa as) bs)
+align ANil (ACons b bs) = Ains b <$> align ANil bs
+align (ACons a as) ANil = Adel a <$> align as ANil
+align (ACons a as) (ACons b bs) = case testEquality a b of
+  Just Refl -> (AX (TA (evalA a) (evalA b)) <$> align as bs)
+            ++ (Adel a <$> align as (ACons b bs))
+            ++ (Ains b <$> align (ACons a as) bs)
+  Nothing -> (Adel a <$> align as (ACons b bs))
+          ++ (Ains b <$> align (ACons a as) bs)
 
 
-applyAI :: (All Eq s, All Eq d) => (forall a b . k a b -> a -> Maybe b) ->
-           AI k s d -> HList s -> Maybe (HList d)
-applyAI doK A0 HNil = Just HNil
-applyAI doK (AX p a) (HCons x xs) = do
+applyAl :: (forall e . k e e -> Atom a e -> Maybe (Atom a e)) ->
+           Al a k s d -> AtomList a s -> Maybe (AtomList a d)
+applyAl doK A0 ANil = Just ANil
+applyAl doK (AX p a) (ACons x xs) = do
   x' <- doK p x
-  xs' <- applyAI doK a xs
-  return (x' .*. xs')
-applyAI doK (Ains k a) xs = do
-  ys <- applyAI doK a xs
-  return (k .*. ys)
-applyAI doK (Adel k a) (HCons x xs) =
-  if x == k
-    then applyAI doK a xs
-    else Nothing
-
+  xs' <- applyAl doK a xs
+  return (x' `ACons` xs')
+applyAl doK (Ains k a) xs = do
+  ys <- applyAl doK a xs
+  return (k `ACons` ys)
+applyAl doK (Adel k a) (ACons x xs) = case testEquality x k of
+  Just Refl -> applyAl doK a xs
+  Nothing -> Nothing
 --- Patch
 
-type family Patch a where
-  Patch a = (a, a)
--- data Patch a where
---   Patch :: a -> a -> Patch (a, a)
+data Patch a = Trivial (a, a)
 
 diff :: a -> a -> Patch a
-diff x y = (x, y)
+diff x y = Trivial (x, y)
 
 apply :: (Eq a) => Patch a -> a -> Maybe a
-apply (x, y) z = if x == y then Just z
+apply (Trivial (x, y)) z = if x == y then Just z
                  else if x == z then Just y
                  else Nothing
 
--- data A where
---   AAI :: A
---   AAK :: Int -> A
---
--- type family EA a x where
---   EA AAI     x = x
---   EA (AAK k) x = k
---
--- data AList h :: * where
---   ALNil :: AList '[]
---   ALCons :: SA a -> AList l -> AList (a ': l)
---
--- data SA a where
---   SAAI :: SA 'AAI
---   SAAK :: a -> SA ('AAK a)
---
--- instance TestEquality SA where
---   testEquality SAAI SAAI = Just Refl
---   testEquality (SAAK x) (SAAK y) = if x == y then Just Refl else Nothing
---   testEquality _ _ = Nothing
--- data AAt p a where
---   AFix :: p -> AAt p AAI
---   ASet :: TrivialK k -> AAt p (AAK k)
-
--- applyAT :: (p -> a -> Maybe a) -> AAt p a -> SA a -> Maybe (SA a)
--- applyAT (Set k) x = applyK k x
--- applyAT doP (Fix p) x = doP p x
 -- Atoms
-data Atom a where
-  KInt :: Int -> Atom Int
-  I :: x -> Atom x
+data Atom a b where
+  KInt :: Int -> Atom a Int
+  I :: a -> Atom a a
 
-data AtomList h :: * where
-  ANil :: AtomList '[]
-  ACons :: Atom a -> SAtom b -> AtomList l -> AtomList (a ': l)
+evalA :: Atom a b -> b
+evalA (KInt i) = i
+evalA (I b) = b
 
-data SAtom a where
-  SI :: SAtom 'I
-  SKInt :: Int -> SAtom 'KInt
+data AtomList a h :: * where
+  ANil :: AtomList a '[]
+  ACons :: Atom a b -> AtomList a l -> AtomList a (b ': l)
 
-type family EvalA a where
-  EvalA (KInt k) = k
-  EvalA (I x) = x
+(.@.) :: Atom a b -> AtomList a l -> AtomList a (b ': l)
+(.@.) = ACons
+infixr 2 .@.
+infixr 2 `ACons`
 
-evalA :: Atom a -> a
-evalA (KInt k) = k
-evalA (I x) = x
+type SEAtom a = AtomList SExpr a
 
-instance TestEquality SAtom where
-  testEquality = sAtomEq
+toHList :: AtomList a b -> HList b
+toHList ANil = HNil
+toHList (a `ACons` b) = (evalA a) `HCons` toHList b
 
-sAtomEq :: SAtom a -> SAtom b -> Maybe (a :~: b)
-sAtomEq SI SI = Just Refl
-sAtomEq (SKInt x) (SKInt y) = if x == y then Just Refl else Nothing
-sAtomEq _ _ = Nothing
+instance TestEquality (Atom a) where
+  testEquality = eqAtom
+
+instance Show b => Show (Atom a b) where
+  show (KInt k) = show k
+  show (I a)    = show a
+
+instance Show (AtomList a '[]) where
+  show ANil = "[]"
+
+instance (Show (Atom a e), Show (AtomList a l)) => Show (AtomList a (e : l)) where
+  show (ACons x ANil) = show x ++ "]"
+  show (ACons x xs) = "[" ++ show x ++ ", " ++ show xs
+
+eqAtom :: Atom a b -> Atom a c -> Maybe (b :~: c)
+eqAtom (KInt i) (KInt j) = if i == j then Just Refl else Nothing
+eqAtom (I a) (I b) = Just Refl
+eqAtom _ _ = Nothing
 
 -- sAtomEq
-data At p (a :: *) (b :: *) where
-  Fix :: p -> At p a b
-  Set :: TrivialK k -> At p Int Int
+data At p a b where
+  Fix :: p -> At p a a
+  Set :: Patch Int -> At p k k
 
-type family TrivialK k where
-  TrivialK k = Patch Int
 
-applyK :: TrivialK k -> Int -> Maybe Int
+applyK :: Patch Int -> Int -> Maybe Int
 applyK = apply
 --
-applyAT :: (forall a b . p -> a -> Maybe b) -> At p a b -> a -> Maybe b
+applyAT :: (p -> Atom rec a -> Maybe (Atom rec a)) -> At p a a -> Atom rec a -> Maybe (Atom rec a)
 applyAT doP (Fix p) x = doP p x
-applyAT doP (Set k) x = applyK k x
+applyAT doP (Set k) (KInt x) = fmap KInt $ applyK k x
+applyAT _ _ _ = Nothing
 --
-data ALMu where
-  Spn :: SExprSpine ATMu (AI ATMu) -> ALMu
-  Ins :: (SSEC i) -> Ctx (TypeOf i) -> ALMu
-  Del :: (SSEC j) -> Ctx (TypeOf j) -> ALMu
+data ALMu ty where
+  Spn :: SExprSpine (ATMu ty) (Al ty (ATMu ty)) -> ALMu ty
+  Ins :: (SSEC i) -> Ctx (TypeOf i) -> ALMu ty
+  Del :: (SSEC j) -> Ctx (TypeOf j) -> ALMu ty
 
-type family ATMu :: * -> * -> * where
-  ATMu = At ALMu
+type ATMu ty = At (ALMu ty)
 
 data Ctx e where
-  -- Here :: ALMu -> HList (AllL p a) -> Ctx (I p ': a)
-  There :: a -> Ctx p -> Ctx (a ': p)
+  Here :: ALMu ty -> AllL k l -> Ctx (a ': l)
+  There :: Atom rec a -> Ctx p -> Ctx (a ': p)
 
--- applyAtMu = applyAT applyAlMu
+matchCtx :: Ctx c -> AtomList SExpr as -> Maybe (AtomList SExpr bs)
+matchCtx (There atmu al) (ACons a as) = matchCtx al as
+
 --
--- applyAlMu :: ALMu -> a -> Maybe b
--- applyAlMu (Spn s) x = applyS applyAtMu (applyAI applyAtMu) s x
+-- 
+-- applyAtMu :: Viewable e => ATMu e e e -> Atom e e -> Maybe (Atom e e)
+-- applyAtMu = applyAT applyAlMu
+-- -- -- --
+-- applyAlMu :: Viewable e =>  ALMu e -> Atom e e -> Maybe (Atom e e)
+-- applyAlMu (Spn s) x = fmap I $ applyS applyAtMu (applyAl _) s (evalA x)
+
+
+-- applyAlMu (Ins c d) x = undefined
+--
+-- applyALMuApp = applyAlMu (applyAT applyAlMu)
+
 -- insCtx :: Ctx p -> SExpr -> Maybe b
 -- insCtx (There atMu d) x = atMu
 -- Test
-a = Value (IVal 1)
-b = Value (IVal 1)
-c = Value (IVal 2)
-d = Value (IVal 2)
+a = Value (1)
+b = Value (1)
+c = Value (2)
+d = Value (2)
 sum1 = Add a b
 sum2 = Add c d
 square1 = Square a
+--
+--
+-- data A a where
+--   A1 :: Int -> A Int
+--
+-- data SA (a :: k -> A k) :: * where
+--   SA1 :: SA 'A1
+--
+-- type family EA (a :: SA k) x :: k x where
+--   EA SA1 x = x
