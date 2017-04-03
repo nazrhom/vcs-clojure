@@ -10,36 +10,38 @@ data SExpr where
   Value :: Int -> SExpr
   deriving (Eq, Show)
 
-data Val = IVal Int | BVal Bool
-  deriving (Eq, Show)
 
-data SEC =
+data Constr =
     CAdd
   | CSquare
   | CValue
   deriving (Eq, Show)
 
-data SSEC (c :: SEC) where
-  S_Add :: SSEC 'CAdd
-  S_Square :: SSEC 'CSquare
-  S_Value :: SSEC 'CValue
+data SExprConstr :: Constr -> * where
+  S_Add :: SExprConstr 'CAdd
+  S_Square :: SExprConstr 'CSquare
+  S_Value :: SExprConstr 'CValue
 
-deriving instance Eq (SSEC c)
-deriving instance Show (SSEC c)
+deriving instance Eq (SExprConstr c)
+deriving instance Show (SExprConstr c)
+
+-- type family TypeOf e where
+--   TypeOf CAdd = '[SExpr, SExpr]
+--   TypeOf CSquare = '[SExpr]
+--   TypeOf CValue = '[Int]
 
 
-instance TestEquality SSEC where
+instance TestEquality SExprConstr where
   testEquality S_Add S_Add = Just Refl
   testEquality S_Square S_Square = Just Refl
   testEquality S_Value S_Value = Just Refl
   testEquality _ _ = Nothing
 
-type family TypeOf e where
-  TypeOf CAdd = '[SExpr, SExpr]
-  TypeOf CSquare = '[SExpr]
-  TypeOf CValue = '[Int]
 
-type family UniverseOf a where
-  UniverseOf CAdd = SExpr
-  UniverseOf CSquare = SExpr
-  UniverseOf CValue = SExpr
+a = Value (1)
+b = Value (1)
+c = Value (2)
+d = Value (2)
+sum1 = Add a b
+sum2 = Add c d
+square1 = Square a

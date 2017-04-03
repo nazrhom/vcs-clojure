@@ -17,9 +17,10 @@ library
   hs-source-dirs:      src
   exposed-modules:     Parser
                      , PrettyPrint
-                     , Diff
-                     , HList
                      , Lang
+                     , RegularTypes
+                     , Apply
+                     , Diff
   build-depends:       base >= 4.7 && < 5
                      , parsec
                      , containers
