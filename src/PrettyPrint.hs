@@ -11,32 +11,45 @@ ppTop es = show $ vvcat $ map ppExpr es
     vvcat ds = vcat $ punctuate line ds
 
 ppExpr :: Expr -> Doc
-ppExpr (Special Quote e) = char '\'' <> ppExpr e
-ppExpr (Special SQuote e) = char '`' <> ppExpr e
-ppExpr (Special UnQuote e) = char '~' <> ppExpr e
-ppExpr (Special SUnQuote e) = text "~@" <> ppExpr e
-ppExpr (Special DeRef e) = char '@' <> ppExpr e
+ppExpr (Special fty e) = ppFormTy fty <> ppExpr e
 ppExpr (Dispatch e) = char '#' <> ppExpr e
-ppExpr (Collection Parens es) = parens $ ppSepExprList es
-ppExpr (Collection Vec es) = brackets $ ppSepExprList es
-ppExpr (Collection Set es) = braces $ ppSepExprList es
+ppExpr (Collection cty es) = ppCollType cty $ ppSepExprList es
 ppExpr (Comment s) = char ';' <> text s <> linebreak
 ppExpr (Term t) = ppTerm t
 
+
+ppCollType :: String -> (Doc -> Doc)
+ppCollType s = case s of
+  "Parens" -> parens
+  "Vec" -> brackets
+  "Set" -> braces
+  _     -> id
+ppFormTy :: String -> Doc
+ppFormTy s = case s of
+  "Quote" ->  char '\''
+  "SQuote" ->  char '`'
+  "UnQuote" ->  char '~'
+  "SUnQuote" ->  text "~@"
+  "DeRef" ->  char '@'
+  _ -> empty
+
 ppTerm :: Term -> Doc
-ppTerm (TaggedString String s) = dquotes $ text s
-ppTerm (TaggedString Metadata s) = char '^' <> text s
-ppTerm (TaggedString Var s) = text s
+ppTerm (TaggedString tag s) = case tag of
+  "String" -> dquotes $ text s
+  "Metadata" -> char '^' <> text s
+  "Var" -> text s
 
 ppSepExprList :: SepExprList -> Doc
 ppSepExprList Nil         = empty
 ppSepExprList (Singleton a) = ppExpr a
 ppSepExprList (Cons x sep xs) = ppExpr x <> ppSep sep <> ppSepExprList xs
 
-ppSep :: Sep -> Doc
-ppSep Comma = char ','
-ppSep Space = space
-ppSep NewLine = linebreak
+ppSep :: String -> Doc
+ppSep s = case s of
+  "Comma" -> char ','
+  "NewLine" -> space
+  "Space" ->linebreak
+  _    -> empty
 
 ppSepPair :: [Expr] -> Doc -> Doc
 ppSepPair xs sep = hsep $ punctuate sep (go xs)

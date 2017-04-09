@@ -23,32 +23,20 @@ infixr 2 `Ac`
 
 data U =
     KString
-  | KSep
   | KSepExprList
   | KExpr
-  | KFormTy
-  | KCollType
   | KTerm
-  | KTag
 
 data Usingl :: U -> * where
   UString :: String -> Usingl KString
-  USep :: Sep -> Usingl KSep
   USepExprList :: SepExprList -> Usingl KSepExprList
   UExpr :: Expr -> Usingl KExpr
-  UFormTy :: FormTy -> Usingl KFormTy
-  UCollType :: CollType -> Usingl KCollType
   UTerm :: Term -> Usingl KTerm
-  UTag :: Tag -> Usingl KTag
 
 data Constr :: * where
   C1Nil  :: Constr
   C1Singleton  :: Constr
   C1Cons :: Constr
-
-  C2Space :: Constr
-  C2Comma :: Constr
-  C2NewLine :: Constr
 
   C3Special  :: Constr
   C3Dispatch  :: Constr
@@ -56,33 +44,13 @@ data Constr :: * where
   C3Term  :: Constr
   C3Comment :: Constr
 
-  C4Quote :: Constr
-  C4SQuote :: Constr
-  C4UnQuote :: Constr
-  C4SUnQuote :: Constr
-  C4DeRef :: Constr
-
-  C5Vec :: Constr
-  C5Bindings :: Constr
-  C5Map :: Constr
-  C5Set :: Constr
-  C5Array :: Constr
-  C5Parens :: Constr
-
   C6TaggedString :: Constr
 
-  C7String :: Constr
-  C7Metadata :: Constr
-  C7Var :: Constr
 
 data ConstrFor :: U -> Constr -> * where
   C1NilProof :: ConstrFor  KSepExprList C1Nil
   C1SingletonProof :: ConstrFor  KSepExprList C1Singleton
   C1ConsProof :: ConstrFor KSepExprList C1Cons
-
-  C2SpaceProof :: ConstrFor KSep C2Space
-  C2CommaProof :: ConstrFor KSep C2Comma
-  C2NewLineProof :: ConstrFor KSep C2NewLine
 
   C3SpecialProof :: ConstrFor  KExpr C3Special
   C3DispatchProof :: ConstrFor  KExpr C3Dispatch
@@ -90,68 +58,28 @@ data ConstrFor :: U -> Constr -> * where
   C3TermProof :: ConstrFor  KExpr C3Term
   C3CommentProof :: ConstrFor KExpr C3Comment
 
-  C4QuoteProof :: ConstrFor KFormTy C4Quote
-  C4SQuoteProof :: ConstrFor KFormTy C4SQuote
-  C4UnQuoteProof :: ConstrFor KFormTy C4UnQuote
-  C4SUnQuoteProof :: ConstrFor KFormTy C4SUnQuote
-  C4DeRefProof :: ConstrFor KFormTy C4DeRef
-
-  C5VecProof :: ConstrFor KCollType C5Vec
-  C5BindingsProof :: ConstrFor KCollType C5Bindings
-  C5MapProof :: ConstrFor KCollType C5Map
-  C5SetProof :: ConstrFor KCollType C5Set
-  C5ArrayProof :: ConstrFor KCollType C5Array
-  C5ParensProof :: ConstrFor KCollType C5Parens
-
   C6TaggedStringProof :: ConstrFor KTerm C6TaggedString
 
-  C7StringProof :: ConstrFor KTag C7String
-  C7MetadataProof :: ConstrFor KTag C7Metadata
-  C7VarProof :: ConstrFor KTag C7Var
 
 
 type family TypeOf (c :: Constr) :: [U] where
   TypeOf C1Nil = '[]
   TypeOf C1Singleton = '[KExpr]
-  TypeOf C1Cons = '[KExpr, KSep, KSepExprList]
+  TypeOf C1Cons = '[KExpr, KString, KSepExprList]
 
-  TypeOf C2Space = '[]
-  TypeOf C2Comma = '[]
-  TypeOf C2NewLine = '[]
-
-  TypeOf C3Special = '[KFormTy, KExpr]
+  TypeOf C3Special = '[KString, KExpr]
   TypeOf C3Dispatch = '[KExpr]
-  TypeOf C3Collection = '[KCollType, KSepExprList]
+  TypeOf C3Collection = '[KString, KSepExprList]
   TypeOf C3Term = '[KTerm]
   TypeOf C3Comment = '[KString]
 
-  TypeOf C4Quote = '[]
-  TypeOf C4SQuote = '[]
-  TypeOf C4UnQuote = '[]
-  TypeOf C4SUnQuote = '[]
-  TypeOf C4DeRef = '[]
+  TypeOf C6TaggedString = '[KString, KString]
 
-  TypeOf C5Vec = '[]
-  TypeOf C5Bindings = '[]
-  TypeOf C5Map = '[]
-  TypeOf C5Set = '[]
-  TypeOf C5Array = '[]
-  TypeOf C5Parens = '[]
-
-  TypeOf C6TaggedString = '[KTag, KString]
-
-  TypeOf C7String = '[]
-  TypeOf C7Metadata = '[]
-  TypeOf C7Var = '[]
 
 class IsRecEl (u :: U) where
 instance IsRecEl KExpr where
 instance IsRecEl KSepExprList where
 instance IsRecEl KTerm where
-instance IsRecEl KSep where
-instance IsRecEl KCollType where
-instance IsRecEl KFormTy where
-instance IsRecEl KTag where
 instance {-# OVERLAPPABLE #-} (TypeError (Text "Not a recursive guy: " :<>: ShowType s))
          => IsRecEl s
 
@@ -160,99 +88,50 @@ inj :: ConstrFor r c -> All Usingl (TypeOf c) -> Usingl r
 inj C1NilProof An = USepExprList Nil
 inj C1SingletonProof (e `Ac` An) = USepExprList (Singleton (eval e))
 inj C1ConsProof (e `Ac` sep `Ac` sl `Ac` An) = USepExprList (Cons (eval e) (eval sep) (eval sl))
-inj C2SpaceProof An = USep Space
-inj C2CommaProof An = USep Comma
-inj C2NewLineProof An = USep NewLine
 inj C3SpecialProof (fty `Ac` e `Ac` An) = UExpr (Special (eval fty) (eval e))
 inj C3DispatchProof (e `Ac` An) = UExpr (Dispatch (eval e))
 inj C3CollectionProof (ct `Ac` sl `Ac` An) = UExpr (Collection (eval ct) (eval sl))
 inj C3TermProof (t `Ac` An) = UExpr (Term (eval t))
 inj C3CommentProof (c `Ac` An) = UExpr (Comment (eval c))
-inj C4QuoteProof An = UFormTy Quote
-inj C4SQuoteProof An = UFormTy SQuote
-inj C4UnQuoteProof An = UFormTy UnQuote
-inj C4SUnQuoteProof An = UFormTy SUnQuote
-inj C4DeRefProof An = UFormTy DeRef
-inj C5VecProof An = UCollType Vec
-inj C5BindingsProof An = UCollType Bindings
-inj C5MapProof An = UCollType Map
-inj C5SetProof An = UCollType Set
-inj C5ArrayProof An = UCollType Array
-inj C5ParensProof An = UCollType Parens
 inj C6TaggedStringProof (t `Ac` s `Ac` An) = UTerm (TaggedString (eval t) (eval s))
-inj C7StringProof An = UTag String
-inj C7MetadataProof An = UTag Metadata
-inj C7VarProof An = UTag Var
+
 
 type family El (u :: U) where
   El KString = String
-  El KSep = Sep
   El KSepExprList = SepExprList
   El KExpr = Expr
-  El KFormTy = FormTy
-  El KCollType = CollType
   El KTerm = Term
-  El KTag = Tag
 
 eval :: Usingl u -> El u
 eval (UString u) = u
-eval (USep u) = u
 eval (USepExprList u) = u
 eval (UExpr u) = u
-eval (UFormTy u) = u
-eval (UCollType u) = u
 eval (UTerm u) = u
-eval (UTag u) = u
 
 instance TestEquality (ConstrFor u) where
   testEquality C1NilProof C1NilProof = Just Refl
   testEquality C1SingletonProof C1SingletonProof = Just Refl
   testEquality C1ConsProof C1ConsProof = Just Refl
-  testEquality C2SpaceProof C2SpaceProof = Just Refl
-  testEquality C2CommaProof C2CommaProof = Just Refl
-  testEquality C2NewLineProof C2NewLineProof = Just Refl
   testEquality C3SpecialProof C3SpecialProof = Just Refl
   testEquality C3DispatchProof C3DispatchProof = Just Refl
   testEquality C3CollectionProof C3CollectionProof = Just Refl
   testEquality C3TermProof C3TermProof = Just Refl
   testEquality C3CommentProof C3CommentProof = Just Refl
-  testEquality C4QuoteProof C4QuoteProof = Just Refl
-  testEquality C4SQuoteProof C4SQuoteProof = Just Refl
-  testEquality C4UnQuoteProof C4UnQuoteProof = Just Refl
-  testEquality C4SUnQuoteProof C4SUnQuoteProof = Just Refl
-  testEquality C4DeRefProof C4DeRefProof = Just Refl
-  testEquality C5VecProof C5VecProof = Just Refl
-  testEquality C5BindingsProof C5BindingsProof = Just Refl
-  testEquality C5MapProof C5MapProof = Just Refl
-  testEquality C5SetProof C5SetProof = Just Refl
-  testEquality C5ArrayProof C5ArrayProof = Just Refl
-  testEquality C5ParensProof C5ParensProof = Just Refl
   testEquality C6TaggedStringProof C6TaggedStringProof = Just Refl
-  testEquality C7StringProof C7StringProof = Just Refl
-  testEquality C7MetadataProof C7MetadataProof = Just Refl
-  testEquality C7VarProof C7VarProof = Just Refl
   testEquality _ _ = Nothing
 
 instance TestEquality Usingl where
   testEquality (UString _) (UString _) = Just Refl
-  testEquality (USep _) (USep _) = Just Refl
   testEquality (USepExprList _) (USepExprList _) = Just Refl
   testEquality (UExpr _) (UExpr _) = Just Refl
-  testEquality (UFormTy _) (UFormTy _) = Just Refl
-  testEquality (UCollType _) (UCollType _) = Just Refl
   testEquality (UTerm _) (UTerm _) = Just Refl
-  testEquality (UTag _) (UTag _) = Just Refl
   testEquality _ _ = Nothing
 
 instance Eq (Usingl a) where
   (UString a) == (UString b) = a == b
-  (USep a) == (USep b) = a == b
   (USepExprList a) == (USepExprList b) = a == b
   (UExpr a) == (UExpr b) = a == b
-  (UFormTy a) == (UFormTy b) = a == b
-  (UCollType a) == (UCollType b) = a == b
   (UTerm a) == (UTerm b) = a == b
-  (UTag a) == (UTag b) = a == b
 
 data View u where
  Tag :: ConstrFor u c -> All Usingl (TypeOf c) -> View u
@@ -260,70 +139,36 @@ data View u where
 view :: IsRecEl r => Usingl r -> View r
 view (UExpr expr) = viewExpr expr
 view (USepExprList sepexprlist) = viewSepExprList sepexprlist
-view (USep sep) = viewSep sep
-view (UFormTy formty) = viewFormTy formty
-view (UCollType colltype) = viewCollType colltype
 view (UTerm term) = viewTerm term
-view (UTag tag) = viewTag tag
 
 viewSepExprList :: SepExprList -> View KSepExprList
 viewSepExprList Nil = Tag C1NilProof An
 viewSepExprList (Singleton e) = Tag C1SingletonProof (UExpr e .@. An)
-viewSepExprList (Cons e s sl) = Tag C1ConsProof (UExpr e .@. USep s .@. USepExprList sl .@. An)
+viewSepExprList (Cons e s sl) = Tag C1ConsProof (UExpr e .@. UString s .@. USepExprList sl .@. An)
 
-viewSep :: Sep -> View KSep
-viewSep Space = Tag C2SpaceProof An
-viewSep Comma = Tag C2CommaProof An
-viewSep NewLine = Tag C2NewLineProof An
 
 viewExpr :: Expr -> View KExpr
-viewExpr (Special fty e) = Tag C3SpecialProof (UFormTy fty .@. UExpr e .@. An)
+viewExpr (Special fty e) = Tag C3SpecialProof (UString fty .@. UExpr e .@. An)
 viewExpr (Dispatch e) = Tag C3DispatchProof  (UExpr e .@. An)
-viewExpr (Collection ct sl) = Tag C3CollectionProof (UCollType ct .@. USepExprList sl .@. An)
+viewExpr (Collection ct sl) = Tag C3CollectionProof (UString ct .@. USepExprList sl .@. An)
 viewExpr (Term t) = Tag C3TermProof (UTerm t .@. An)
 viewExpr (Comment c) = Tag C3CommentProof (UString c .@. An)
 
-viewFormTy :: FormTy -> View KFormTy
-viewFormTy Quote = Tag C4QuoteProof An
-viewFormTy SQuote = Tag C4SQuoteProof An
-viewFormTy UnQuote = Tag C4UnQuoteProof An
-viewFormTy SUnQuote = Tag C4SUnQuoteProof An
-viewFormTy DeRef = Tag C4DeRefProof An
-
-viewCollType :: CollType -> View KCollType
-viewCollType Vec = Tag C5VecProof An
-viewCollType Bindings = Tag C5BindingsProof An
-viewCollType Map = Tag C5MapProof An
-viewCollType Set = Tag C5SetProof An
-viewCollType Array = Tag C5ArrayProof An
-viewCollType Parens = Tag C5ParensProof An
 
 viewTerm :: Term -> View KTerm
-viewTerm (TaggedString t s) = Tag C6TaggedStringProof (UTag t .@. UString s .@. An)
+viewTerm (TaggedString t s) = Tag C6TaggedStringProof (UString t .@. UString s .@. An)
 
-viewTag :: Tag -> View KTag
-viewTag String = Tag C7StringProof An
-viewTag Metadata = Tag C7MetadataProof An
-viewTag Var = Tag C7VarProof An
 
 
 -- Utility
 type family Le (k :: *) :: U where
-  Le Sep = KSep
   Le SepExprList = KSepExprList
   Le Expr = KExpr
-  Le FormTy = KFormTy
-  Le CollType = KCollType
   Le Term = KTerm
-  Le Tag = KTag
 
 class Sing a where
   toSing :: a -> Usingl (Le a)
 
-instance Sing Sep where
-  toSing Space = USep Space
-  toSing Comma = USep Comma
-  toSing NewLine = USep NewLine
 instance Sing SepExprList where
   toSing Nil = USepExprList Nil
   toSing (Singleton e) = USepExprList (Singleton e)
@@ -334,32 +179,12 @@ instance Sing Expr where
   toSing (Collection ct sl) = UExpr (Collection ct sl)
   toSing (Term t) = UExpr (Term t)
   toSing (Comment c) = UExpr (Comment c)
-instance Sing FormTy where
-  toSing Quote = UFormTy Quote
-  toSing SQuote = UFormTy SQuote
-  toSing UnQuote = UFormTy UnQuote
-  toSing SUnQuote = UFormTy SUnQuote
-  toSing DeRef = UFormTy DeRef
-instance Sing CollType where
-  toSing Vec = UCollType Vec
-  toSing Bindings = UCollType Bindings
-  toSing Map = UCollType Map
-  toSing Set = UCollType Set
-  toSing Array = UCollType Array
-  toSing Parens = UCollType Parens
 instance Sing Term where
   toSing (TaggedString t s) = UTerm (TaggedString t s)
-instance Sing Tag where
-  toSing String = UTag String
-  toSing Metadata = UTag Metadata
-  toSing Var = UTag Var
+
 
 instance Show (Usingl u) where
   show (UString u) = show u
-  show (USep u) = show u
   show (USepExprList u) = show u
   show (UExpr u) = show u
-  show (UFormTy u) = show u
-  show (UCollType u) = show u
   show (UTerm u) = show u
-  show (UTag u) = show u

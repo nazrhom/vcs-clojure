@@ -15,13 +15,9 @@ diffAt :: (Monad m) => forall rec .
           (forall r . IsRecEl r => Usingl r -> Usingl r -> m (rec r))
        -> Usingl a -> Usingl a -> m (At rec a)
 diffAt diffR x@(UString i)   y@(UString j) = return $ As $ Contract (x, y)
-diffAt diffR x@(USep _) y@(USep _) = Ai <$> diffR x y
 diffAt diffR x@(USepExprList _) y@(USepExprList _) = Ai <$> diffR x y
 diffAt diffR x@(UExpr _) y@(UExpr _) = Ai <$> diffR x y
-diffAt diffR x@(UFormTy _) y@(UFormTy _) = Ai <$> diffR x y
-diffAt diffR x@(UCollType _) y@(UCollType _) = Ai <$> diffR x y
 diffAt diffR x@(UTerm _) y@(UTerm _) = Ai <$> diffR x y
-diffAt diffR x@(UTag _) y@(UTag _) = Ai <$> diffR x y
 
 
 diffS :: (IsRecEl a) => forall rec .
@@ -38,13 +34,9 @@ diffS diffR s1 s2 = mapSpineM (uncurry (diffAt diffR) . unContract) (uncurryPair
 diffInsCtx :: (IsRecEl v) => Usingl v -> All Usingl p -> [Ctx (AtmuPos v) p]
 diffInsCtx x An                     = []
 diffInsCtx x (at@(UString _)   `Ac` ats) = There at <$> diffInsCtx x ats
-diffInsCtx x (at@(USep _) `Ac` ats) = diffInsHelper x at ats
 diffInsCtx x (at@(USepExprList _) `Ac` ats) = diffInsHelper x at ats
 diffInsCtx x (at@(UExpr _) `Ac` ats) = diffInsHelper x at ats
-diffInsCtx x (at@(UFormTy _) `Ac` ats) = diffInsHelper x at ats
-diffInsCtx x (at@(UCollType _) `Ac` ats) = diffInsHelper x at ats
 diffInsCtx x (at@(UTerm _) `Ac` ats) = diffInsHelper x at ats
-diffInsCtx x (at@(UTag _) `Ac` ats) = diffInsHelper x at ats
 
 diffInsHelper :: (IsRecEl v, IsRecEl u) => Usingl v -> Usingl u -> All Usingl p -> [Ctx (AtmuPos v) (u ': p)]
 diffInsHelper x at ats =
@@ -54,13 +46,9 @@ diffInsHelper x at ats =
 diffDelCtx :: (IsRecEl v) => All Usingl p -> Usingl v -> [Ctx (AtmuNeg v) p]
 diffDelCtx An y = []
 diffDelCtx (at@(UString _) `Ac` ats) y = There at <$> diffDelCtx ats y
-diffDelCtx (at@(USep _) `Ac` ats) y = diffDelHelper at ats y
 diffDelCtx (at@(USepExprList _)  `Ac` ats) y = diffDelHelper at ats y
 diffDelCtx (at@(UExpr _)  `Ac` ats) y = diffDelHelper at ats y
-diffDelCtx (at@(UFormTy _) `Ac` ats) y = diffDelHelper at ats y
-diffDelCtx (at@(UCollType _) `Ac` ats) y = diffDelHelper at ats y
 diffDelCtx (at@(UTerm _) `Ac` ats) y = diffDelHelper at ats y
-diffDelCtx (at@(UTag _) `Ac` ats) y = diffDelHelper at ats y
 
 diffDelHelper :: (IsRecEl v, IsRecEl u) => Usingl u -> All Usingl p -> Usingl v -> [Ctx (AtmuNeg v) (u ': p)]
 diffDelHelper at ats y =
