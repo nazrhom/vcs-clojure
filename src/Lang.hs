@@ -10,7 +10,6 @@ data SExpr where
   Value :: Int -> SExpr
   deriving (Eq, Show)
 
-
 data Constr =
     CAdd
   | CSquare
@@ -25,18 +24,11 @@ data SExprConstr :: Constr -> * where
 deriving instance Eq (SExprConstr c)
 deriving instance Show (SExprConstr c)
 
--- type family TypeOf e where
---   TypeOf CAdd = '[SExpr, SExpr]
---   TypeOf CSquare = '[SExpr]
---   TypeOf CValue = '[Int]
-
-
 instance TestEquality SExprConstr where
   testEquality S_Add S_Add = Just Refl
   testEquality S_Square S_Square = Just Refl
   testEquality S_Value S_Value = Just Refl
   testEquality _ _ = Nothing
-
 
 a = Value (1)
 b = Value (1)
@@ -45,3 +37,5 @@ d = Value (2)
 sum1 = Add a b
 sum2 = Add c d
 square1 = Square a
+sum3 = Add sum1 sum2
+sum4 = Add sum2 square1

@@ -28,3 +28,6 @@ test/repos/*
 
 # scripts dependencies
 scripts/node_modules
+
+# bibliography
+papers

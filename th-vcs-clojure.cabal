@@ -21,6 +21,11 @@ library
                      , RegularTypes
                      , Apply
                      , Diff
+                     , Lib
+                     , MultiRec
+                     , ApplyMultiRec
+                     , DiffMultiRec
+                     , LangRec
   build-depends:       base >= 4.7 && < 5
                      , parsec
                      , containers
