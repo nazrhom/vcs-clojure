@@ -17,21 +17,21 @@ ppExpr (Special UnQuote e) = char '~' <> ppExpr e
 ppExpr (Special SUnQuote e) = text "~@" <> ppExpr e
 ppExpr (Special DeRef e) = char '@' <> ppExpr e
 ppExpr (Dispatch e) = char '#' <> ppExpr e
-ppExpr (Collection Parens es) = parens $ ppSepList es
-ppExpr (Collection Vec es) = brackets $ ppSepList es
-ppExpr (Collection Set es) = braces $ ppSepList es
+ppExpr (Collection Parens es) = parens $ ppSepExprList es
+ppExpr (Collection Vec es) = brackets $ ppSepExprList es
+ppExpr (Collection Set es) = braces $ ppSepExprList es
 ppExpr (Comment s) = char ';' <> text s <> linebreak
 ppExpr (Term t) = ppTerm t
 
 ppTerm :: Term -> Doc
 ppTerm (TaggedString String s) = dquotes $ text s
 ppTerm (TaggedString Metadata s) = char '^' <> text s
-ppTerm (TaggedString Var s) = text s 
+ppTerm (TaggedString Var s) = text s
 
-ppSepList :: SepList Expr -> Doc
-ppSepList Nil         = empty
-ppSepList (Singleton a) = ppExpr a
-ppSepList (Cons x sep xs) = ppExpr x <> ppSep sep <> ppSepList xs
+ppSepExprList :: SepExprList -> Doc
+ppSepExprList Nil         = empty
+ppSepExprList (Singleton a) = ppExpr a
+ppSepExprList (Cons x sep xs) = ppExpr x <> ppSep sep <> ppSepExprList xs
 
 ppSep :: Sep -> Doc
 ppSep Comma = char ','

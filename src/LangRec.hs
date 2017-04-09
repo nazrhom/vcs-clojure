@@ -10,29 +10,7 @@ module LangRec where
 
 import Data.Type.Equality hiding (apply)
 import GHC.TypeLits (ErrorMessage(..), TypeError)
-
---- Parser
-
-data SepExprList = Nil | Singleton Expr | Cons Expr Sep SepExprList deriving (Show, Eq) -- 1
-
-data Sep = Space | Comma | NewLine deriving (Show, Eq) -- 2
-
-data Expr = Special FormTy Expr
-          | Dispatch Expr
-          | Collection CollType SepExprList
-          | Term Term
-          | Comment String
-          deriving (Show, Eq) -- 3
-
--- ref: https://8thlight.com/blog/colin-jones/2012/05/22/quoting-without-confusion.html
-data FormTy = Quote | SQuote | UnQuote | SUnQuote | DeRef deriving (Show, Eq) -- 4
-
-data CollType = Vec | Bindings | Map | Set | Array | Parens deriving (Show, Eq) -- 5
-
-data Term = TaggedString Tag String -- 6
-          deriving (Show, Eq)
-
-data Tag = String | Metadata | Var  deriving (Show, Eq) -- 7
+import Parser
 -- UNIVERSE
 data All (p :: k -> *) :: [k] -> * where
   An :: All p '[]
@@ -288,7 +266,6 @@ view (UCollType colltype) = viewCollType colltype
 view (UTerm term) = viewTerm term
 view (UTag tag) = viewTag tag
 
-
 viewSepExprList :: SepExprList -> View KSepExprList
 viewSepExprList Nil = Tag C1NilProof An
 viewSepExprList (Singleton e) = Tag C1SingletonProof (UExpr e .@. An)
@@ -328,3 +305,61 @@ viewTag :: Tag -> View KTag
 viewTag String = Tag C7StringProof An
 viewTag Metadata = Tag C7MetadataProof An
 viewTag Var = Tag C7VarProof An
+
+
+-- Utility
+type family Le (k :: *) :: U where
+  Le Sep = KSep
+  Le SepExprList = KSepExprList
+  Le Expr = KExpr
+  Le FormTy = KFormTy
+  Le CollType = KCollType
+  Le Term = KTerm
+  Le Tag = KTag
+
+class Sing a where
+  toSing :: a -> Usingl (Le a)
+
+instance Sing Sep where
+  toSing Space = USep Space
+  toSing Comma = USep Comma
+  toSing NewLine = USep NewLine
+instance Sing SepExprList where
+  toSing Nil = USepExprList Nil
+  toSing (Singleton e) = USepExprList (Singleton e)
+  toSing (Cons e s sl) = USepExprList (Cons e s sl)
+instance Sing Expr where
+  toSing (Special fty e) = UExpr (Special fty e)
+  toSing (Dispatch e) = UExpr (Dispatch e)
+  toSing (Collection ct sl) = UExpr (Collection ct sl)
+  toSing (Term t) = UExpr (Term t)
+  toSing (Comment c) = UExpr (Comment c)
+instance Sing FormTy where
+  toSing Quote = UFormTy Quote
+  toSing SQuote = UFormTy SQuote
+  toSing UnQuote = UFormTy UnQuote
+  toSing SUnQuote = UFormTy SUnQuote
+  toSing DeRef = UFormTy DeRef
+instance Sing CollType where
+  toSing Vec = UCollType Vec
+  toSing Bindings = UCollType Bindings
+  toSing Map = UCollType Map
+  toSing Set = UCollType Set
+  toSing Array = UCollType Array
+  toSing Parens = UCollType Parens
+instance Sing Term where
+  toSing (TaggedString t s) = UTerm (TaggedString t s)
+instance Sing Tag where
+  toSing String = UTag String
+  toSing Metadata = UTag Metadata
+  toSing Var = UTag Var
+
+instance Show (Usingl u) where
+  show (UString u) = show u
+  show (USep u) = show u
+  show (USepExprList u) = show u
+  show (UExpr u) = show u
+  show (UFormTy u) = show u
+  show (UCollType u) = show u
+  show (UTerm u) = show u
+  show (UTag u) = show u

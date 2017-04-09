@@ -2,19 +2,27 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE TypeOperators #-}
 
 module DiffMultiRec where
 
 import ApplyMultiRec
 import MultiRec
+import LangRec
 import Data.Type.Equality hiding (apply)
 
 diffAt :: (Monad m) => forall rec .
           (forall r . IsRecEl r => Usingl r -> Usingl r -> m (rec r))
        -> Usingl a -> Usingl a -> m (At rec a)
-diffAt diffR x@(Uint i)   y@(Uint j) = return $ As $ Contract (x, y)
-diffAt diffR x@(Usexpr _) y@(Usexpr _) = Ai <$> diffR x y
-diffAt diffR x@(UsexprL _) y@(UsexprL _) = Ai <$> diffR x y
+diffAt diffR x@(UString i)   y@(UString j) = return $ As $ Contract (x, y)
+diffAt diffR x@(USep _) y@(USep _) = Ai <$> diffR x y
+diffAt diffR x@(USepExprList _) y@(USepExprList _) = Ai <$> diffR x y
+diffAt diffR x@(UExpr _) y@(UExpr _) = Ai <$> diffR x y
+diffAt diffR x@(UFormTy _) y@(UFormTy _) = Ai <$> diffR x y
+diffAt diffR x@(UCollType _) y@(UCollType _) = Ai <$> diffR x y
+diffAt diffR x@(UTerm _) y@(UTerm _) = Ai <$> diffR x y
+diffAt diffR x@(UTag _) y@(UTag _) = Ai <$> diffR x y
+
 
 diffS :: (IsRecEl a) => forall rec .
          (forall r . IsRecEl r => Usingl r -> Usingl r -> [rec r])
@@ -29,24 +37,37 @@ diffS diffR s1 s2 = mapSpineM (uncurry (diffAt diffR) . unContract) (uncurryPair
 
 diffInsCtx :: (IsRecEl v) => Usingl v -> All Usingl p -> [Ctx (AtmuPos v) p]
 diffInsCtx x An                     = []
-diffInsCtx x (at@(Uint _)   `Ac` ats) = There at <$> diffInsCtx x ats
-diffInsCtx x (at@(Usexpr _) `Ac` ats) =
-     (flip Here ats <$> fmap FixPos (diffAlmu x at))
-  ++ (There at <$> diffInsCtx x ats)
-diffInsCtx x (at@(UsexprL _) `Ac` ats) =
-     (flip Here ats <$> fmap FixPos (diffAlmu x at))
+diffInsCtx x (at@(UString _)   `Ac` ats) = There at <$> diffInsCtx x ats
+diffInsCtx x (at@(USep _) `Ac` ats) = diffInsHelper x at ats
+diffInsCtx x (at@(USepExprList _) `Ac` ats) = diffInsHelper x at ats
+diffInsCtx x (at@(UExpr _) `Ac` ats) = diffInsHelper x at ats
+diffInsCtx x (at@(UFormTy _) `Ac` ats) = diffInsHelper x at ats
+diffInsCtx x (at@(UCollType _) `Ac` ats) = diffInsHelper x at ats
+diffInsCtx x (at@(UTerm _) `Ac` ats) = diffInsHelper x at ats
+diffInsCtx x (at@(UTag _) `Ac` ats) = diffInsHelper x at ats
+
+diffInsHelper :: (IsRecEl v, IsRecEl u) => Usingl v -> Usingl u -> All Usingl p -> [Ctx (AtmuPos v) (u ': p)]
+diffInsHelper x at ats =
+  (flip Here ats <$> fmap FixPos (diffAlmu x at))
   ++ (There at <$> diffInsCtx x ats)
 
 diffDelCtx :: (IsRecEl v) => All Usingl p -> Usingl v -> [Ctx (AtmuNeg v) p]
 diffDelCtx An y = []
-diffDelCtx (at@(Uint _) `Ac` ats) y = There at <$> diffDelCtx ats y
-diffDelCtx (at@(Usexpr _)   `Ac` ats) y =
-     (flip Here ats <$> fmap FixNeg (diffAlmu at y))
+diffDelCtx (at@(UString _) `Ac` ats) y = There at <$> diffDelCtx ats y
+diffDelCtx (at@(USep _) `Ac` ats) y = diffDelHelper at ats y
+diffDelCtx (at@(USepExprList _)  `Ac` ats) y = diffDelHelper at ats y
+diffDelCtx (at@(UExpr _)  `Ac` ats) y = diffDelHelper at ats y
+diffDelCtx (at@(UFormTy _) `Ac` ats) y = diffDelHelper at ats y
+diffDelCtx (at@(UCollType _) `Ac` ats) y = diffDelHelper at ats y
+diffDelCtx (at@(UTerm _) `Ac` ats) y = diffDelHelper at ats y
+diffDelCtx (at@(UTag _) `Ac` ats) y = diffDelHelper at ats y
+
+diffDelHelper :: (IsRecEl v, IsRecEl u) => Usingl u -> All Usingl p -> Usingl v -> [Ctx (AtmuNeg v) (u ': p)]
+diffDelHelper at ats y =
+  (flip Here ats <$> fmap FixNeg (diffAlmu at y))
   ++ (There at <$> diffDelCtx ats y)
-diffDelCtx (at@(UsexprL _)   `Ac` ats) y =
-     (flip Here ats <$> fmap FixNeg (diffAlmu at y))
-  ++ (There at <$> diffDelCtx ats y)
---
+
+
 diffAlmu :: (IsRecEl u, IsRecEl v) => Usingl u -> Usingl v -> [Almu u v]
 diffAlmu x y = diffMod x y ++ diffIns x y ++ diffDel x y
   where
@@ -71,11 +92,40 @@ diffAlmu x y = diffMod x y ++ diffIns x y ++ diffDel x y
 uncurryPair :: (All Usingl s -> All Usingl d -> [Al rec s d])
             -> TrivialP s d -> [Al rec s d]
 uncurryPair f (Pair l r) = f l r
---
--- almus :: [Almu]
--- almus = diffAlmu (Ui sum1) (Ui sum2)
 
-list = SCons testval (SCons testval SNil )
-testval = Value 1
-add = Operation testval testval
-almus = diffAlmu (UsexprL list) (Usexpr add)
+allTheSame :: (Eq a) => [a] -> Bool
+allTheSame xs = and $ map (== head xs) (tail xs)
+
+
+-- TESTS
+
+
+-- list1 = SCons testval1 (SCons testval2 SNil)
+-- list2 = SCons testval2 (SCons testval1 SNil)
+-- testval1 = Value 0
+-- testval2 = Value 1
+-- op1 = Operation testval1 testval2
+-- op2 = Operation testval2 testval1
+--
+-- oplist1 = Operation (List list1) (List list1)
+-- listop1 = SCons op1 (SCons op1 SNil)
+--
+-- oplist2 = Operation (List list1) (List list2)
+-- listop2 = SCons op1 (SCons op2 SNil)
+--
+-- oplist3 = Operation (List listop2) (List listop1)
+-- listop3 = SCons oplist1 (SCons oplist2 SNil)
+--
+-- almus1 = diffAlmu (UsexprL list1) (Usexpr op1)
+-- almus2 = diffAlmu (Usexpr oplist1) (UsexprL listop2)
+-- almus3 = diffAlmu (Usexpr oplist2) (UsexprL listop2)
+-- almus4 = diffAlmu (UsexprL listop3) (Usexpr oplist3)
+-- almus5 = diffAlmu (UsexprL list1) (Usexpr oplist1)
+-- almus6 = diffAlmu (Usexpr oplist2) (UsexprL listop3)
+--
+-- patches1 = map (flip applyAlmu (UsexprL list1)) almus1
+-- patches2 = map (flip applyAlmu (Usexpr oplist1)) almus2
+-- patches3 = map (flip applyAlmu (Usexpr oplist2)) almus3
+-- patches4 = map (flip applyAlmu (UsexprL listop3)) almus4
+-- patches5 = map (flip applyAlmu (UsexprL list1)) almus5
+-- patches6 = map (flip applyAlmu (Usexpr oplist2)) almus6

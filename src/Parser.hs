@@ -1,4 +1,3 @@
-{-#LANGUAGE DataKinds#-}
 module Parser
     ( parseTop
     , parse
@@ -10,7 +9,7 @@ module Parser
     , CollType(..)
     , Term(..)
     , Tag(..)
-    , SepList(..)
+    , SepExprList(..)
     , Sep(..)
     ) where
 
@@ -19,13 +18,13 @@ import Text.Parsec.Token
 import Text.Parsec.Language
 import Data.Char hiding (Space)
 
-data SepList a = Nil | Singleton a | Cons a Sep (SepList a) deriving (Show, Eq)
+data SepExprList = Nil | Singleton Expr | Cons Expr Sep SepExprList deriving (Show, Eq)
 
 data Sep = Space | Comma | NewLine deriving (Show, Eq)
 
 data Expr = Special FormTy Expr
           | Dispatch Expr
-          | Collection CollType (SepList Expr)
+          | Collection CollType (SepExprList)
           | Term Term
           | Comment String
           deriving (Show, Eq)
@@ -87,20 +86,20 @@ parseDispatch = Dispatch <$ char '#' <*> parseDispatchable
 
 parseComment = Comment <$ char ';' <*> manyTill anyChar (string "\n")
 
-parseParens = Collection <$> pure Parens <*> parens lexer parseSepList
+parseParens = Collection <$> pure Parens <*> parens lexer parseSepExprList
 
-parseSet = Collection <$> pure Set <*> braces lexer parseSepList
+parseSet = Collection <$> pure Set <*> braces lexer parseSepExprList
 
-parseVec = Collection <$> pure Vec <*> brackets lexer parseSepList
+parseVec = Collection <$> pure Vec <*> brackets lexer parseSepExprList
 
-parseSepList = try parseSepList1 <|> parseSingleton <|> return Nil
+parseSepExprList = try parseSepExprList1 <|> parseSingleton <|> return Nil
 
 parseSingleton = Singleton <$> parseExpr
 
-parseSepList1 = do
+parseSepExprList1 = do
   x <- parseExpr
   sep <- parseSep
-  xs <- parseSepList
+  xs <- parseSepExprList
   return $ Cons x sep xs
 
 parseSep = choice

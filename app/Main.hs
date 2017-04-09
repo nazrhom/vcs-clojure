@@ -5,24 +5,36 @@ import PrettyPrint
 
 import System.IO
 import Options.Applicative
-import Data.Monoid 
+import Data.Monoid
+import DiffMultiRec
+import LangRec
+import ApplyMultiRec
 
 main :: IO ()
 main = do
   opts <- execParser optsHelper
-  f <- readFile (inFile opts)
-  case parse parseTop (inFile opts) f of
-    Left err -> putStrLn $ show err
-    Right t -> do
-      putStrLn $ "Parse Output: \n" ++ show t
-      setHandle (outFile opts) $ flip hPutStrLn $ ppTop t
-      case parse parseTop "" (ppTop t) of
-        Left err -> putStrLn $ "Couldn't reparse" ++ show err
-        Right t1 -> putStrLn $ "Parse == Reparse " ++ show (t == t1)
+  s <- readFile (srcFile opts)
+  src <- parseAndPop (srcFile opts) s
+  putStrLn $ "Parse Output: \n" ++ show src
+
+  d <- readFile (dstFile opts)
+  dst <- parseAndPop (dstFile opts) d
+
+
+  let almus = diffAlmu (toSing src) (toSing dst)
+  let patches = map (flip applyAlmu (toSing src)) almus
+  putStrLn $ "All the same? " ++ show (allTheSame patches)
+  putStrLn $ show $ applyAlmu (head almus) (toSing src)
+
+parseAndPop :: String -> String -> IO Expr
+parseAndPop name src = case parse parseTop name src of
+  Left err -> error $ show err
+  Right s' -> return $ head s'
 
 data Opts = Opts
-  { outFile :: Maybe String
-  , inFile :: String
+  {
+    srcFile :: String
+  , dstFile :: String
   }
 
 setHandle :: Maybe String -> (Handle -> IO a) -> IO a
@@ -31,19 +43,17 @@ setHandle (Just path) act = withFile path WriteMode act
 
 opts :: Parser Opts
 opts = Opts
-  <$> optional
-    ( strOption
-      (  long "output"
-      <> short 'o'
-      <> metavar "OUT_TARGET"
-      <> help "Output file"
-      )
+  <$> strOption
+    (  long "soure"
+    <> short 's'
+    <> metavar "SRC_TARGET"
+    <> help "Source file"
     )
   <*> strOption
-    (  long "input"
-    <> short 'i'
-    <> metavar "IN_TARGET"
-    <> help "Input file"
+    (  long "destination"
+    <> short 'd'
+    <> metavar "DST_TARGET"
+    <> help "Destination file"
     )
 
 optsHelper :: ParserInfo Opts

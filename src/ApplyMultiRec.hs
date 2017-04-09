@@ -10,6 +10,7 @@ module ApplyMultiRec where
 import Data.Type.Equality hiding (apply)
 
 import MultiRec
+import LangRec
 import Debug.Trace
 
 applyS :: IsRecEl r => (forall a . at a -> Usingl a -> Maybe (Usingl a))
@@ -85,13 +86,3 @@ applyAlmu (Aldel constr ctx) x = case view x of
   (Tag c1 p1) -> case testEquality constr c1 of
     Just Refl -> ctxDel ctx p1
     Nothing -> trace ("applyAlmu failing.")  Nothing
---
--- insCtx :: Ctx p -> Usingl KI -> Maybe (All Usingl p)
--- insCtx (There atmu ctx) x = Ac atmu <$> insCtx ctx x
--- insCtx (Here spmu atmus) x = do
---   h <- applyAlmu spmu x
---   return (h .@. atmus)
---
--- delCtx :: Ctx p -> All Usingl p -> Maybe (Usingl KI)
--- delCtx (Here  spmu atmus) (x  `Ac` p) = applyAlmu spmu x
--- delCtx (There atmu ctx)   (at `Ac` p) = delCtx ctx p
