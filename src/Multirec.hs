@@ -12,7 +12,7 @@ module Multirec where
 import Data.Kind
 import Data.Type.Equality hiding (apply)
 import Control.Applicative
-import LangRec
+import Lang
 
 import Parser
 
@@ -84,19 +84,6 @@ spine x y | otherwise = case (view x, view y) of
 data Phase
   = I | M | D
   deriving (Eq , Show)
-
-(===) :: Usingl s1 -> Usingl s2 -> Maybe (s1 :~: s2)
-
-(===) (UString _) (UString _) = Just Refl
-(===) (USep _) (USep _) = Just Refl
-(===) (USepExprList _) (USepExprList _) = Just Refl
-(===) (UExpr _) (UExpr _) = Just Refl
-(===) (UFormTy _) (UFormTy _) = Just Refl
-(===) (UCollType _) (UCollType _) = Just Refl
-(===) (UTerm _) (UTerm _) = Just Refl
-(===) (UTag _) (UTag _) = Just Refl
-(===) _ _ = Nothing
-
 
 align :: All Usingl p1 -> All Usingl p2 -> [Al TrivialA p1 p2]
 align = alignOpt M

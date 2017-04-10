@@ -1,59 +1,97 @@
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE TypeOperators #-}
+-- {-# LANGUAGE ScopedTypeVariables #-}
 module Diff where
 
-import Lang
 import Apply
-import RegularTypes
+import Multirec
+import Lang
 import Data.Type.Equality hiding (apply)
 
-diffAt :: Monad m => forall rec . (Usingl KI -> Usingl KI -> m rec)
-       -> Usingl a -> Usingl a -> m (At rec a)
-diffAt diffR x@(Uint i) y@(Uint j) = return $ As $ Contract (x, y)
-diffAt diffR x@(Ui a)   y@(Ui b)   = Ai <$> diffR x y
+diffAt :: (Monad m) => forall rec .
+          (forall r . IsRecEl r => Phase -> Usingl r -> Usingl r -> m (rec r))
+       -> Phase -> Usingl a -> Usingl a -> m (At rec a)
+diffAt f d x = onRecursiveGuy (\y -> Ai <$> (f d x y))
+                              (\ny -> return (As (Contract (x , ny))))
 
-diffS :: forall rec . (Usingl KI -> Usingl KI -> [rec])
-      -> Usingl KI -> Usingl KI -> [Spine (At rec) (Al (At rec))]
-diffS diffR s1 s2 = mapSpineM (uncurry (diffAt diffR) . unContract) (uncurryPair $ alignP diffR) (spine s1 s2)
+
+diffS :: (IsRecEl a) => forall rec .
+         (forall r . IsRecEl r => Phase -> Usingl r -> Usingl r -> [rec r])
+      -> Phase -> Usingl a -> Usingl a -> [Spine (At rec) (Al (At rec)) a]
+diffS diffR d s1 s2
+  = mapSpineM (uncurry (diffAt diffR d) . unContract)
+              (uncurryPair $ alignP diffR d)
+              (spine s1 s2)
   where
-    alignP :: (Usingl KI -> Usingl KI -> [rec])
-           -> All Usingl s -> All Usingl d -> [Al (At rec) s d]
-    alignP diffR p1 p2 = do
+    alignP :: (forall r . IsRecEl r => Phase -> Usingl r -> Usingl r -> [rec r])
+           -> Phase -> All Usingl s -> All Usingl d -> [Al (At rec) s d]
+    alignP diffR d p1 p2 = do
       al <- align p1 p2
-      mapAlM (uncurry (diffAt diffR) . unContract) al
+      mapAlM (uncurry (diffAt diffR d) . unContract) al
 
-diffInsCtx :: Usingl KI -> All Usingl p -> [Ctx p]
-diffInsCtx x An                     = []
-diffInsCtx x (at@(Uint _) `Ac` ats) = There at <$> diffInsCtx x ats
-diffInsCtx x (at@(Ui _)   `Ac` ats) = (flip Here ats <$> diffAlmu x at)
-                                ++ (There at <$> diffInsCtx x ats)
+data IsRecGuy (u :: k) :: * where
+  IsRecGuy :: (IsRecEl u) => IsRecGuy u
 
-diffDelCtx :: All Usingl p -> Usingl KI -> [Ctx p]
-diffDelCtx An y = []
-diffDelCtx (at@(Uint _) `Ac` ats) y = There at <$> diffDelCtx ats y
-diffDelCtx (at@(Ui _)   `Ac` ats) y = (flip Here ats <$> diffAlmu at y)
-                                ++ (There at <$> diffDelCtx ats y)
+onRecursiveGuy :: ((IsRecEl v) => Usingl v -> a) -> (Usingl v -> a) -> Usingl v -> a
+onRecursiveGuy rec nonrec at@(Uint _)   = nonrec at
+onRecursiveGuy rec nonrec at@(Usexpr _) = rec at
+onRecursiveGuy rec nonrec at@(UsexprL _) = rec at
 
-diffAlmu :: Usingl KI -> Usingl KI -> [Almu]
-diffAlmu x y = diffMod x y ++ diffIns x y ++ diffDel x y
+diffInsCtx :: (IsRecEl v) => Usingl v -> All Usingl p -> [Ctx (AtmuPos v) p]
+diffInsCtx x An = []
+diffInsCtx x (y `Ac` ay)
+  = onRecursiveGuy (rec x ay) (nonrec x ay) y
   where
-    diffMod :: Usingl KI -> Usingl KI -> [Almu]
-    diffMod s1 s2 = Alspn <$> diffS diffAlmu s1 s2
+    rec :: (IsRecEl u , IsRecEl v) => Usingl v -> All Usingl p
+        -> Usingl u -> [Ctx (AtmuPos v) (u ': p)]
+    rec x ys y = ((\r -> Here (FixPos r) ys) <$> diffAlmu I x y)
+              ++ nonrec x ys y
 
-    diffIns :: Usingl KI -> Usingl KI -> [Almu]
-    diffIns x s = case view s of
-      (Tag c p) -> Alins c <$> diffInsCtx x p
+    nonrec :: (IsRecEl v) => Usingl v -> All Usingl p
+           -> Usingl u -> [Ctx (AtmuPos v) (u ': p)]
+    nonrec x ys y = There y <$> diffInsCtx x ys
 
-    diffDel :: Usingl KI -> Usingl KI -> [Almu]
-    diffDel s x = case (view s) of
-      (Tag c p) -> Aldel c <$> diffDelCtx p x
+diffDelCtx :: (IsRecEl v) => All Usingl p -> Usingl v -> [Ctx (AtmuNeg v) p]
+diffDelCtx An x = []
+diffDelCtx (y `Ac` ay) x
+  = onRecursiveGuy (rec x ay) (nonrec x ay) y
+  where
+    rec :: (IsRecEl u , IsRecEl v) => Usingl v -> All Usingl p
+        -> Usingl u -> [Ctx (AtmuNeg v) (u ': p)]
+    rec x ys y = ((\r -> Here (FixNeg r) ys) <$> diffAlmu D y x)
+              ++ nonrec x ys y
+
+    nonrec :: (IsRecEl v) => Usingl v -> All Usingl p
+           -> Usingl u -> [Ctx (AtmuNeg v) (u ': p)]
+    nonrec x ys y = There y <$> diffDelCtx ys x
+
+diffAlmu :: (IsRecEl u, IsRecEl v) => Phase -> Usingl u -> Usingl v -> [Almu u v]
+diffAlmu M x y = diffMod x y ++ diffIns x y ++ diffDel x y
+diffAlmu I x y = diffMod x y ++ diffIns x y
+diffAlmu D x y = diffMod x y ++ diffDel x y
+
+diffMod :: (IsRecEl u, IsRecEl v) => Usingl u -> Usingl v -> [Almu u v]
+diffMod s1 s2 = case testEquality s1 s2 of
+  Just Refl -> Alspn <$> diffS (\p -> toH (diffAlmu p)) M s1 s2
+  Nothing -> []
+
+toH :: (IsRecEl u) => (Usingl u -> Usingl u -> [Almu u u]) -> Usingl u -> Usingl u -> [AlmuH u]
+toH f x y = AlmuH <$> f x y
+
+diffIns :: (IsRecEl u, IsRecEl v) =>  Usingl u -> Usingl v -> [Almu u v]
+diffIns x s = case view s of
+  (Tag c p) -> Alins c <$> diffInsCtx x p
+
+diffDel :: (IsRecEl u, IsRecEl v) =>  Usingl u -> Usingl v -> [Almu u v]
+diffDel s x = case (view s) of
+  (Tag c p) -> Aldel c <$> diffDelCtx p x
+
 --- Utility
-
+--
 uncurryPair :: (All Usingl s -> All Usingl d -> [Al rec s d])
             -> TrivialP s d -> [Al rec s d]
 uncurryPair f (Pair l r) = f l r
-
-almus :: [Almu]
-almus = diffAlmu (Ui sum1) (Ui sum2)
