@@ -150,9 +150,6 @@ instance Eq (Usingl a) where
  (Ui a)     == (Ui b)     = a == b
  -- _          == _          = False
 
-recEq :: Usingl KI -> Usingl KI -> Bool
-recEq (Ui a) (Ui b) = a == b
-
 instance Show a => Show (Spine (At a) (Al (At a))) where
  show Scp          = "Scp"
  show (Scns i p)   = "Scns " ++ show i ++ " " ++ show p

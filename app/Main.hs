@@ -6,59 +6,30 @@ import PrettyPrint
 import System.IO
 import Options.Applicative
 import Data.Monoid
-import DiffMultiRec
-import LangRec
-import ApplyMultiRec
-import Multirec
+import Diff
+import Lang
+import Apply
+import RegularTypes
 
 main :: IO ()
 main = do
-  opts <- execParser optsHelper
-  s <- readFile (srcFile opts)
-  src <- parseAndPop (srcFile opts) s
-  putStrLn $ "Parse Output: \n" ++ show src
-
-  d <- readFile (dstFile opts)
-  dst <- parseAndPop (dstFile opts) d
-
-
-  let almus = diffAlmu M (toSing src) (toSing dst)
-  let patches = map (flip applyAlmu (toSing src)) almus
+  let almus = diffAlmu (Ui sum1) (Ui sum2)
+  let patches = map (flip applyAlmu (Ui sum1)) almus
   putStrLn $ "All the same? " ++ show (allTheSame patches)
-  putStrLn $ show $ applyAlmu (head almus) (toSing src)
+  putStrLn $ show $ applyAlmu (head almus) (Ui sum1)
 
-parseAndPop :: String -> String -> IO Expr
-parseAndPop name src = case parse parseTop name src of
-  Left err -> error $ show err
-  Right s' -> return $ head s'
+allTheSame :: (Eq a) => [a] -> Bool
+allTheSame xs = and $ map (== head xs) (tail xs)
 
-data Opts = Opts
-  {
-    srcFile :: String
-  , dstFile :: String
-  }
+a = Value (1)
+b = Value (1)
+c = Value (2)
+d = Value (2)
+sum1 = Add a b
+sum2 = Add c d
+square1 = Square a
+sum3 = Add sum1 sum2
+sum4 = Add sum2 square1
 
-setHandle :: Maybe String -> (Handle -> IO a) -> IO a
-setHandle Nothing act = act stdout
-setHandle (Just path) act = withFile path WriteMode act
-
-opts :: Parser Opts
-opts = Opts
-  <$> strOption
-    (  long "soure"
-    <> short 's'
-    <> metavar "SRC_TARGET"
-    <> help "Source file"
-    )
-  <*> strOption
-    (  long "destination"
-    <> short 'd'
-    <> metavar "DST_TARGET"
-    <> help "Destination file"
-    )
-
-optsHelper :: ParserInfo Opts
-optsHelper = info (helper <*> opts)
-  ( fullDesc
-  <> progDesc "Clojure parser in Haskell"
-  )
+almus :: [Almu]
+almus = diffAlmu (Ui sum1) (Ui sum2)

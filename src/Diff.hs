@@ -55,5 +55,4 @@ uncurryPair :: (All Usingl s -> All Usingl d -> [Al rec s d])
             -> TrivialP s d -> [Al rec s d]
 uncurryPair f (Pair l r) = f l r
 
-almus :: [Almu]
-almus = diffAlmu (Ui sum1) (Ui sum2)
+-- Test
