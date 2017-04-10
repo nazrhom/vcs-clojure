@@ -9,6 +9,7 @@ import Data.Monoid
 import DiffMultiRec
 import LangRec
 import ApplyMultiRec
+import Multirec
 
 main :: IO ()
 main = do
@@ -21,7 +22,7 @@ main = do
   dst <- parseAndPop (dstFile opts) d
 
 
-  let almus = diffAlmu (toSing src) (toSing dst)
+  let almus = diffAlmu M (toSing src) (toSing dst)
   let patches = map (flip applyAlmu (toSing src)) almus
   putStrLn $ "All the same? " ++ show (allTheSame patches)
   putStrLn $ show $ applyAlmu (head almus) (toSing src)

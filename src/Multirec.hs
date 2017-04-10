@@ -7,12 +7,14 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
-module MultiRec where
+module Multirec where
 
 import Data.Kind
 import Data.Type.Equality hiding (apply)
 import Control.Applicative
 import LangRec
+
+import Parser
 
 -- Library stuff
 newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
@@ -36,6 +38,12 @@ data Al (at :: U -> *) :: [U] -> [U] -> * where
   Ains :: Usingl u -> Al at xs ys -> Al at xs (u ': ys)
   Adel :: Usingl u -> Al at xs ys -> Al at (u ': xs) ys
   Amod :: at u -> Al at xs ys -> Al at (u ': xs) (u ': ys)
+
+showAl :: Al at p1 p2 -> String
+showAl A0 = "0"
+showAl (Ains _ al) = '+' : showAl al
+showAl (Adel _ al) = '-' : showAl al
+showAl (Amod _ al) = '%' : showAl al
 
 
 
@@ -69,17 +77,73 @@ spine x y | otherwise = case (view x, view y) of
     Just Refl -> Scns c1 (zipP l1 l2)
     Nothing -> Schg c1 c2 (Pair l1 l2)
 
-align :: All Usingl p1 -> All Usingl p2 -> [Al TrivialA p1 p2]
-align An           An           = return A0
-align An           (a `Ac` p)   = Ains a <$> align An p
-align (a `Ac` p)   An           = Adel a <$> align p An
-align (a1 `Ac` p1) (a2 `Ac` p2) = case testEquality a1 a2 of
-  Just Refl -> Amod (Contract (a1, a2)) <$> align p1 p2
-           <|> Adel a1 <$> align p1 (a2 `Ac` p2)
-           <|> Ains a2 <$> align (a1 `Ac` p1) p2
+-- |Implement DP-style optimization for Alignments and Recursive alignmetns.
+--
+-- The phase records the LAST decision took by the algo (either an insertion,
+-- modification ordeletion)
+data Phase
+  = I | M | D
+  deriving (Eq , Show)
 
-  Nothing   -> Adel a1 <$> align p1 (a2 `Ac` p2)
-           <|> Ains a2 <$> align (a1 `Ac` p1) p2
+(===) :: Usingl s1 -> Usingl s2 -> Maybe (s1 :~: s2)
+
+(===) (UString _) (UString _) = Just Refl
+(===) (USep _) (USep _) = Just Refl
+(===) (USepExprList _) (USepExprList _) = Just Refl
+(===) (UExpr _) (UExpr _) = Just Refl
+(===) (UFormTy _) (UFormTy _) = Just Refl
+(===) (UCollType _) (UCollType _) = Just Refl
+(===) (UTerm _) (UTerm _) = Just Refl
+(===) (UTag _) (UTag _) = Just Refl
+(===) _ _ = Nothing
+
+
+align :: All Usingl p1 -> All Usingl p2 -> [Al TrivialA p1 p2]
+align = alignOpt M
+
+
+shouldAlign :: (Alternative m)
+            => Usingl a1 -> Usingl a2 -> m (Al TrivialA p1 p2)
+            -> m (Al TrivialA (a1 ': p1) (a2 ': p2))
+shouldAlign at1 at2 rest
+  = case testEquality at1 at2 of
+      Just Refl -> Amod (Contract (at1, at2)) <$> rest
+      Nothing   -> empty
+
+alignOpt :: Phase -> All Usingl p1 -> All Usingl p2 -> [Al TrivialA p1 p2]
+alignOpt _ An           An          = return A0
+
+-- alignOp D == align-no-ins
+alignOpt D An           (b `Ac` pb) = Ains b <$> alignOpt I An pb
+alignOpt D (a `Ac` pa)  An          = empty -- Adel a <$> alignOpt D pa An
+alignOpt D (a `Ac` pa)  (b `Ac` pb) = shouldAlign a b (align pa pb)
+                                  <|> Adel a <$> alignOpt D pa (b `Ac` pb)
+
+-- alignOpt I == align-no-del
+alignOpt I An           (b `Ac` pb) = Ains b <$> alignOpt I An pb
+alignOpt I (a `Ac` pa)  An          = empty -- Adel a <$> alignOpt D pa An
+alignOpt I (a `Ac` pa)  (b `Ac` pb) = shouldAlign a b (align pa pb)
+                                  <|> Ains b <$> alignOpt I (a `Ac` pa) pb
+
+-- alignOpt M == align*
+alignOpt M An           (b `Ac` pb) = Ains b <$> alignOpt I An pb
+alignOpt M (a `Ac` pa)  An          = Adel a <$> alignOpt D pa An
+alignOpt M (a `Ac` pa)  (b `Ac` pb) = shouldAlign a b (align pa pb)
+                                  <|> Ains b <$> alignOpt I (a `Ac` pa) pb
+                                  <|> Adel a <$> alignOpt D pa (b `Ac` pb)
+
+{-
+e1 = Comment "la"
+e2 = Comment "l"
+e3 = Comment "asdsdj3"
+s1 = Space
+s2 = Comma
+l1 = Nil
+
+test :: [Al TrivialA '[KExpr , KExpr] '[KExpr , KExpr]]
+test = align (UExpr e3 `Ac` (UExpr e3 `Ac` An))
+             (UExpr e1 `Ac` (UExpr e2 `Ac` An))
+-}
 
 -- Library stuff
 

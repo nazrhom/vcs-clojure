@@ -9,7 +9,7 @@
 module ApplyMultiRec where
 import Data.Type.Equality hiding (apply)
 
-import MultiRec
+import Multirec
 import LangRec
 import Debug.Trace
 

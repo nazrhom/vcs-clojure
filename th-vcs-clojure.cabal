@@ -22,7 +22,7 @@ library
                      , Apply
                      , Diff
                      , Lib
-                     , MultiRec
+                     , Multirec
                      , ApplyMultiRec
                      , DiffMultiRec
                      , LangRec
