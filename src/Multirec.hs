@@ -12,19 +12,11 @@ module Multirec where
 import Data.Kind
 import Data.Type.Equality hiding (apply)
 import Control.Applicative
-import LangRec
+import Lang
 
 import Parser
 
--- Library stuff
-newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
-
-
-type Trivial = Contract
-type TrivialA = Contract Usingl
-data TrivialP :: [U] -> [U] -> * where
- Pair :: All Usingl l -> All Usingl r -> TrivialP l r
--- Thr actual puzzle
+-- The actual puzzle
 
 data Spine (at :: U -> *)(al :: [U] -> [U] -> *) :: U -> * where
   Scp  :: Spine at al u
@@ -85,22 +77,8 @@ data Phase
   = I | M | D
   deriving (Eq , Show)
 
-(===) :: Usingl s1 -> Usingl s2 -> Maybe (s1 :~: s2)
-
-(===) (UString _) (UString _) = Just Refl
-(===) (USep _) (USep _) = Just Refl
-(===) (USepExprList _) (USepExprList _) = Just Refl
-(===) (UExpr _) (UExpr _) = Just Refl
-(===) (UFormTy _) (UFormTy _) = Just Refl
-(===) (UCollType _) (UCollType _) = Just Refl
-(===) (UTerm _) (UTerm _) = Just Refl
-(===) (UTag _) (UTag _) = Just Refl
-(===) _ _ = Nothing
-
-
 align :: All Usingl p1 -> All Usingl p2 -> [Al TrivialA p1 p2]
 align = alignOpt M
-
 
 shouldAlign :: (Alternative m)
             => Usingl a1 -> Usingl a2 -> m (Al TrivialA p1 p2)
@@ -146,7 +124,14 @@ test = align (UExpr e3 `Ac` (UExpr e3 `Ac` An))
 -}
 
 -- Library stuff
+newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
 
+
+type Trivial = Contract
+type TrivialA = Contract Usingl
+data TrivialP :: [U] -> [U] -> * where
+ Pair :: All Usingl l -> All Usingl r -> TrivialP l r
+ 
 mapAll :: (forall a . p a -> q a) -> All p l -> All q l
 mapAll f An = An
 mapAll f (a `Ac` as) = f a `Ac` mapAll f as

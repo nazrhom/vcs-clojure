@@ -6,9 +6,9 @@ import PrettyPrint
 import System.IO
 import Options.Applicative
 import Data.Monoid
-import DiffMultiRec
-import LangRec
-import ApplyMultiRec
+import Diff
+import Lang
+import Apply
 import Multirec
 
 main :: IO ()
@@ -21,11 +21,13 @@ main = do
   d <- readFile (dstFile opts)
   dst <- parseAndPop (dstFile opts) d
 
-
   let almus = diffAlmu M (toSing src) (toSing dst)
   let patches = map (flip applyAlmu (toSing src)) almus
   putStrLn $ "All the same? " ++ show (allTheSame patches)
   putStrLn $ show $ applyAlmu (head almus) (toSing src)
+
+allTheSame :: (Eq a) => [a] -> Bool
+allTheSame xs = and $ map (== head xs) (tail xs)
 
 parseAndPop :: String -> String -> IO Expr
 parseAndPop name src = case parse parseTop name src of

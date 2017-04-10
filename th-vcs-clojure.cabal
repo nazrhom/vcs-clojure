@@ -18,14 +18,9 @@ library
   exposed-modules:     Parser
                      , PrettyPrint
                      , Lang
-                     , RegularTypes
                      , Apply
                      , Diff
-                     , Lib
                      , Multirec
-                     , ApplyMultiRec
-                     , DiffMultiRec
-                     , LangRec
   build-depends:       base >= 4.7 && < 5
                      , parsec
                      , containers
@@ -36,7 +31,7 @@ library
 executable th-vcs-clojure-exe
   hs-source-dirs:      app
   main-is:             Main.hs
-  ghc-options:         -threaded -rtsopts -O -with-rtsopts=-N 
+  ghc-options:         -threaded -rtsopts -O -with-rtsopts=-N
   build-depends:       base
                      , th-vcs-clojure
                      , bytestring
