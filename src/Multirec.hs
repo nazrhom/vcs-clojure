@@ -92,8 +92,8 @@ alignOpt :: (Alternative m) => Phase -> All Usingl p1 -> All Usingl p2 -> m (Al 
 alignOpt _ An           An          = pure A0
 
 -- alignOp D == align-no-ins
-alignOpt D An           (b `Ac` pb) = Ains b <$> alignOpt I An pb
-alignOpt D (a `Ac` pa)  An          = empty
+alignOpt D An           (b `Ac` pb) = empty
+alignOpt D (a `Ac` pa)  An          = Adel a <$> alignOpt D pa An
 alignOpt D (a `Ac` pa)  (b `Ac` pb) = shouldAlign a b (align pa pb)
                                   <|> Adel a <$> alignOpt D pa (b .@. pb)
 
