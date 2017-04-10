@@ -77,7 +77,7 @@ data Phase
   = I | M | D
   deriving (Eq , Show)
 
-align :: All Usingl p1 -> All Usingl p2 -> [Al TrivialA p1 p2]
+align :: (Alternative m) => All Usingl p1 -> All Usingl p2 -> m (Al TrivialA p1 p2)
 align = alignOpt M
 
 shouldAlign :: (Alternative m)
@@ -88,27 +88,27 @@ shouldAlign at1 at2 rest
       Just Refl -> Amod (Contract (at1, at2)) <$> rest
       Nothing   -> empty
 
-alignOpt :: Phase -> All Usingl p1 -> All Usingl p2 -> [Al TrivialA p1 p2]
-alignOpt _ An           An          = return A0
+alignOpt :: (Alternative m) => Phase -> All Usingl p1 -> All Usingl p2 -> m (Al TrivialA p1 p2)
+alignOpt _ An           An          = pure A0
 
 -- alignOp D == align-no-ins
 alignOpt D An           (b `Ac` pb) = Ains b <$> alignOpt I An pb
-alignOpt D (a `Ac` pa)  An          = empty -- Adel a <$> alignOpt D pa An
+alignOpt D (a `Ac` pa)  An          = empty
 alignOpt D (a `Ac` pa)  (b `Ac` pb) = shouldAlign a b (align pa pb)
-                                  <|> Adel a <$> alignOpt D pa (b `Ac` pb)
+                                  <|> Adel a <$> alignOpt D pa (b .@. pb)
 
 -- alignOpt I == align-no-del
 alignOpt I An           (b `Ac` pb) = Ains b <$> alignOpt I An pb
-alignOpt I (a `Ac` pa)  An          = empty -- Adel a <$> alignOpt D pa An
+alignOpt I (a `Ac` pa)  An          = empty
 alignOpt I (a `Ac` pa)  (b `Ac` pb) = shouldAlign a b (align pa pb)
-                                  <|> Ains b <$> alignOpt I (a `Ac` pa) pb
+                                  <|> Ains b <$> alignOpt I (a .@. pa) pb
 
 -- alignOpt M == align*
 alignOpt M An           (b `Ac` pb) = Ains b <$> alignOpt I An pb
 alignOpt M (a `Ac` pa)  An          = Adel a <$> alignOpt D pa An
 alignOpt M (a `Ac` pa)  (b `Ac` pb) = shouldAlign a b (align pa pb)
-                                  <|> Ains b <$> alignOpt I (a `Ac` pa) pb
-                                  <|> Adel a <$> alignOpt D pa (b `Ac` pb)
+                                  <|> Ains b <$> alignOpt I (a .@. pa) pb
+                                  <|> Adel a <$> alignOpt D pa (b .@. pb)
 
 {-
 e1 = Comment "la"
@@ -119,8 +119,8 @@ s2 = Comma
 l1 = Nil
 
 test :: [Al TrivialA '[KExpr , KExpr] '[KExpr , KExpr]]
-test = align (UExpr e3 `Ac` (UExpr e3 `Ac` An))
-             (UExpr e1 `Ac` (UExpr e2 `Ac` An))
+test = align (UExpr e3 .@. (UExpr e3 .@. An))
+             (UExpr e1 .@. (UExpr e2 .@. An))
 -}
 
 -- Library stuff
@@ -131,7 +131,7 @@ type Trivial = Contract
 type TrivialA = Contract Usingl
 data TrivialP :: [U] -> [U] -> * where
  Pair :: All Usingl l -> All Usingl r -> TrivialP l r
- 
+
 mapAll :: (forall a . p a -> q a) -> All p l -> All q l
 mapAll f An = An
 mapAll f (a `Ac` as) = f a `Ac` mapAll f as

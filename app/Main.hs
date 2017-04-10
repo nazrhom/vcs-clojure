@@ -23,6 +23,7 @@ main = do
 
   let almus = diffAlmu M (toSing src) (toSing dst)
   let patches = map (flip applyAlmu (toSing src)) almus
+  putStrLn $ "Found " ++ show (length almus) ++ " patches."
   putStrLn $ "All the same? " ++ show (allTheSame patches)
   putStrLn $ show $ applyAlmu (head almus) (toSing src)
 
