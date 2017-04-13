@@ -70,10 +70,6 @@ spine x y | otherwise = case (view x, view y) of
     Just Refl -> Scns c1 (zipP l1 l2)
     Nothing -> Schg c1 c2 (Pair l1 l2)
 
--- Memoization
-data MemoTable p1 p2 = MemoTable (M.Map (All Usingl p1, All Usingl p2) (Al TrivialA p1 p2))
-
-
 -- |Implement DP-style optimization for Alignments and Recursive alignmetns.
 --
 -- The phase records the LAST decision took by the algo (either an insertion,
@@ -85,8 +81,6 @@ data Phase
 align :: (Alternative m) => All Usingl p1 -> All Usingl p2 -> m (Al TrivialA p1 p2)
 align = alignOpt M
 
-withMemoIns :: (Monad m) => Usingl a2 -> All Usingl (a1 ': p1) -> All Usingl p2 -> MemoTable p1 p2 -> m (Al TrivialA (a1 ': p1) (a2 ': p2))
-withMemoIns s2 p1 p2 m = undefined
 
 shouldAlign :: (Alternative m)
             => Usingl a1 -> Usingl a2 -> m (Al TrivialA p1 p2)
