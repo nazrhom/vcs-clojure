@@ -12,9 +12,10 @@ module Multirec where
 import Data.Kind
 import Data.Type.Equality hiding (apply)
 import Control.Applicative
-import Lang
+import qualified Data.Map  as M
 
 import Parser
+import Lang
 
 -- The actual puzzle
 
@@ -69,6 +70,10 @@ spine x y | otherwise = case (view x, view y) of
     Just Refl -> Scns c1 (zipP l1 l2)
     Nothing -> Schg c1 c2 (Pair l1 l2)
 
+-- Memoization
+data MemoTable p1 p2 = MemoTable (M.Map (All Usingl p1, All Usingl p2) (Al TrivialA p1 p2))
+
+
 -- |Implement DP-style optimization for Alignments and Recursive alignmetns.
 --
 -- The phase records the LAST decision took by the algo (either an insertion,
@@ -79,6 +84,9 @@ data Phase
 
 align :: (Alternative m) => All Usingl p1 -> All Usingl p2 -> m (Al TrivialA p1 p2)
 align = alignOpt M
+
+withMemoIns :: (Monad m) => Usingl a2 -> All Usingl (a1 ': p1) -> All Usingl p2 -> MemoTable p1 p2 -> m (Al TrivialA (a1 ': p1) (a2 ': p2))
+withMemoIns s2 p1 p2 m = undefined
 
 shouldAlign :: (Alternative m)
             => Usingl a1 -> Usingl a2 -> m (Al TrivialA p1 p2)
@@ -93,24 +101,27 @@ alignOpt _ An           An          = pure A0
 
 -- alignOp D == align-no-ins
 alignOpt D An           (b `Ac` pb) = empty
-alignOpt D (a `Ac` pa)  An          = Adel a <$> alignOpt D pa An
-alignOpt D (a `Ac` pa)  (b `Ac` pb) = shouldAlign a b (align pa pb)
-                                  <|> Adel a <$> alignOpt D pa (b .@. pb)
-
+alignOpt D (a `Ac` pa)  (b `Ac` pb) = case testEquality a b of
+  Just Refl -> Amod (Contract (a, b)) <$> (align pa pb)
+           <|> Adel a <$> alignOpt D pa (b `Ac` pb)
+  Nothing   -> Adel a <$> align pa (b `Ac` pb)
 -- alignOpt I == align-no-del
-alignOpt I An           (b `Ac` pb) = Ains b <$> alignOpt I An pb
 alignOpt I (a `Ac` pa)  An          = empty
-alignOpt I (a `Ac` pa)  (b `Ac` pb) = shouldAlign a b (align pa pb)
-                                  <|> Ains b <$> alignOpt I (a .@. pa) pb
-
+alignOpt I (a `Ac` pa)  (b `Ac` pb) = case testEquality a b of
+  Just Refl -> Amod (Contract (a, b)) <$> (align pa pb)
+           <|> Ains b <$> alignOpt I (a `Ac` pa) pb
+  Nothing   -> Ains b <$> align (a `Ac` pa) pb
 -- alignOpt M == align*
-alignOpt M An           (b `Ac` pb) = Ains b <$> alignOpt I An pb
-alignOpt M (a `Ac` pa)  An          = Adel a <$> alignOpt D pa An
-alignOpt M (a `Ac` pa)  (b `Ac` pb) = shouldAlign a b (align pa pb)
-                                  <|> Ains b <$> alignOpt I (a .@. pa) pb
-                                  <|> Adel a <$> alignOpt D pa (b .@. pb)
+alignOpt M An           (b `Ac` pb) = Ains b <$> align An pb
+alignOpt M (a `Ac` pa)  An          = Adel a <$> align pa An
+alignOpt M (a `Ac` pa)  (b `Ac` pb) = case testEquality a b of
+  Just Refl -> Amod (Contract (a, b)) <$> align pa pb
+           <|> Ains b <$> alignOpt I (a .@. pa) pb
+           <|> Adel a <$> alignOpt D pa (b .@. pb)
+  Nothing   -> Ains b <$> align (a .@. pa) pb
+           <|> Adel a <$> align pa (b .@. pb)
 
-{-
+
 e1 = Comment "la"
 e2 = Comment "l"
 e3 = Comment "asdsdj3"
@@ -118,14 +129,13 @@ s1 = Space
 s2 = Comma
 l1 = Nil
 
-test :: [Al TrivialA '[KExpr , KExpr] '[KExpr , KExpr]]
-test = align (UExpr e3 .@. (UExpr e3 .@. An))
-             (UExpr e1 .@. (UExpr e2 .@. An))
--}
+test :: [Al TrivialA '[KExpr , KExpr, KExpr] '[KSepExprList, KSepExprList , KSepExprList]]
+test = align (UExpr e3 .@. (UExpr e3 .@. (UExpr e3 .@. An)))
+             (USepExprList l1 .@. (USepExprList l1 .@. (USepExprList l1 .@. An)))
+
 
 -- Library stuff
 newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
-
 
 type Trivial = Contract
 type TrivialA = Contract Usingl
@@ -137,7 +147,7 @@ mapAll f An = An
 mapAll f (a `Ac` as) = f a `Ac` mapAll f as
 
 mapAllM :: Monad m => (forall a . p a -> m (q a))
-        ->  All p xs -> m (All q xs)
+        -> All p xs -> m (All q xs)
 mapAllM f An = return An
 mapAllM f (px `Ac` pxs) = Ac <$> f px <*> mapAllM f pxs
 
