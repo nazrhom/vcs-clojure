@@ -32,12 +32,43 @@ data Al (at :: U -> *) :: [U] -> [U] -> * where
   Adel :: Usingl u -> Al at xs ys -> Al at (u ': xs) ys
   Amod :: at u -> Al at xs ys -> Al at (u ': xs) (u ': ys)
 
+
+instance Show (Almu u v) where
+  show = showAlmu
+instance Show (Al at p1 p2) where
+  show = showAl
+instance Show (At AlmuH u) where
+  show = showAt
+instance IsRecEl u => Show (AlmuH u) where
+  show (AlmuH u) = show u
+instance Show (Spine (At AlmuH) al u) where
+  show = showSpine
+instance Show (All (At AlmuH) l) where
+  show = showAll
+
+showAll :: All (At AlmuH) l -> String
+showAll An = ""
+showAll (x `Ac` xs) = show x ++ show xs
+
+showSpine :: Spine (At AlmuH) al u -> String
+showSpine (Scp) = "Scp"
+showSpine (Scns i p) = "Scns " ++ show p
+showSpine (Schg i j p) = "Schg "
+
+showAlmu :: Almu u v -> String
+showAlmu (Alspn s) = "M" ++ show s
+showAlmu (Alins c d) = "I"
+showAlmu (Aldel c d) = "D"
+
+showAt :: At AlmuH u -> String
+showAt (Ai r) = show r
+showAt (As t) = show t
+
 showAl :: Al at p1 p2 -> String
 showAl A0 = "0"
 showAl (Ains _ al) = '+' : showAl al
 showAl (Adel _ al) = '-' : showAl al
 showAl (Amod _ al) = '%' : showAl al
-
 
 
 data At (recP :: U -> *) :: U -> * where
@@ -98,13 +129,13 @@ alignOpt D An           (b `Ac` pb) = empty
 alignOpt D (a `Ac` pa)  (b `Ac` pb) = case testEquality a b of
   Just Refl -> Amod (Contract (a, b)) <$> (align pa pb)
            <|> Adel a <$> alignOpt D pa (b `Ac` pb)
-  Nothing   -> Adel a <$> align pa (b `Ac` pb)
+  Nothing   -> empty
 -- alignOpt I == align-no-del
 alignOpt I (a `Ac` pa)  An          = empty
 alignOpt I (a `Ac` pa)  (b `Ac` pb) = case testEquality a b of
   Just Refl -> Amod (Contract (a, b)) <$> (align pa pb)
            <|> Ains b <$> alignOpt I (a `Ac` pa) pb
-  Nothing   -> Ains b <$> align (a `Ac` pa) pb
+  Nothing   -> empty
 -- alignOpt M == align*
 alignOpt M An           (b `Ac` pb) = Ains b <$> align An pb
 alignOpt M (a `Ac` pa)  An          = Adel a <$> align pa An
@@ -123,13 +154,32 @@ s1 = Space
 s2 = Comma
 l1 = Nil
 
-test :: [Al TrivialA '[KExpr , KExpr, KExpr] '[KSepExprList, KSepExprList , KSepExprList]]
-test = align (UExpr e3 .@. (UExpr e3 .@. (UExpr e3 .@. An)))
-             (USepExprList l1 .@. (USepExprList l1 .@. (USepExprList l1 .@. An)))
+-- test :: [Al TrivialA '[KExpr , KExpr, KExpr] '[KSepExprList, KSepExprList , KSepExprList]]
+test1 :: [Al TrivialA '[KExpr, KExpr] '[KExpr, KExpr]]
+test1 = align (UExpr e3 .@. (UExpr e3 .@. An))
+              (UExpr e3 .@. (UExpr e3 .@. An))
+
+test2 :: [Al TrivialA '[KExpr, KSepExprList] '[KExpr, KSepExprList]]
+test2 = align (UExpr e3 .@. (USepExprList l1 .@. An))
+              (UExpr e3 .@. (USepExprList l1 .@. An))
 
 
+test3 :: [Al TrivialA '[KExpr, KSepExprList] '[KSepExprList, KExpr]]
+test3 = align (UExpr e3 .@. (USepExprList l1 .@. An))
+              (USepExprList l1 .@. (UExpr e3 .@. An))
+
+test4 :: [Al TrivialA '[KExpr, KExpr] '[KExpr, KSepExprList]]
+test4 = align (UExpr e3 .@. (UExpr e3 .@. An))
+              (UExpr e3 .@. (USepExprList l1 .@. An))
+
+test5 :: [Al TrivialA '[KExpr, KExpr, KSepExprList] '[KExpr, KSepExprList, KExpr]]
+test5 = align (UExpr e3 .@. (UExpr e3 .@. (USepExprList l1 .@. An)))
+              (UExpr e3 .@. (USepExprList l1 .@. (UExpr e3 .@. An)))
 -- Library stuff
 newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
+
+instance Show (f x) => Show (Contract f x) where
+  show c = show $ unContract c
 
 type Trivial = Contract
 type TrivialA = Contract Usingl
