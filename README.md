@@ -246,7 +246,7 @@ The `Scp` constructor corresponds to the first case, in which we need to record 
 The `Scns` constructor corresponds to the second case: the first argument records the common constructor for the two elements and the second represents the list of paired atoms to which we apply the `at` predicate.
 The `Schg` constructor represents a change of constructor: the first two arguments record the source and destination constructors, and the third argument is the `al` function applied to the constructor fields of the source and destination constructor respectively.
 
-#### Al
+#### Alignments
 
 Now we need to define a type representing alignments, similarly to the spine, the alignment is parametrized by a predicate `at` which describes how to treat the underlying atoms.
 The specification outlined above is captured by the following GADT
@@ -259,6 +259,15 @@ data Al (at :: U -> *) :: [U] -> [U] -> * where
 ```
 A0 represents the empty alignment, Ains and Adel take as first argument a singleton representing a runtime instance of the type u and, together with an alignment for the rest of the list, give us the alignment with an insertion (resp. deletion) as explained in the section above.
 In the Amod case, the first argument is the predicate on the underlying atom and the rest is as in the previous cases.
+
+##### Computing Alignments
+
+Given the Al type defined in the previous section, computing an alignment is pretty trivial. Since we don't know apriori which alignment is more efficient we non-deterministically compute all the possible
+The number of alignments can grow very quickly; to make things worse, as we are dealing with alignments of arbitrarily large subtrees which prevents us from optimizing towards insertions or deletions. It is easy to see that in some cases, prioritizing deletions can be more profitable and in other it may be better to do the opposite; this uncertainty stems from the fact that at the time we are calculating the alignment we have no information about the size of the subtrees we are considering.
+
+There is one optimization we can introduce, despite this limitation: in the case where we can match a pair of elements then we can avoid computing an insertion followed by a deletion (resp. a deletion followed by an insertion) since the case in which we match is at least "as good" as the case in which we perform the two different operations in sequence, regardless of the actual cost we are assigning to each operation.
+
+To implement this we must add a parameter that tracks the operation that was taken at the previous step, we will call this the `Phase`. We can define an `alignOpt` function with the same signature as `align` but parametrized with the `Phase`. The optimized version will simply avoid performing an insertion if the last step was a deletion and vice versa. We just have to take care of calling the optimized function for insertion and deletions in the branch in which we could perform a match.
 
 ## Biblio
 
