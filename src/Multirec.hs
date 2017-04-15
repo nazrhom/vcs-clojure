@@ -121,6 +121,8 @@ shouldAlign at1 at2 rest
       Just Refl -> Amod (Contract (at1, at2)) <$> rest
       Nothing   -> empty
 
+{- The optimization works as follow: For each step in which we could perform a match, we attempt an insertion aswell. However this insertion only makes sense if it leads to either another match, or to no more deletions.
+Infact, if at any point of this chain we perform a deletion, we will end up in the same state that we would have been if we just performed the original match at the beginning. -}
 alignOpt :: (Alternative m) => Phase -> All Usingl p1 -> All Usingl p2 -> m (Al TrivialA p1 p2)
 alignOpt _ An           An          = pure A0
 
