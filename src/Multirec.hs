@@ -7,6 +7,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
+
 module Multirec where
 
 import Data.Kind
@@ -39,26 +40,36 @@ instance Show (Al at p1 p2) where
   show = showAl
 instance Show (At AlmuH u) where
   show = showAt
-instance IsRecEl u => Show (AlmuH u) where
-  show (AlmuH u) = show u
 instance Show (Spine (At AlmuH) al u) where
   show = showSpine
 instance Show (All (At AlmuH) l) where
   show = showAll
+instance Show (Ctx (AtmuPos u) p) where
+  show = showCtxP
+instance Show (Ctx (AtmuNeg u) p) where
+  show = showCtxN
 
 showAll :: All (At AlmuH) l -> String
 showAll An = ""
 showAll (x `Ac` xs) = show x ++ show xs
 
 showSpine :: Spine (At AlmuH) al u -> String
-showSpine (Scp) = "Scp"
-showSpine (Scns i p) = "Scns " ++ show p
-showSpine (Schg i j p) = "Schg "
+showSpine (Scp) = "Scp. "
+showSpine (Scns i p) = "Scns " ++ show i ++ " (" ++ show p ++ ") "
+showSpine (Schg i j p) = "Schg From: " ++ show i ++ " to " ++ show j ++ "{missing almu}" 
 
 showAlmu :: Almu u v -> String
-showAlmu (Alspn s) = "M" ++ show s
-showAlmu (Alins c d) = "I"
-showAlmu (Aldel c d) = "D"
+showAlmu (Alspn s) = "M-" ++ show s
+showAlmu (Alins c d) = "I-" ++ show d
+showAlmu (Aldel c d) = "D-" ++ show d
+
+showCtxP :: Ctx (AtmuPos u) p -> String
+showCtxP (Here r p) = show r
+showCtxP (There u c) = show c
+
+showCtxN :: Ctx (AtmuNeg u) p -> String
+showCtxN (Here r p) = show r
+showCtxN (There u c) = show c
 
 showAt :: At AlmuH u -> String
 showAt (Ai r) = show r
@@ -82,13 +93,16 @@ data Almu :: U -> U -> * where
 
 data AlmuH :: U -> * where
   AlmuH :: Almu u u -> AlmuH u
+  deriving Show
 
 -- Atmu positive and negative variations
 data AtmuPos (v :: U) :: U -> * where
   FixPos :: Almu v u -> AtmuPos v u
+  deriving Show
 
 data AtmuNeg (v :: U) :: U -> * where
   FixNeg :: Almu u v -> AtmuNeg v u
+  deriving Show
 
 data Ctx (r :: U -> *) :: [U] -> * where
   Here :: (IsRecEl u) => r u       -> All Usingl l  -> Ctx r (u ': l)

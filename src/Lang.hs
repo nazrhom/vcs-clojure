@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE StandaloneDeriving #-}
 module Lang where
 
 import Data.Type.Equality hiding (apply)
@@ -74,6 +75,7 @@ data Constr :: * where
   C7String :: Constr
   C7Metadata :: Constr
   C7Var :: Constr
+  deriving Show
 
 data ConstrFor :: U -> Constr -> * where
   C1NilProof :: ConstrFor  KSepExprList C1Nil
@@ -109,6 +111,7 @@ data ConstrFor :: U -> Constr -> * where
   C7MetadataProof :: ConstrFor KTag C7Metadata
   C7VarProof :: ConstrFor KTag C7Var
 
+deriving instance Show (ConstrFor u c)
 
 type family TypeOf (c :: Constr) :: [U] where
   TypeOf C1Nil = '[]
