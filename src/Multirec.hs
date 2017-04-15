@@ -126,16 +126,12 @@ alignOpt _ An           An          = pure A0
 
 -- alignOp D == align-no-ins
 alignOpt D An           (b `Ac` pb) = empty
-alignOpt D (a `Ac` pa)  (b `Ac` pb) = case testEquality a b of
-  Just Refl -> Amod (Contract (a, b)) <$> (align pa pb)
-           <|> Adel a <$> alignOpt D pa (b `Ac` pb)
-  Nothing   -> empty
+alignOpt D (a `Ac` pa)  (b `Ac` pb) = shouldAlign a b (align pa pb)
+                            <|> Adel a <$> alignOpt D pa (b `Ac` pb)
 -- alignOpt I == align-no-del
 alignOpt I (a `Ac` pa)  An          = empty
-alignOpt I (a `Ac` pa)  (b `Ac` pb) = case testEquality a b of
-  Just Refl -> Amod (Contract (a, b)) <$> (align pa pb)
-           <|> Ains b <$> alignOpt I (a `Ac` pa) pb
-  Nothing   -> empty
+alignOpt I (a `Ac` pa)  (b `Ac` pb) = shouldAlign a b (align pa pb)
+                            <|> Ains b <$> alignOpt I (a `Ac` pa) pb
 -- alignOpt M == align*
 alignOpt M An           (b `Ac` pb) = Ains b <$> align An pb
 alignOpt M (a `Ac` pa)  An          = Adel a <$> align pa An
@@ -153,6 +149,7 @@ e3 = Comment "asdsdj3"
 s1 = Space
 s2 = Comma
 l1 = Nil
+ft = Quote
 
 -- test :: [Al TrivialA '[KExpr , KExpr, KExpr] '[KSepExprList, KSepExprList , KSepExprList]]
 test1 :: [Al TrivialA '[KExpr, KExpr] '[KExpr, KExpr]]
@@ -175,6 +172,14 @@ test4 = align (UExpr e3 .@. (UExpr e3 .@. An))
 test5 :: [Al TrivialA '[KExpr, KExpr, KSepExprList] '[KExpr, KSepExprList, KExpr]]
 test5 = align (UExpr e3 .@. (UExpr e3 .@. (USepExprList l1 .@. An)))
               (UExpr e3 .@. (USepExprList l1 .@. (UExpr e3 .@. An)))
+
+test6 :: [Al TrivialA '[KExpr, KSepExprList, KSepExprList] '[KExpr, KSepExprList, KExpr]]
+test6 = align (UExpr e3 .@. (USepExprList l1 .@. (USepExprList l1 .@. An)))
+              (UExpr e3 .@. (USepExprList l1 .@. (UExpr e3 .@. An)))
+
+test7 :: [Al TrivialA '[KExpr, KSepExprList, KSepExprList] '[KFormTy, KFormTy, KExpr]]
+test7 = align (UExpr e3 .@. (USepExprList l1 .@. (USepExprList l1 .@. An)))
+              (UFormTy ft .@. (UFormTy ft .@. (UExpr e3 .@. An)))
 -- Library stuff
 newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
 
