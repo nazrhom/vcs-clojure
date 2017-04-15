@@ -64,17 +64,20 @@ One interesting thing to note is that up to this point, we never use the `Nat` p
 
 However, if we want to achieve the full power of dependent types we want to be able to make some runtime decision based on the `Nat` that we learn is indexing a vector.
 
-Suppose we want to write a `split` function, this function takes an `n`, a vector of length `n :+ m`, and splits it into a pair of vectors, with respectively `n` and `m` elements.
+Suppose we want to write a `split` function, this function takes an `n` of kind `Nat`, a vector of length `n :+ m` and splits it into a pair of vectors, with respectively `n` and `m` elements.
 
-The first problem we incur in is that we can not pass something of kind `Nat` to our `split` function; furthermore, we want to express that this `n` of kind `Nat` that we pass as a first argument, is the same `n` in the vector length.
+The first problem we incur in, is that we can not pass something of kind `Nat` to our `split` function; furthermore, we want to express that this `n` of kind `Nat` that we pass as a first argument, is the same `n` as in the vector length.
 The standard solution for this problem is to define what is called a singleton GADT for `Nat`.
 
 ```
 data SNat :: Nat -> * where
   SZ ::           SNat Z
-  Sn :: SNat n -> SNat (S n)
+  SN :: SNat n -> SNat (S n)
 ```
 The name singleton comes from the fact that each type level value of kind `Nat` (namely `Z` or `S` applied to another type of kind `Nat`) has a single representative in the `SNat` type.
+
+The following figure gives a good representation of this process: the DataKinds extensions promotes things of type `Nat` to things of kind `Nat`. The singleton allows us to take one step back in this ladder, and associates to every thing of kind `Nat` a term from the singleton type `SNat`.
+{insert Fig 1 from \cite{singletons1}}
 
 This type solves the two problems outlined above: it has kind `*` and it contains a `Nat` that we can later refer to in our function definition.
 We can now define `split` as follows:
@@ -272,3 +275,4 @@ To implement this we must add a parameter that tracks the operation that was tak
 ## Biblio
 
 [1] Type-directed diff
+[2] http://cs.brynmawr.edu/~rae/papers/2012/singletons/paper.pdf
