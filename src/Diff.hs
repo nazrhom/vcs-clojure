@@ -95,12 +95,12 @@ diffMod s1 s2 = case testEquality s1 s2 of
     toH f x y = AlmuH <$> f x y
 
 diffIns :: (IsRecEl u, IsRecEl v, Alternative m, Monad m)
-        =>  Usingl u -> Usingl v -> m (Almu u v)
+        => Usingl u -> Usingl v -> m (Almu u v)
 diffIns x s = case view s of
   (Tag c p) -> Alins c <$> diffInsCtx x p
 
 diffDel :: (IsRecEl u, IsRecEl v, Alternative m, Monad m)
-        =>  Usingl u -> Usingl v -> m (Almu u v)
+        => Usingl u -> Usingl v -> m (Almu u v)
 diffDel s x = case (view s) of
   (Tag c p) -> Aldel c <$> diffDelCtx p x
 

@@ -33,55 +33,6 @@ data Al (at :: U -> *) :: [U] -> [U] -> * where
   Adel :: Usingl u -> Al at xs ys -> Al at (u ': xs) ys
   Amod :: at u -> Al at xs ys -> Al at (u ': xs) (u ': ys)
 
-
-instance Show (Almu u v) where
-  show = showAlmu
-instance Show (Al at p1 p2) where
-  show = showAl
-instance Show (At AlmuH u) where
-  show = showAt
-instance Show (Spine (At AlmuH) al u) where
-  show = showSpine
-instance Show (All (At AlmuH) l) where
-  show = showAll
-instance Show (Ctx (AtmuPos u) p) where
-  show = showCtxP
-instance Show (Ctx (AtmuNeg u) p) where
-  show = showCtxN
-
-showAll :: All (At AlmuH) l -> String
-showAll An = ""
-showAll (x `Ac` xs) = show x ++ show xs
-
-showSpine :: Spine (At AlmuH) al u -> String
-showSpine (Scp) = "Scp. "
-showSpine (Scns i p) = "Scns " ++ show i ++ " (" ++ show p ++ ") "
-showSpine (Schg i j p) = "Schg From: " ++ show i ++ " to " ++ show j ++ "{missing almu}" 
-
-showAlmu :: Almu u v -> String
-showAlmu (Alspn s) = "M-" ++ show s
-showAlmu (Alins c d) = "I-" ++ show d
-showAlmu (Aldel c d) = "D-" ++ show d
-
-showCtxP :: Ctx (AtmuPos u) p -> String
-showCtxP (Here r p) = show r
-showCtxP (There u c) = show c
-
-showCtxN :: Ctx (AtmuNeg u) p -> String
-showCtxN (Here r p) = show r
-showCtxN (There u c) = show c
-
-showAt :: At AlmuH u -> String
-showAt (Ai r) = show r
-showAt (As t) = show t
-
-showAl :: Al at p1 p2 -> String
-showAl A0 = "0"
-showAl (Ains _ al) = '+' : showAl al
-showAl (Adel _ al) = '-' : showAl al
-showAl (Amod _ al) = '%' : showAl al
-
-
 data At (recP :: U -> *) :: U -> * where
   Ai :: (IsRecEl u) => recP u -> At recP u
   As :: Trivial Usingl u -> At recP u
@@ -155,47 +106,10 @@ alignOpt M (a `Ac` pa)  (b `Ac` pb) = case testEquality a b of
   Just Refl -> Amod (Contract (a, b)) <$> align pa pb
            <|> Ains b <$> alignOpt I (a .@. pa) pb
            <|> Adel a <$> alignOpt D pa (b .@. pb)
-  Nothing   -> Ains b <$> align (a .@. pa) pb
+  Nothing   -> Ains b <$> alignOpt I (a .@. pa) pb
            <|> Adel a <$> align pa (b .@. pb)
 
 
-e1 = Comment "la"
-e2 = Comment "l"
-e3 = Comment "asdsdj3"
-s1 = Space
-s2 = Comma
-l1 = Nil
-ft = Quote
-
--- test :: [Al TrivialA '[KExpr , KExpr, KExpr] '[KSepExprList, KSepExprList , KSepExprList]]
-test1 :: [Al TrivialA '[KExpr, KExpr] '[KExpr, KExpr]]
-test1 = align (UExpr e3 .@. (UExpr e3 .@. An))
-              (UExpr e3 .@. (UExpr e3 .@. An))
-
-test2 :: [Al TrivialA '[KExpr, KSepExprList] '[KExpr, KSepExprList]]
-test2 = align (UExpr e3 .@. (USepExprList l1 .@. An))
-              (UExpr e3 .@. (USepExprList l1 .@. An))
-
-
-test3 :: [Al TrivialA '[KExpr, KSepExprList] '[KSepExprList, KExpr]]
-test3 = align (UExpr e3 .@. (USepExprList l1 .@. An))
-              (USepExprList l1 .@. (UExpr e3 .@. An))
-
-test4 :: [Al TrivialA '[KExpr, KExpr] '[KExpr, KSepExprList]]
-test4 = align (UExpr e3 .@. (UExpr e3 .@. An))
-              (UExpr e3 .@. (USepExprList l1 .@. An))
-
-test5 :: [Al TrivialA '[KExpr, KExpr, KSepExprList] '[KExpr, KSepExprList, KExpr]]
-test5 = align (UExpr e3 .@. (UExpr e3 .@. (USepExprList l1 .@. An)))
-              (UExpr e3 .@. (USepExprList l1 .@. (UExpr e3 .@. An)))
-
-test6 :: [Al TrivialA '[KExpr, KSepExprList, KSepExprList] '[KExpr, KSepExprList, KExpr]]
-test6 = align (UExpr e3 .@. (USepExprList l1 .@. (USepExprList l1 .@. An)))
-              (UExpr e3 .@. (USepExprList l1 .@. (UExpr e3 .@. An)))
-
-test7 :: [Al TrivialA '[KExpr, KSepExprList, KSepExprList] '[KFormTy, KFormTy, KExpr]]
-test7 = align (UExpr e3 .@. (USepExprList l1 .@. (USepExprList l1 .@. An)))
-              (UFormTy ft .@. (UFormTy ft .@. (UExpr e3 .@. An)))
 -- Library stuff
 newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
 
@@ -233,3 +147,54 @@ mapAlM f A0           = return A0
 mapAlM f (Adel at al) = Adel at <$> mapAlM f al
 mapAlM f (Ains at al) = Ains at <$> mapAlM f al
 mapAlM f (Amod at al) = Amod    <$> f at <*> mapAlM f al
+
+
+-- Show instances
+
+
+instance Show (Almu u v) where
+  show = showAlmu
+instance Show (Al at p1 p2) where
+  show = showAl
+instance Show (At AlmuH u) where
+  show = showAt
+instance Show (Spine (At AlmuH) al u) where
+  show = showSpine
+instance Show (All (At AlmuH) l) where
+  show = showAll
+instance Show (Ctx (AtmuPos u) p) where
+  show = showCtxP
+instance Show (Ctx (AtmuNeg u) p) where
+  show = showCtxN
+
+showAll :: All (At AlmuH) l -> String
+showAll An = ""
+showAll (x `Ac` xs) = show x ++ show xs
+
+showSpine :: Spine (At AlmuH) al u -> String
+showSpine (Scp) = "Scp. "
+showSpine (Scns i p) = "Scns " ++ show i ++ " (" ++ show p ++ ") "
+showSpine (Schg i j p) = "Schg From: " ++ show i ++ " to " ++ show j ++ "{missing almu}"
+
+showAlmu :: Almu u v -> String
+showAlmu (Alspn s) = "M-" ++ show s
+showAlmu (Alins c d) = "I-" ++ show d
+showAlmu (Aldel c d) = "D-" ++ show d
+
+showCtxP :: Ctx (AtmuPos u) p -> String
+showCtxP (Here r p) = show r
+showCtxP (There u c) = show c
+
+showCtxN :: Ctx (AtmuNeg u) p -> String
+showCtxN (Here r p) = show r
+showCtxN (There u c) = show c
+
+showAt :: At AlmuH u -> String
+showAt (Ai r) = show r
+showAt (As t) = show t
+
+showAl :: Al at p1 p2 -> String
+showAl A0 = "0"
+showAl (Ains _ al) = '+' : showAl al
+showAl (Adel _ al) = '-' : showAl al
+showAl (Amod _ al) = '%' : showAl al
