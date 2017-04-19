@@ -125,6 +125,16 @@ mapAll :: (forall a . p a -> q a) -> All p l -> All q l
 mapAll f An = An
 mapAll f (a `Ac` as) = f a `Ac` mapAll f as
 
+foldAll :: (forall a . p a -> b -> b) -> b -> All p a -> b
+foldAll f b An          = b
+foldAll f b (a `Ac` as) = f a (foldAll f b as)
+
+foldCtx :: (forall u . r u -> b -> b)
+        -> (forall u . Usingl u -> b -> b)
+        -> b -> Ctx r l -> b
+foldCtx f g b (Here r p) = f r (foldAll g b p)
+foldCtx f g b (There u c) = foldCtx f g b c
+
 mapAllM :: Monad m => (forall a . p a -> m (q a))
         -> All p xs -> m (All q xs)
 mapAllM f An = return An

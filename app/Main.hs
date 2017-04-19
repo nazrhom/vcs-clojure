@@ -1,15 +1,19 @@
 module Main where
 
-import Parser
-import PrettyPrint
-
 import System.IO
 import Options.Applicative
 import Data.Monoid
+import Data.List (sortBy)
+import Data.Ord (comparing)
+
+import Parser
+import PrettyPrint
+
 import Diff
 import Lang
 import Apply
 import Multirec
+import Cost
 
 main :: IO ()
 main = do
@@ -23,8 +27,14 @@ main = do
 
   let almus = diffAlmu M (toSing src) (toSing dst)
   let patches = map (flip applyAlmu (toSing src)) almus
+  let almusCost = sortBy (comparing costAlmu) almus
+  let worst = last almusCost
+  let best = head almusCost
   putStrLn $ "Found " ++ show (length almus) ++ " patches."
-  putStrLn $ show (take 1 almus)
+  putStrLn $ "Worst patch has a cost of : " ++ show (costAlmu worst)
+  putStrLn $ "Corresponding to \n" ++ show worst
+  putStrLn $ "Lowest cost found: " ++ show (costAlmu best)
+  putStrLn $ "Corresponding to \n" ++ show best
   putStrLn $ "All the same? " ++ show (allTheSame patches)
   putStrLn $ show $ applyAlmu (head almus) (toSing src)
 
