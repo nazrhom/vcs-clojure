@@ -41,8 +41,8 @@ costAtmuNeg :: AtmuNeg v u -> Int
 costAlmuH ::  AlmuH u -> Int
 
 costAlmu (Alspn sp) = costS (costAt costAlmuH) (costAl (costAt costAlmuH)) sp
-costAlmu (Alins c ctx) = foldCtx (\x y -> costAtmuPos x + y) (const (+1)) 0 ctx
-costAlmu (Aldel c ctx) = foldCtx (\x y -> costAtmuNeg x + y) (const (+1)) 0 ctx
+costAlmu (Alins c ctx) = foldCtx (\atmu acc -> costAtmuPos atmu + acc) (const (+1)) 0 ctx
+costAlmu (Aldel c ctx) = foldCtx (\atmu acc -> costAtmuNeg atm + acc) (const (+1)) 0 ctx
 
 costAtmuPos (FixPos almu) = costAlmu almu
 costAtmuNeg (FixNeg almu) = costAlmu almu
