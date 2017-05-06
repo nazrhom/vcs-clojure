@@ -35,7 +35,7 @@ data Al (at :: U -> *) :: [U] -> [U] -> * where
 
 data At (recP :: U -> *) :: U -> * where
   Ai :: (IsRecEl u) => recP u -> At recP u
-  As :: Trivial Usingl u -> At recP u
+  As :: TrivialA u -> At recP u
 
 data Almu :: U -> U -> * where
   Alspn :: Spine (At AlmuH) (Al (At AlmuH)) u -> Almu u u
@@ -56,8 +56,8 @@ data AtmuNeg (v :: U) :: U -> * where
   deriving Show
 
 data Ctx (r :: U -> *) :: [U] -> * where
-  Here :: (IsRecEl u) => r u       -> All Usingl l  -> Ctx r (u ': l)
-  There :: Usingl u -> Ctx r l       -> Ctx r (u ': l)
+  Here :: (IsRecEl u) => r u -> All Usingl l  -> Ctx r (u ': l)
+  There :: Usingl u -> Ctx r l -> Ctx r (u ': l)
 
 spine :: IsRecEl r => Usingl r -> Usingl r -> Spine TrivialA TrivialP r
 spine x y | x == y = Scp
@@ -116,7 +116,6 @@ newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
 instance Show (f x) => Show (Contract f x) where
   show c = show $ unContract c
 
-type Trivial = Contract
 type TrivialA = Contract Usingl
 data TrivialP :: [U] -> [U] -> * where
  Pair :: All Usingl l -> All Usingl r -> TrivialP l r
@@ -132,7 +131,7 @@ foldAll f b (a `Ac` as) = f a (foldAll f b as)
 foldCtx :: (forall u . r u -> b -> b)
         -> (forall u . Usingl u -> b -> b)
         -> b -> Ctx r l -> b
-foldCtx f g b (Here r p) = f r (foldAll g b p)
+foldCtx f g b (Here r p)  = f r (foldAll g b p)
 foldCtx f g b (There u c) = foldCtx f g b c
 
 mapAllM :: Monad m => (forall a . p a -> m (q a))

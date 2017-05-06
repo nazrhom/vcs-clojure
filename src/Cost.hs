@@ -31,18 +31,18 @@ costAt :: (IsRecEl a => rec a -> Int)
 costAt costR (As pair) = costK pair
 costAt costR (Ai spmu) = costR spmu
 
-costK :: Trivial Usingl u -> Int
+costK :: TrivialA u -> Int
 costK c = if old == new then 0 else 2
   where (old, new) = unContract c
 
 costAlmu :: Almu v u -> Int
 costAtmuPos :: AtmuPos v u -> Int
 costAtmuNeg :: AtmuNeg v u -> Int
-costAlmuH ::  AlmuH u -> Int
+costAlmuH :: AlmuH u -> Int
 
 costAlmu (Alspn sp) = costS (costAt costAlmuH) (costAl (costAt costAlmuH)) sp
 costAlmu (Alins c ctx) = foldCtx (\atmu acc -> costAtmuPos atmu + acc) (const (+1)) 0 ctx
-costAlmu (Aldel c ctx) = foldCtx (\atmu acc -> costAtmuNeg atm + acc) (const (+1)) 0 ctx
+costAlmu (Aldel c ctx) = foldCtx (\atmu acc -> costAtmuNeg atmu + acc) (const (+1)) 0 ctx
 
 costAtmuPos (FixPos almu) = costAlmu almu
 costAtmuNeg (FixNeg almu) = costAlmu almu
