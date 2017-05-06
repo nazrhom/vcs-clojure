@@ -100,12 +100,12 @@
     </object>
     <object type="TEXFILE" id="z105">
         <attribute name="wasopen" type="bool">0</attribute>
-        <attribute name="visiblerect" type="string">{{0, 8089}, {809, 634}}</attribute>
-        <attribute name="lasteditdate" type="date">515757449.41261601448059082031</attribute>
+        <attribute name="visiblerect" type="string">{{0, 7586}, {809, 634}}</attribute>
+        <attribute name="lasteditdate" type="date">515758316.77615499496459960938</attribute>
         <attribute name="istext" type="bool">1</attribute>
-        <attribute name="fileloaddate" type="date">515757464.32388800382614135742</attribute>
+        <attribute name="fileloaddate" type="date">515758316.80084300041198730469</attribute>
         <attribute name="extension" type="string">tex</attribute>
-        <attribute name="cursor" type="string">{28384, 112}</attribute>
+        <attribute name="cursor" type="string">{27892, 0}</attribute>
         <attribute name="sortindex" type="int32">0</attribute>
         <attribute name="name" type="string">report_main.tex</attribute>
         <attribute name="isexpanded" type="bool">0</attribute>

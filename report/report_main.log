@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  5 MAY 2017 16:50
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  6 MAY 2017 12:12
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -417,21 +417,16 @@ File: omlcmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OML/cmr/bx/n' in size <10> not available
 (Font)              Font shape `OML/cmm/b/it' tried instead on input line 498.
- [9]
-Overfull \hbox (64.13054pt too wide) in paragraph at lines 539--541
-\OT1/cmr/m/n/10.95 [1] Type-directed diff [2] http://cs.brynmawr.edu/~rae/paper
-s/2012/singletons/paper.pdf 
- []
+ [9] [10] [11]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 617.
 
-[10]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 591.
- [11]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 591.
+[12]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 617.
  (./report_main.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 591.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 591.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 617.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 617.
 Package rerunfilecheck Info: File `report_main.out' has not changed.
-(rerunfilecheck)             Checksum: 8E815C3D328EB7C476586E230EE75C6F;623.
+(rerunfilecheck)             Checksum: DC20B9B5DD11716B5EADFC48C11D7320;581.
 
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
@@ -442,13 +437,13 @@ LaTeX Warning: There were undefined references.
 
 LaTeX Warning: There were multiply-defined labels.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 591.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 617.
  ) 
 Here is how much of TeX's memory you used:
- 7153 strings out of 493089
- 105139 string characters out of 6134842
- 233223 words of memory out of 5000000
- 10458 multiletter control sequences out of 15000+600000
+ 7161 strings out of 493089
+ 105220 string characters out of 6134842
+ 233212 words of memory out of 5000000
+ 10461 multiletter control sequences out of 15000+600000
  10590 words of font info for 37 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  29i,6n,40p,242b,1719s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -463,10 +458,10 @@ ocal/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/lo
 cal/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/loc
 al/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/loca
 l/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb>
-Output written on ./report_main.pdf (11 pages, 158446 bytes).
+Output written on ./report_main.pdf (12 pages, 160147 bytes).
 PDF statistics:
- 266 PDF objects out of 1000 (max. 8388607)
- 239 compressed objects within 3 object streams
- 119 named destinations out of 1000 (max. 500000)
- 89 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 272 PDF objects out of 1000 (max. 8388607)
+ 244 compressed objects within 3 object streams
+ 124 named destinations out of 1000 (max. 500000)
+ 81 words of extra memory for PDF output out of 10000 (max. 10000000)
 
