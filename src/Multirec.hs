@@ -46,14 +46,23 @@ data AlmuH :: U -> * where
   AlmuH :: Almu u u -> AlmuH u
   deriving Show
 
+unH :: AlmuH u -> Almu u u
+unH (AlmuH u) = u
+
 -- Atmu positive and negative variations
 data AtmuPos (v :: U) :: U -> * where
   FixPos :: Almu v u -> AtmuPos v u
   deriving Show
 
+unPos :: AtmuPos v u -> Almu v u
+unPos (FixPos p) = p
+
 data AtmuNeg (v :: U) :: U -> * where
   FixNeg :: Almu u v -> AtmuNeg v u
   deriving Show
+
+unNeg :: AtmuNeg u v -> Almu v u
+unNeg (FixNeg n) = n
 
 data Ctx (r :: U -> *) :: [U] -> * where
   Here :: (IsRecEl u) => r u -> All Usingl l  -> Ctx r (u ': l)
@@ -113,9 +122,6 @@ alignOpt M (a `Ac` pa)  (b `Ac` pb) = case testEquality a b of
 -- Library stuff
 newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
 
-instance Show (f x) => Show (Contract f x) where
-  show c = show $ unContract c
-
 type TrivialA = Contract Usingl
 data TrivialP :: [U] -> [U] -> * where
  Pair :: All Usingl l -> All Usingl r -> TrivialP l r
@@ -157,7 +163,10 @@ mapAlM f (Adel at al) = Adel at <$> mapAlM f al
 mapAlM f (Ains at al) = Ains at <$> mapAlM f al
 mapAlM f (Amod at al) = Amod    <$> f at <*> mapAlM f al
 
-
+mapAt :: (forall a . rec1 a -> rec2 a)
+      -> At rec1 a -> At rec2 a
+mapAt f (Ai r) = Ai (f r)
+mapAt f (As t) = As t
 -- Show instances
 
 
@@ -207,3 +216,6 @@ showAl A0 = "0"
 showAl (Ains _ al) = '+' : showAl al
 showAl (Adel _ al) = '-' : showAl al
 showAl (Amod _ al) = '%' : showAl al
+
+instance Show (f x) => Show (Contract f x) where
+  show c = show $ unContract c

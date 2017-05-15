@@ -78,8 +78,8 @@ data Constr :: * where
   deriving Show
 
 data ConstrFor :: U -> Constr -> * where
-  C1NilProof :: ConstrFor  KSepExprList C1Nil
-  C1SingletonProof :: ConstrFor  KSepExprList C1Singleton
+  C1NilProof :: ConstrFor KSepExprList C1Nil
+  C1SingletonProof :: ConstrFor KSepExprList C1Singleton
   C1ConsProof :: ConstrFor KSepExprList C1Cons
 
   C2SpaceProof :: ConstrFor KSep C2Space
@@ -208,33 +208,41 @@ eval (UTerm u) = u
 eval (UTag u) = u
 
 instance TestEquality (ConstrFor u) where
-  testEquality C1NilProof C1NilProof = Just Refl
-  testEquality C1SingletonProof C1SingletonProof = Just Refl
-  testEquality C1ConsProof C1ConsProof = Just Refl
-  testEquality C2SpaceProof C2SpaceProof = Just Refl
-  testEquality C2CommaProof C2CommaProof = Just Refl
-  testEquality C2NewLineProof C2NewLineProof = Just Refl
-  testEquality C3SpecialProof C3SpecialProof = Just Refl
-  testEquality C3DispatchProof C3DispatchProof = Just Refl
-  testEquality C3CollectionProof C3CollectionProof = Just Refl
-  testEquality C3TermProof C3TermProof = Just Refl
-  testEquality C3CommentProof C3CommentProof = Just Refl
-  testEquality C4QuoteProof C4QuoteProof = Just Refl
-  testEquality C4SQuoteProof C4SQuoteProof = Just Refl
-  testEquality C4UnQuoteProof C4UnQuoteProof = Just Refl
-  testEquality C4SUnQuoteProof C4SUnQuoteProof = Just Refl
-  testEquality C4DeRefProof C4DeRefProof = Just Refl
-  testEquality C5VecProof C5VecProof = Just Refl
-  testEquality C5BindingsProof C5BindingsProof = Just Refl
-  testEquality C5MapProof C5MapProof = Just Refl
-  testEquality C5SetProof C5SetProof = Just Refl
-  testEquality C5ArrayProof C5ArrayProof = Just Refl
-  testEquality C5ParensProof C5ParensProof = Just Refl
-  testEquality C6TaggedStringProof C6TaggedStringProof = Just Refl
-  testEquality C7StringProof C7StringProof = Just Refl
-  testEquality C7MetadataProof C7MetadataProof = Just Refl
-  testEquality C7VarProof C7VarProof = Just Refl
-  testEquality _ _ = Nothing
+  testEquality a b = case testEquality' a b of
+    Just (Refl, Refl) -> Just Refl
+    Nothing -> Nothing
+
+
+testEquality' :: ConstrFor a b -> ConstrFor c d -> Maybe ((a :~: c), (b :~: d))
+testEquality' C1NilProof C1NilProof = Just (Refl, Refl)
+testEquality' C1SingletonProof C1SingletonProof = Just (Refl, Refl)
+testEquality' C1ConsProof C1ConsProof = Just (Refl, Refl)
+testEquality' C2SpaceProof C2SpaceProof = Just (Refl, Refl)
+testEquality' C2CommaProof C2CommaProof = Just (Refl, Refl)
+testEquality' C2NewLineProof C2NewLineProof = Just (Refl, Refl)
+testEquality' C3SpecialProof C3SpecialProof = Just (Refl, Refl)
+testEquality' C3DispatchProof C3DispatchProof = Just (Refl, Refl)
+testEquality' C3CollectionProof C3CollectionProof = Just (Refl, Refl)
+testEquality' C3TermProof C3TermProof = Just (Refl, Refl)
+testEquality' C3CommentProof C3CommentProof = Just (Refl, Refl)
+testEquality' C4QuoteProof C4QuoteProof = Just (Refl, Refl)
+testEquality' C4SQuoteProof C4SQuoteProof = Just (Refl, Refl)
+testEquality' C4UnQuoteProof C4UnQuoteProof = Just (Refl, Refl)
+testEquality' C4SUnQuoteProof C4SUnQuoteProof = Just (Refl, Refl)
+testEquality' C4DeRefProof C4DeRefProof = Just (Refl, Refl)
+testEquality' C5VecProof C5VecProof = Just (Refl, Refl)
+testEquality' C5BindingsProof C5BindingsProof = Just (Refl, Refl)
+testEquality' C5MapProof C5MapProof = Just (Refl, Refl)
+testEquality' C5SetProof C5SetProof = Just (Refl, Refl)
+testEquality' C5ArrayProof C5ArrayProof = Just (Refl, Refl)
+testEquality' C5ParensProof C5ParensProof = Just (Refl, Refl)
+testEquality' C6TaggedStringProof C6TaggedStringProof = Just (Refl, Refl)
+testEquality' C7StringProof C7StringProof = Just (Refl, Refl)
+testEquality' C7MetadataProof C7MetadataProof = Just (Refl, Refl)
+testEquality' C7VarProof C7VarProof = Just (Refl, Refl)
+testEquality' _ _ = Nothing
+
+
 
 instance TestEquality Usingl where
   testEquality (UString _) (UString _) = Just Refl
