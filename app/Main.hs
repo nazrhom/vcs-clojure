@@ -14,6 +14,7 @@ import Lang
 import Apply
 import Multirec
 import Cost
+import Disjoint
 
 main :: IO ()
 main = do
@@ -40,6 +41,35 @@ main = do
 
 allTheSame :: (Eq a) => [a] -> Bool
 allTheSame xs = and $ map (== head xs) (tail xs)
+
+choose' :: Almu u v -> Int -> [Almu u v] -> Almu u v
+choose' curr c [] = curr
+choose' curr c (p:ps)
+  | c <= costAlmu p = choose' curr c ps
+  | otherwise       = choose' p (costAlmu p) ps
+
+choose :: [Almu u v] -> Almu u v
+choose (x:xs) = choose' x (costAlmu x) xs
+choose []     = error "boom"
+
+computePatch :: Expr -> Expr -> Almu (Le Expr) (Le Expr)
+computePatch x y
+  = let almus = diffAlmu M (toSing x) (toSing y)
+     in choose almus
+
+getFiles :: IO (Expr , Expr , Expr)
+getFiles
+  = do let src  = "test/conflicts/manual/head-safehead-disj/head.clj"
+           dst1 = "test/conflicts/manual/head-safehead-disj/safehead-1.clj"
+           dst2 = "test/conflicts/manual/head-safehead-disj/safehead-2.clj"
+       fs  <- parseAndRead src
+       fd1 <- parseAndRead dst1
+       fd2 <- parseAndRead dst2
+       return (fs , fd1 , fd2)
+
+parseAndRead :: String -> IO Expr
+parseAndRead fname
+  = readFile fname >>= parseAndPop ""
 
 parseAndPop :: String -> String -> IO Expr
 parseAndPop name src = case parse parseTop name src of
