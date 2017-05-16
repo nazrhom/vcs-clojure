@@ -1,10 +1,13 @@
 \BOOKMARK [1][-]{section.1}{Dependent types in Haskell}{}% 1
-\BOOKMARK [1][-]{section.2}{Type-directed diff}{}% 2
-\BOOKMARK [2][-]{subsection.2.1}{Spine}{section.2}% 3
-\BOOKMARK [2][-]{subsection.2.2}{Alignment}{section.2}% 4
-\BOOKMARK [2][-]{subsection.2.3}{Atoms}{section.2}% 5
-\BOOKMARK [1][-]{section.3}{Implementation}{}% 6
-\BOOKMARK [2][-]{subsection.3.1}{Setting up the universe}{section.3}% 7
-\BOOKMARK [2][-]{subsection.3.2}{The actual puzzle}{section.3}% 8
-\BOOKMARK [1][-]{section.4}{Future Work}{}% 9
-\BOOKMARK [2][-]{subsection.4.1}{Evaluation process}{section.4}% 10
+\BOOKMARK [1][-]{section.2}{Sum of Products}{}% 2
+\BOOKMARK [1][-]{section.3}{Type-directed diff}{}% 3
+\BOOKMARK [2][-]{subsection.3.1}{Spine}{section.3}% 4
+\BOOKMARK [2][-]{subsection.3.2}{Alignment}{section.3}% 5
+\BOOKMARK [2][-]{subsection.3.3}{Atoms}{section.3}% 6
+\BOOKMARK [1][-]{section.4}{Implementation}{}% 7
+\BOOKMARK [2][-]{subsection.4.1}{Setting up the universe}{section.4}% 8
+\BOOKMARK [2][-]{subsection.4.2}{The actual puzzle}{section.4}% 9
+\BOOKMARK [1][-]{section.5}{Future Work}{}% 10
+\BOOKMARK [2][-]{subsection.5.1}{Evaluation process}{section.5}% 11
+\BOOKMARK [2][-]{subsection.5.2}{More things}{section.5}% 12
+\BOOKMARK [1][-]{section.6}{Notes}{}% 13

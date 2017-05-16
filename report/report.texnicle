@@ -1,4 +1,4 @@
-<?xml version="1.0" standalone="no"?>
+<?xml version="1.0"?>
 <!DOCTYPE database SYSTEM "file:///System/Library/DTDs/CoreData.dtd">
 
 <database>
@@ -10,7 +10,7 @@
             <plist version="1.0">
                 <dict>
                     <key>NSPersistenceFrameworkVersion</key>
-                    <integer>526</integer>
+                    <integer>754</integer>
                     <key>NSStoreModelVersionHashes</key>
                     <dict>
                         <key>Bookmark</key>
@@ -100,12 +100,12 @@
     </object>
     <object type="TEXFILE" id="z105">
         <attribute name="wasopen" type="bool">0</attribute>
-        <attribute name="visiblerect" type="string">{{0, 8617}, {809, 688}}</attribute>
-        <attribute name="lasteditdate" type="date">515938733.58647501468658447266</attribute>
+        <attribute name="visiblerect" type="string">{{0, 9441}, {808, 686.5}}</attribute>
+        <attribute name="lasteditdate" type="date">516545497.61210602521896362305</attribute>
         <attribute name="istext" type="bool">1</attribute>
-        <attribute name="fileloaddate" type="date">515938738.05875098705291748047</attribute>
+        <attribute name="fileloaddate" type="date">516545553.05423802137374877930</attribute>
         <attribute name="extension" type="string">tex</attribute>
-        <attribute name="cursor" type="string">{30622, 0}</attribute>
+        <attribute name="cursor" type="string">{36684, 0}</attribute>
         <attribute name="sortindex" type="int32">0</attribute>
         <attribute name="name" type="string">report_main.tex</attribute>
         <attribute name="isexpanded" type="bool">0</attribute>

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  6 MAY 2017 12:12
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  14 MAY 2017 15:44
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -350,83 +350,50 @@ LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10.95> not available
 LaTeX Warning: Citation `singletons1' on page 2 undefined on input line 153.
 
 [2]
-./report_main.tex:176: You can't use `macro parameter character #' in horizonta
-l mode.
-l.176 full picture yet, as pointed out in #
-                                           ##QUOTE HASOCHISM### there is
-Sorry, but I'm not programmed to handle this case;
-I'll just pretend that you didn't ask for it.
-If you're in the wrong mode, you might be able to
-return to the right one by typing `I}' or `I$' or `I\par'.
 
-./report_main.tex:176: You can't use `macro parameter character #' in horizonta
-l mode.
-l.176 full picture yet, as pointed out in ##
-                                            #QUOTE HASOCHISM### there is
-Sorry, but I'm not programmed to handle this case;
-I'll just pretend that you didn't ask for it.
-If you're in the wrong mode, you might be able to
-return to the right one by typing `I}' or `I$' or `I\par'.
+LaTeX Warning: Citation `hasochism' on page 3 undefined on input line 177.
 
-./report_main.tex:176: You can't use `macro parameter character #' in horizonta
-l mode.
-l.176 full picture yet, as pointed out in ###
-                                             QUOTE HASOCHISM### there is
-Sorry, but I'm not programmed to handle this case;
-I'll just pretend that you didn't ask for it.
-If you're in the wrong mode, you might be able to
-return to the right one by typing `I}' or `I$' or `I\par'.
+[3]
 
-./report_main.tex:176: You can't use `macro parameter character #' in horizonta
-l mode.
-l.176 ...et, as pointed out in ###QUOTE HASOCHISM#
-                                                  ## there is
-Sorry, but I'm not programmed to handle this case;
-I'll just pretend that you didn't ask for it.
-If you're in the wrong mode, you might be able to
-return to the right one by typing `I}' or `I$' or `I\par'.
+LaTeX Warning: Citation `type-directed diff' on page 4 undefined on input line 
+208.
 
-./report_main.tex:176: You can't use `macro parameter character #' in horizonta
-l mode.
-l.176 ...t, as pointed out in ###QUOTE HASOCHISM##
-                                                  # there is
-Sorry, but I'm not programmed to handle this case;
-I'll just pretend that you didn't ask for it.
-If you're in the wrong mode, you might be able to
-return to the right one by typing `I}' or `I$' or `I\par'.
 
-./report_main.tex:176: You can't use `macro parameter character #' in horizonta
-l mode.
-l.176 ..., as pointed out in ###QUOTE HASOCHISM###
-                                                   there is
-Sorry, but I'm not programmed to handle this case;
-I'll just pretend that you didn't ask for it.
-If you're in the wrong mode, you might be able to
-return to the right one by typing `I}' or `I$' or `I\par'.
+LaTeX Warning: Citation `type-directed diff' on page 4 undefined on input line 
+216.
 
-[3] [4] [5] [6] [7] [8]
-Overfull \hbox (11.49738pt too wide) in paragraph at lines 481--482
+
+LaTeX Warning: Citation `type-directed diff' on page 4 undefined on input line 
+237.
+
+[4] [5] [6] [7] [8] [9]
+Overfull \hbox (11.49738pt too wide) in paragraph at lines 517--518
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][
 ][][][][][][][][][][] 
  []
 
-LaTeX Font Info:    Try loading font information for OML+cmr on input line 498.
+LaTeX Font Info:    Try loading font information for OML+cmr on input line 534.
 
 (/usr/local/texlive/2015/texmf-dist/tex/latex/base/omlcmr.fd
 File: omlcmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OML/cmr/bx/n' in size <10> not available
-(Font)              Font shape `OML/cmm/b/it' tried instead on input line 498.
- [9] [10] [11]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 617.
+(Font)              Font shape `OML/cmm/b/it' tried instead on input line 534.
+ [10]
+Overfull \hbox (3.69307pt too wide) in paragraph at lines 576--577
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][
+][][][][] 
+ []
 
-[12]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 617.
+[11] [12] [13]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 727.
+ [14]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 727.
  (./report_main.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 617.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 617.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 727.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 727.
 Package rerunfilecheck Info: File `report_main.out' has not changed.
-(rerunfilecheck)             Checksum: DC20B9B5DD11716B5EADFC48C11D7320;581.
+(rerunfilecheck)             Checksum: 80FAC3D6B4675EF9B204AD1A44A9869A;734.
 
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
@@ -437,13 +404,13 @@ LaTeX Warning: There were undefined references.
 
 LaTeX Warning: There were multiply-defined labels.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 617.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 727.
  ) 
 Here is how much of TeX's memory you used:
- 7161 strings out of 493089
- 105220 string characters out of 6134842
- 233212 words of memory out of 5000000
- 10461 multiletter control sequences out of 15000+600000
+ 7189 strings out of 493089
+ 105579 string characters out of 6134842
+ 233247 words of memory out of 5000000
+ 10475 multiletter control sequences out of 15000+600000
  10590 words of font info for 37 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  29i,6n,40p,242b,1719s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -458,10 +425,10 @@ ocal/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/lo
 cal/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/loc
 al/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/loca
 l/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb>
-Output written on ./report_main.pdf (12 pages, 160147 bytes).
+Output written on ./report_main.pdf (14 pages, 167611 bytes).
 PDF statistics:
- 272 PDF objects out of 1000 (max. 8388607)
- 244 compressed objects within 3 object streams
- 124 named destinations out of 1000 (max. 500000)
- 81 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 304 PDF objects out of 1000 (max. 8388607)
+ 274 compressed objects within 3 object streams
+ 138 named destinations out of 1000 (max. 500000)
+ 105 words of extra memory for PDF output out of 10000 (max. 10000000)
 

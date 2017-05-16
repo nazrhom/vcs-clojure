@@ -42,6 +42,48 @@
 \begin{document}
 \maketitle
 
+\section{Introduction}
+Version control systems (VCS) have been steadily becoming an ubiquitous and central 
+tool in programming. Many big projects, with hundreds of collaborators, 
+fundamentally rely on these kind of tools to allow collaborators to interact 
+with one another and to keep a structured log of the units of change. 
+At the heart of most modern VCS is the unix diff utility. This tool computes a 
+line-by-line difference between two files of text, determinig the smallest set 
+of insertions or deletions of lines that transform one file into the other, this is called an edit script. 
+Edit scripts are used when two collaborators have modified the same source file in independent 
+ways and the VCS wants to reconcile the two independent changes into a single 
+one. This operation is clearly not always possible: if two collaborators have 
+modified the same line , in which case the two resulting edit scripts will 
+``overlap'', it is not clear which one of the two modifications should be 
+picked. 
+In general, some conflicts will always require a manual intervention: when two 
+people change the same thing in two different ways there is no general way of 
+deciding which one will be the one we want to pick; however the diff tool makes 
+a big assumption in considering lines to be the basic units in which change is 
+observable. 
+For diff, two unrelated changes on the same line, would still give rise to a 
+conflict that requires manual intervention. 
+The main idea of this reasearch is to design an alternative to diff which offers a 
+finer grained control over the units of change. In particular, in the context of 
+programming languages we already have abstract syntax trees (AST) that encode 
+the semantical structure of a program. By attempting to extend diff on the AST 
+we gain both more control over the units of change, as a single line will 
+usually contain multiple AST nodes and we gain information about the structure, encoded in the types which 
+we can use to create transformation that operate on this structure in a principled way. 
+The drawback of this approach is that it moves the problem from the ``flat'' 
+world of strings to the ``layered'' world of trees, and the problem of computing an edit script between them suddendly
+becomes much more computationally expensive. 
+
+
+The following section is an introduction to dependent types in haskell as they will be crucial in encoding 
+the structure we want to express in our data types and their transformations. 
+Following dependent types we will need to introduce sums of products: these give us a general way to view 
+types and will allow us to define an algorithm that is independent of the representation of the AST for the language 
+we are treating.
+In the remainder of the proposal we will show a full Haskell implementation of the algorithm presented in 
+\cite{icfp}, which is coded in Agda in the original paper. Finally we will explore some of the possible 
+future directions that can be explored with this framework both in terms of 
+gathering concrete evidence and in further research.
 
 \section{Dependent types in
 Haskell}\label{dependent-types-in-haskell}
@@ -543,7 +585,7 @@ A match of constructors will be represented as a spine while insertions and
 deletions will record the constructor being inserted (resp. deleted) and a 
 \texttt{Ctx} which records which fields are associated to that constructor.
 \texttt{Ctx}s are inspired by zippers: they can be thought as a representation 
-of a complex type with a hole somewhere; the hole will be the place where we 
+of a  type with a hole somewhere; the hole representse th place where we 
 plug in the rest of the tree to continue the computation.
 \begin{lstlisting}[language=haskell]
 data Almu :: U -> U -> * where
@@ -552,8 +594,47 @@ data Almu :: U -> U -> * where
   Aldel :: ConstrFor u s -> Ctx (Almu v) (TypeOf s) -> Almu u v
 \end{lstlisting}
 \
+\paragraph{Putting everything together}\label{putting everything together}
+
 With these types it is easy to write a function that computes the diff between 
-two trees: the lingering problem however is due to the great combinatorial 
+two trees.
+We can start writing this function from the ``bottom up'', 
+with the definition of a diff between two atoms, the function must have the 
+following signature
+\begin{lstlisting}
+  diffAt ::  (forall r . IsRecEl r => Usingl r -> Usingl r -> [rec r])
+            -> Usingl a -> Usingl a -> [At rec a]
+\end{lstlisting}
+This function is parametrized by a function that describes the treatment for 
+recursive atoms. By inspecting the first singleton we learn wether the atom is 
+recursive or not; if that is the case, the function that deals with the 
+recursive elements can be used to build the corresponding \texttt{At}. In the 
+other case, when the element is non recursive, we can simply pair up the two 
+constant atoms with a \texttt{Contract} and build the non recursive \texttt{At}.
+
+We can then proceed by implementing the function that computes all the spines 
+between recursive elements.
+\begin{lstlisting}
+ diffS :: IsRecEl a => (forall r . IsRecEl r => Usingl r -> Usingl r -> [rec r])
+        -> Usingl a -> Usingl a -> [Spine (At rec) (Al (At rec)) a]
+\end{lstlisting}
+Which lifts the parameter it takes, a function to handle the 
+recursive elements of our language, over the predicate parameters to the spine that result 
+from the two singletons.
+
+We finally have to define a function that computes the diff in terms of 
+\texttt{Almu}s. This will call \texttt{diffS} in case of spine on the 
+outer level, and will simply be lifted over the context in case of an insertion 
+or deletion. This function will have the following signature
+
+\begin{lstlisting}
+  diffAlmu :: (IsRecEl u, IsRecEl v) => Usingl u -> Usingl v -> [Almu u v]
+\end{lstlisting}
+
+As is the case for the alignment between products, here we will simply proceed 
+by enumerating all possible recursive alignments, attempting at each level 
+the alignment of spines, insertions and deletions.
+The problem in this approach however lies in the great combinatorial 
 explosion of possibilities that arises in computing the alignments for 
 constructors and products. The following paragraph will describe an optimization 
 we can employ to prune the number of possible alignments. This optimization 
@@ -562,7 +643,7 @@ we are still at least an order of magnitude slower than diff3, this points to
 the necessity of further and more aggressive optimizations that may be explored 
 in future work.
 
-\subparagraph{Optimization}\label{optimizations}
+\paragraph{Optimization}\label{optimizations}
 
 Given the \texttt{Al} and \texttt{Almu} type defined in the previous paragraphs we are still left with the problem
 to computing these two level of alignments. Since we don't know apriori which alignment
@@ -646,6 +727,26 @@ alignments (both recursive and non) and possibly also correlate with
 disjointness, in the sense that on optimal patch should strive to be minimal, 
 and, as such, as disjoint as possible from every other patch with the same source.
 
+\subsection{More things}
+oracle diff3
+The optimization described in the previous section is probably still not suited 
+for large real world applications. One possible direction in which to focus future work is to explore the 
+possibility of using the standard unix diff algorithm as an oracle to prune the 
+alignment trees that are being generated. 
+The idea is that instead of enumerating all possible alignments between two 
+trees we can check and see if diff treats the sequence of lines in which that 
+tree resides in the source file in a definite way (either inserting, matching or deleting) 
+and pick that choice.
+
+Another subject to explore is to extend what was done up to this point to define 
+a precise notion of a merge between two patches, this is the main motiviation of the 
+research. This notion should be related to disjointness: informally disjoint 
+patches operate on different parts of the origin file and for that reason should 
+be mergeable into a single patch that incorporates both changes. 
+
+Visualization of patches
+
+
 
 \section{Notes}
 Evaluation process:
@@ -653,7 +754,7 @@ Evaluation process:
    \item find suitables clojure repos to explore
   \item find all merges of two branches in git log
   \item for each merge, whenever we have a file appearing in both branches (file A B)
-  \item Find comon parent of two branches where the file is present, that version of the fill will be O
+  \item Find comon parent of two branches where the file is present, that version of the file will be O
   \item p1 = All Diff between O and A
   \item p2 = All Diff between O and B 
   \item Check if they are disjoint
