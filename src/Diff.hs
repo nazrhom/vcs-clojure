@@ -33,17 +33,6 @@ diffS diffR d s1 s2
       al <- align p1 p2
       mapAlM (uncurry (diffAt diffR d) . unContract) al
 
-
-onRecursiveGuy :: ((IsRecEl v) => Usingl v -> a) -> (Usingl v -> a) -> Usingl v -> a
-onRecursiveGuy rec nonrec at@(UString _) = nonrec at
-onRecursiveGuy rec nonrec at@(USep _) = rec at
-onRecursiveGuy rec nonrec at@(USepExprList _) = rec at
-onRecursiveGuy rec nonrec at@(UExpr _) = rec at
-onRecursiveGuy rec nonrec at@(UFormTy _) = rec at
-onRecursiveGuy rec nonrec at@(UCollType _) = rec at
-onRecursiveGuy rec nonrec at@(UTerm _) = rec at
-onRecursiveGuy rec nonrec at@(UTag _) = rec at
-
 diffInsCtx :: (IsRecEl v, Alternative m, Monad m)
            => Usingl v -> All Usingl p -> m (Ctx (AtmuPos v) p)
 diffInsCtx x An = empty

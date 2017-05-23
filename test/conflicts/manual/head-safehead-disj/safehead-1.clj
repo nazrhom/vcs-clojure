@@ -1,4 +1,4 @@
-(defn shead
+(defn head
   "unsafe head"
   [l d]
   (if (nil? l)

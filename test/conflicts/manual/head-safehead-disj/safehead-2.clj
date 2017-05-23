@@ -1,4 +1,4 @@
-(defn head
-  "new description"
+(defn shead
+  "safe head"
   [l]
   (first l))

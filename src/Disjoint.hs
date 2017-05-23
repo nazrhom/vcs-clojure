@@ -25,11 +25,11 @@ disjoint almu (Alins constr ctx)
 -- * Deletions and copies are trivially disjoint
 disjoint (Aldel c ctx) (Alspn Scp)
   = True
-disjoint (Alspn Scp) (Aldel c ctx) 
+disjoint (Alspn Scp) (Aldel c ctx)
   = True
 -- * A patch can never be disjoint from itself.
 disjoint (Aldel c ctx) (Aldel c' ctx')
-  = False 
+  = False
 disjoint _ _ = False
 
 
@@ -80,12 +80,20 @@ disjointS disAt disAl _ _ = False
 disjointAl :: (forall a . (al1 :: U -> *) a -> (al2 :: U -> *) a -> Bool)
            -> Al al1 s d -> Al al2 s d' -> Bool
 disjointAl disAt A0 A0 = True
+
+-- * Insertions
 disjointAl disAt al (Ains a' al') = disjointAl disAt al al'
 disjointAl disAt (Ains a al) al'  = disjointAl disAt al al'
+
+-- * A patch is disjoint from itself
 disjointAl disAt (Adel a al) (Adel a' al')
-  = disjointAl disAt al al'
+  = False
+
+-- * Both Amod
 disjointAl disAt (Amod a al) (Amod a' al')
   = disAt a a' && disjointAl disAt al al'
+
+-- * Other
 disjointAl disAt _ _
   = False
 
@@ -99,4 +107,3 @@ disjointAt disjointR (As p) (As p')
   where
     (old, new) = unContract p
     (old', new') = unContract p'
-
