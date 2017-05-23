@@ -65,10 +65,7 @@ data Constr :: * where
   C4DeRef :: Constr
 
   C5Vec :: Constr
-  C5Bindings :: Constr
-  C5Map :: Constr
   C5Set :: Constr
-  C5Array :: Constr
   C5Parens :: Constr
 
   C6TaggedString :: Constr
@@ -100,10 +97,7 @@ data ConstrFor :: U -> Constr -> * where
   C4DeRefProof :: ConstrFor KFormTy C4DeRef
 
   C5VecProof :: ConstrFor KCollType C5Vec
-  C5BindingsProof :: ConstrFor KCollType C5Bindings
-  C5MapProof :: ConstrFor KCollType C5Map
   C5SetProof :: ConstrFor KCollType C5Set
-  C5ArrayProof :: ConstrFor KCollType C5Array
   C5ParensProof :: ConstrFor KCollType C5Parens
 
   C6TaggedStringProof :: ConstrFor KTerm C6TaggedString
@@ -136,10 +130,7 @@ showConstr C4SUnQuoteProof = "SUnQuote "
 showConstr C4DeRefProof = "DeRef "
 
 showConstr C5VecProof = "Vec "
-showConstr C5BindingsProof = "Bindings "
-showConstr C5MapProof = "Map "
 showConstr C5SetProof = "Set "
-showConstr C5ArrayProof = "Array "
 showConstr C5ParensProof = "Parens "
 
 showConstr C6TaggedStringProof = "TaggedString "
@@ -170,10 +161,7 @@ type family TypeOf (c :: Constr) :: [U] where
   TypeOf C4DeRef = '[]
 
   TypeOf C5Vec = '[]
-  TypeOf C5Bindings = '[]
-  TypeOf C5Map = '[]
   TypeOf C5Set = '[]
-  TypeOf C5Array = '[]
   TypeOf C5Parens = '[]
 
   TypeOf C6TaggedString = '[KTag, KString]
@@ -212,10 +200,7 @@ inj C4UnQuoteProof An = UFormTy UnQuote
 inj C4SUnQuoteProof An = UFormTy SUnQuote
 inj C4DeRefProof An = UFormTy DeRef
 inj C5VecProof An = UCollType Vec
-inj C5BindingsProof An = UCollType Bindings
-inj C5MapProof An = UCollType Map
 inj C5SetProof An = UCollType Set
-inj C5ArrayProof An = UCollType Array
 inj C5ParensProof An = UCollType Parens
 inj C6TaggedStringProof (t `Ac` s `Ac` An) = UTerm (TaggedString (eval t) (eval s))
 inj C7StringProof An = UTag String
@@ -266,10 +251,7 @@ testEquality' C4UnQuoteProof C4UnQuoteProof = Just (Refl, Refl)
 testEquality' C4SUnQuoteProof C4SUnQuoteProof = Just (Refl, Refl)
 testEquality' C4DeRefProof C4DeRefProof = Just (Refl, Refl)
 testEquality' C5VecProof C5VecProof = Just (Refl, Refl)
-testEquality' C5BindingsProof C5BindingsProof = Just (Refl, Refl)
-testEquality' C5MapProof C5MapProof = Just (Refl, Refl)
 testEquality' C5SetProof C5SetProof = Just (Refl, Refl)
-testEquality' C5ArrayProof C5ArrayProof = Just (Refl, Refl)
 testEquality' C5ParensProof C5ParensProof = Just (Refl, Refl)
 testEquality' C6TaggedStringProof C6TaggedStringProof = Just (Refl, Refl)
 testEquality' C7StringProof C7StringProof = Just (Refl, Refl)
@@ -338,10 +320,7 @@ viewFormTy DeRef = Tag C4DeRefProof An
 
 viewCollType :: CollType -> View KCollType
 viewCollType Vec = Tag C5VecProof An
-viewCollType Bindings = Tag C5BindingsProof An
-viewCollType Map = Tag C5MapProof An
 viewCollType Set = Tag C5SetProof An
-viewCollType Array = Tag C5ArrayProof An
 viewCollType Parens = Tag C5ParensProof An
 
 viewTerm :: Term -> View KTerm
@@ -398,10 +377,7 @@ instance Sing FormTy where
   toSing DeRef = UFormTy DeRef
 instance Sing CollType where
   toSing Vec = UCollType Vec
-  toSing Bindings = UCollType Bindings
-  toSing Map = UCollType Map
   toSing Set = UCollType Set
-  toSing Array = UCollType Array
   toSing Parens = UCollType Parens
 instance Sing Term where
   toSing (TaggedString t s) = UTerm (TaggedString t s)

@@ -32,7 +32,7 @@ data Expr = Special FormTy Expr
 -- ref: https://8thlight.com/blog/colin-jones/2012/05/22/quoting-without-confusion.html
 data FormTy = Quote | SQuote | UnQuote | SUnQuote | DeRef deriving (Show, Eq)
 
-data CollType = Vec | Bindings | Map | Set | Array | Parens deriving (Show, Eq)
+data CollType = Vec | Set | Parens deriving (Show, Eq)
 
 data Term = TaggedString Tag String
           deriving (Show, Eq)
@@ -40,8 +40,8 @@ data Term = TaggedString Tag String
 data Tag = String | Metadata | Var  deriving (Show, Eq)
 
 lexer = makeTokenParser javaStyle
-  { identStart = alphaNum <|> oneOf "_':*-&\\"
-  , identLetter = alphaNum <|> oneOf ":_.'-/^?!><*#\"\\" <|> satisfy isSymbol
+  { identStart = alphaNum <|> oneOf "_':*-&\\,"
+  , identLetter = alphaNum <|> oneOf ":_.,'-/^?!><*#\"\\" <|> satisfy isSymbol
   }
 
 parseTop = whiteSpace lexer *> many parseExpr <* eof
