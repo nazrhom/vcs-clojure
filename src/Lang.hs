@@ -7,6 +7,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE RankNTypes #-}
 module Lang where
 
 import Data.Type.Equality hiding (apply)
@@ -86,10 +87,10 @@ data ConstrFor :: U -> Constr -> * where
   C2CommaProof :: ConstrFor KSep C2Comma
   C2NewLineProof :: ConstrFor KSep C2NewLine
 
-  C3SpecialProof :: ConstrFor  KExpr C3Special
-  C3DispatchProof :: ConstrFor  KExpr C3Dispatch
-  C3CollectionProof :: ConstrFor  KExpr C3Collection
-  C3TermProof :: ConstrFor  KExpr C3Term
+  C3SpecialProof :: ConstrFor KExpr C3Special
+  C3DispatchProof :: ConstrFor KExpr C3Dispatch
+  C3CollectionProof :: ConstrFor KExpr C3Collection
+  C3TermProof :: ConstrFor KExpr C3Term
   C3CommentProof :: ConstrFor KExpr C3Comment
 
   C4QuoteProof :: ConstrFor KFormTy C4Quote
@@ -112,6 +113,40 @@ data ConstrFor :: U -> Constr -> * where
   C7VarProof :: ConstrFor KTag C7Var
 
 deriving instance Show (ConstrFor u c)
+
+showConstr :: ConstrFor u c -> String
+showConstr C1NilProof = "Nil "
+showConstr C1SingletonProof = "Singleton "
+showConstr C1ConsProof = "Cons "
+
+showConstr C2SpaceProof = "Space "
+showConstr C2CommaProof = "Comma "
+showConstr C2NewLineProof = "NewLine "
+
+showConstr C3SpecialProof = "Special "
+showConstr C3DispatchProof = "Dispatch "
+showConstr C3CollectionProof = "Collection "
+showConstr C3TermProof = "Term "
+showConstr C3CommentProof = "Comment "
+
+showConstr C4QuoteProof = "Quote "
+showConstr C4SQuoteProof = "SQuote "
+showConstr C4UnQuoteProof = "UnQuote "
+showConstr C4SUnQuoteProof = "SUnQuote "
+showConstr C4DeRefProof = "DeRef "
+
+showConstr C5VecProof = "Vec "
+showConstr C5BindingsProof = "Bindings "
+showConstr C5MapProof = "Map "
+showConstr C5SetProof = "Set "
+showConstr C5ArrayProof = "Array "
+showConstr C5ParensProof = "Parens "
+
+showConstr C6TaggedStringProof = "TaggedString "
+
+showConstr C7StringProof = "String "
+showConstr C7MetadataProof = "Metadata "
+showConstr C7VarProof = "Var "
 
 type family TypeOf (c :: Constr) :: [U] where
   TypeOf C1Nil = '[]
@@ -317,6 +352,16 @@ viewTag String = Tag C7StringProof An
 viewTag Metadata = Tag C7MetadataProof An
 viewTag Var = Tag C7VarProof An
 
+
+onRecursiveGuy :: ((IsRecEl v) => Usingl v -> a) -> (Usingl v -> a) -> Usingl v -> a
+onRecursiveGuy rec nonrec at@(UString _) = nonrec at
+onRecursiveGuy rec nonrec at@(USep _) = rec at
+onRecursiveGuy rec nonrec at@(USepExprList _) = rec at
+onRecursiveGuy rec nonrec at@(UExpr _) = rec at
+onRecursiveGuy rec nonrec at@(UFormTy _) = rec at
+onRecursiveGuy rec nonrec at@(UCollType _) = rec at
+onRecursiveGuy rec nonrec at@(UTerm _) = rec at
+onRecursiveGuy rec nonrec at@(UTag _) = rec at
 
 -- Utility
 type family Le (k :: *) :: U where
