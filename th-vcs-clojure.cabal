@@ -23,6 +23,7 @@ library
                      , Multirec
                      , Cost
                      , Disjoint
+                     , PPPatch
   build-depends:       base >= 4.7 && < 5
                      , containers
                      , optparse-applicative >= 0.13.0.0
