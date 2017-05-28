@@ -40,18 +40,8 @@
     "contributors": 83
   },
   {
-    "name": "LightTable",
-    "url": "https://github.com/LightTable/LightTable",
-    "contributors": 72
-  },
-  {
     "name": "lein-figwheel",
     "url": "https://github.com/bhauman/lein-figwheel",
-    "contributors": 69
-  },
-  {
-    "name": "modern-cljs",
-    "url": "https://github.com/magomimmo/modern-cljs",
     "contributors": 69
   },
   {

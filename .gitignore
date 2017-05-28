@@ -22,6 +22,7 @@ cabal.project.local
 
 # test projects
 test/repos/*
+test/conflicts/mined/*
 !test/repos/.gitkeep
 
 # prevent test output files to pollute repo
