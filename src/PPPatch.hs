@@ -9,14 +9,14 @@ import Multirec
 import Lang
 import Data.Type.Equality hiding (apply)
 
-showPatchEffect :: (IsRecEl u, IsRecEl v) => Almu u v -> Usingl u ->  String
+showPatchEffect :: (IsRecEl u, IsRecEl v) => Almu u v -> Usingl u -> String
 showPatchEffect (Alspn s) e =
   showSpineEffect
     (showAtEffect showAlmuHEffect)
     (showAlEffect (showAtEffect showAlmuHEffect))
     e
     s
-showPatchEffect (Alins c ctx) e = "\n{+" ++ showConstr c ++  showCtxPosE ctx e
+showPatchEffect (Alins c ctx) e = "\n{+" ++ showConstr c ++ showCtxPosE ctx e
 showPatchEffect (Aldel c ctx) e = case view e of
   (Tag c' d) -> case testEquality' c c' of
     Nothing -> "error"
@@ -25,11 +25,11 @@ showPatchEffect (Aldel c ctx) e = case view e of
 
 showCtxPosE :: IsRecEl u => Ctx (AtmuPos u) l -> Usingl u -> String
 showCtxPosE (Here r p) u = "+}\n" ++ showAtmuPosE u r
-showCtxPosE (There u' ctx) u = show u' ++ showCtxPosE ctx u
+showCtxPosE (There u' ctx) u = show u' ++ " " ++ showCtxPosE ctx u
 
 showCtxNegE :: IsRecEl v => Ctx (AtmuNeg v) l -> All Usingl l -> String
 showCtxNegE (Here r p) (u `Ac` us) = "-}\n" ++ showAtmuNegE u r
-showCtxNegE (There u' ctx) (u `Ac` us) = show u' ++ showCtxNegE ctx us
+showCtxNegE (There u' ctx) (u `Ac` us) = show u' ++ " " ++ showCtxNegE ctx us
 
 showSpineEffect :: IsRecEl u => (forall u . Usingl u -> at u -> String)
                 -> (forall p1 p2 . All Usingl p1 -> al p1 p2 -> String)
@@ -43,7 +43,7 @@ showSpineEffect showAtE showAlE e (Scns i p) = case view e of
         showAll :: (forall u . Usingl u -> at u -> String)
                   -> All Usingl l -> All (at :: U -> *) l -> String
         showAll showAtE An An = ""
-        showAll showAtE (e `Ac` es) (at `Ac` ats) = showAtE e at ++ showAll showAtE es ats
+        showAll showAtE (e `Ac` es) (at `Ac` ats) = showAtE e at ++ " " ++ showAll showAtE es ats
 showSpineEffect showAtE showAlE e (Schg i j p) = case view e of
   (Tag c d) -> case testEquality c i of
     Just Refl ->

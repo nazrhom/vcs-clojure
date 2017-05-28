@@ -16,6 +16,8 @@ import Multirec
 import Cost
 import Disjoint
 
+import Data.Maybe
+
 main :: IO ()
 main = do
   opts <- execParser optsHelper
@@ -58,14 +60,22 @@ computePatch x y
      in choose almus
 
 getFiles :: IO (Expr , Expr , Expr)
-getFiles
-  = do let src  = "test/conflicts/manual/head-safehead-disj/head.clj"
-           dst1 = "test/conflicts/manual/head-safehead-disj/safehead-1.clj"
-           dst2 = "test/conflicts/manual/head-safehead-disj/safehead-2.clj"
-       fs  <- parseAndRead src
-       fd1 <- parseAndRead dst1
-       fd2 <- parseAndRead dst2
-       return (fs , fd1 , fd2)
+getFiles = do
+  let src  = "test/conflicts/manual/head-safehead-disj/head.clj"
+      dst1 = "test/conflicts/manual/head-safehead-disj/safehead-1.clj"
+      dst2 = "test/conflicts/manual/head-safehead-disj/safehead-2.clj"
+  fs  <- parseAndRead src
+  fd1 <- parseAndRead dst1
+  fd2 <- parseAndRead dst2
+  return (fs , fd1 , fd2)
+
+testDisjoint :: (Expr, Expr, Expr) -> IO ()
+testDisjoint (o, a, b) = do
+  let p1 = computePatch o a
+      p2 = computePatch o b
+      disj = disjoint p1 p2
+  putStrLn $ "disjoint? " ++ show disj
+  putStrLn $ "check:" ++ show (applyAlmu p1 (fromJust (applyAlmu p2 (toSing o))) == applyAlmu p2 (fromJust (applyAlmu p1 (toSing o))))
 
 parseAndRead :: String -> IO Expr
 parseAndRead fname
