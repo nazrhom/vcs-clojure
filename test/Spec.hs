@@ -5,10 +5,10 @@ import System.Directory
 
 main :: IO ()
 main = do
-  cljFiles <- find always (extension ==? ".clj") "./test"
+  cljFiles <- find always (extension ==? ".clj") "./test/repos"
   mapM_ testFile cljFiles
 
-parseClj :: String -> [Expr]
+parseClj :: String -> Expr
 parseClj f = case parse parseTop "test" f of
   Left err -> error $ show err
   Right expr -> expr

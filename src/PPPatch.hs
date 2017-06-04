@@ -8,6 +8,7 @@ module PPPatch where
 import Multirec
 import Lang
 import Data.Type.Equality hiding (apply)
+import Debug.Trace
 
 showPatchEffect :: (IsRecEl u, IsRecEl v) => Almu u v -> Usingl u -> String
 showPatchEffect (Alspn s) e =
@@ -16,19 +17,19 @@ showPatchEffect (Alspn s) e =
     (showAlEffect (showAtEffect showAlmuHEffect))
     e
     s
-showPatchEffect (Alins c ctx) e = "\n{+" ++ showConstr c ++ showCtxPosE ctx e
+showPatchEffect (Alins c ctx) e = "{+" ++ showConstr c ++ showCtxPosE ctx e
 showPatchEffect (Aldel c ctx) e = case view e of
   (Tag c' d) -> case testEquality' c c' of
     Nothing -> "error"
-    Just (Refl, Refl) -> "\n{-" ++ showConstr c ++ showCtxNegE ctx d
+    Just (Refl, Refl) -> "{-" ++ showConstr c ++ showCtxNegE ctx d
 
 
 showCtxPosE :: IsRecEl u => Ctx (AtmuPos u) l -> Usingl u -> String
-showCtxPosE (Here r p) u = "+}\n" ++ showAtmuPosE u r
+showCtxPosE (Here r p) u = "+}\n" ++ showAtmuPosE u r ++ "\n{+" ++ show p ++ "+}"
 showCtxPosE (There u' ctx) u = show u' ++ " " ++ showCtxPosE ctx u
 
 showCtxNegE :: IsRecEl v => Ctx (AtmuNeg v) l -> All Usingl l -> String
-showCtxNegE (Here r p) (u `Ac` us) = "-}\n" ++ showAtmuNegE u r
+showCtxNegE (Here r p) (u `Ac` us) = "-}\n" ++ showAtmuNegE u r ++ "\n{-" ++ show p ++ "-}"
 showCtxNegE (There u' ctx) (u `Ac` us) = show u' ++ " " ++ showCtxNegE ctx us
 
 showSpineEffect :: IsRecEl u => (forall u . Usingl u -> at u -> String)
@@ -54,8 +55,8 @@ showAlEffect :: (forall u . Usingl u -> at u -> String)
              -> All Usingl p1 -> Al at p1 p2  -> String
 showAlEffect showAtE An A0 = ""
 showAlEffect showAtE (u `Ac` us) (Amod u' al) = "[%" ++ showAtE u u' ++ "%]" ++ showAlEffect showAtE us al
-showAlEffect showAtE (u `Ac` us) (Adel u' al) = "[-" ++ showPair u u' ++ "-]" ++ showAlEffect showAtE us al
-showAlEffect showAtE (u `Ac` us) (Ains u' al) = "[+" ++ show u ++ "+]" ++ showAlEffect showAtE (u .@. us) al
+showAlEffect showAtE (u `Ac` us) (Adel u' al) = "[-" ++ show u' ++ "-]" ++ showAlEffect showAtE us al
+showAlEffect showAtE us (Ains u' al) = "[+" ++ show u' ++ "+]" ++ showAlEffect showAtE us al
 
 showPair :: Usingl u -> Usingl v -> String
 showPair u v = show u ++ ", " ++ show v
