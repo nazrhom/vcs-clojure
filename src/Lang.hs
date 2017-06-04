@@ -57,6 +57,7 @@ data Constr :: * where
   C3Collection  :: Constr
   C3Term  :: Constr
   C3Comment :: Constr
+  C3Seq      :: Constr
 
   C4Quote :: Constr
   C4SQuote :: Constr
@@ -89,6 +90,7 @@ data ConstrFor :: U -> Constr -> * where
   C3CollectionProof :: ConstrFor KExpr C3Collection
   C3TermProof :: ConstrFor KExpr C3Term
   C3CommentProof :: ConstrFor KExpr C3Comment
+  C3SeqProof :: ConstrFor KExpr C3Seq
 
   C4QuoteProof :: ConstrFor KFormTy C4Quote
   C4SQuoteProof :: ConstrFor KFormTy C4SQuote
@@ -122,6 +124,7 @@ showConstr C3DispatchProof = "Dispatch "
 showConstr C3CollectionProof = "Collection "
 showConstr C3TermProof = "Term "
 showConstr C3CommentProof = "Comment "
+showConstr C3SeqProof = "Seq "
 
 showConstr C4QuoteProof = "Quote "
 showConstr C4SQuoteProof = "SQuote "
@@ -153,6 +156,7 @@ type family TypeOf (c :: Constr) :: [U] where
   TypeOf C3Collection = '[KCollType, KSepExprList]
   TypeOf C3Term = '[KTerm]
   TypeOf C3Comment = '[KString]
+  TypeOf C3Seq = '[KExpr, KExpr]
 
   TypeOf C4Quote = '[]
   TypeOf C4SQuote = '[]
@@ -194,6 +198,7 @@ inj C3DispatchProof (e `Ac` An) = UExpr (Dispatch (eval e))
 inj C3CollectionProof (ct `Ac` sl `Ac` An) = UExpr (Collection (eval ct) (eval sl))
 inj C3TermProof (t `Ac` An) = UExpr (Term (eval t))
 inj C3CommentProof (c `Ac` An) = UExpr (Comment (eval c))
+inj C3SeqProof (p `Ac` q `Ac` An) = UExpr (Seq (eval p) (eval q))
 inj C4QuoteProof An = UFormTy Quote
 inj C4SQuoteProof An = UFormTy SQuote
 inj C4UnQuoteProof An = UFormTy UnQuote
@@ -245,6 +250,7 @@ testEquality' C3DispatchProof C3DispatchProof = Just (Refl, Refl)
 testEquality' C3CollectionProof C3CollectionProof = Just (Refl, Refl)
 testEquality' C3TermProof C3TermProof = Just (Refl, Refl)
 testEquality' C3CommentProof C3CommentProof = Just (Refl, Refl)
+testEquality' C3SeqProof C3SeqProof = Just (Refl, Refl)
 testEquality' C4QuoteProof C4QuoteProof = Just (Refl, Refl)
 testEquality' C4SQuoteProof C4SQuoteProof = Just (Refl, Refl)
 testEquality' C4UnQuoteProof C4UnQuoteProof = Just (Refl, Refl)
@@ -310,6 +316,7 @@ viewExpr (Dispatch e) = Tag C3DispatchProof  (UExpr e .@. An)
 viewExpr (Collection ct sl) = Tag C3CollectionProof (UCollType ct .@. USepExprList sl .@. An)
 viewExpr (Term t) = Tag C3TermProof (UTerm t .@. An)
 viewExpr (Comment c) = Tag C3CommentProof (UString c .@. An)
+viewExpr (Seq p q)  = Tag C3SeqProof (UExpr p .@. UExpr q .@. An)
 
 viewFormTy :: FormTy -> View KFormTy
 viewFormTy Quote = Tag C4QuoteProof An
@@ -369,6 +376,7 @@ instance Sing Expr where
   toSing (Collection ct sl) = UExpr (Collection ct sl)
   toSing (Term t) = UExpr (Term t)
   toSing (Comment c) = UExpr (Comment c)
+  toSing (Seq p q)   = UExpr (Seq p q)
 instance Sing FormTy where
   toSing Quote = UFormTy Quote
   toSing SQuote = UFormTy SQuote

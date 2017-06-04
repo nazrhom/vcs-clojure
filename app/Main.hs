@@ -15,6 +15,7 @@ import Apply
 import Multirec
 import Cost
 import Disjoint
+import PPPatch
 
 import Data.Maybe
 
@@ -22,11 +23,11 @@ main :: IO ()
 main = do
   opts <- execParser optsHelper
   s <- readFile (srcFile opts)
-  src <- parseAndPop (srcFile opts) s
+  src <- parseFile (srcFile opts) s
   putStrLn $ "Parse Output: \n" ++ show src
 
   d <- readFile (dstFile opts)
-  dst <- parseAndPop (dstFile opts) d
+  dst <- parseFile (dstFile opts) d
 
   let almus = diffAlmu M (toSing src) (toSing dst)
   let patches = map (flip applyAlmu (toSing src)) almus
@@ -69,6 +70,18 @@ getFiles = do
   fd2 <- parseAndRead dst2
   return (fs , fd1 , fd2)
 
+test :: IO ()
+test = do
+  (o, a, b) <- getFiles
+  let p1 = computePatch o a
+      p2 = computePatch o b
+  putStrLn $ show p1
+  putStrLn "Head to safehead-2"
+  putStrLn $ showPatchEffect p2 (toSing o)
+  putStrLn "Head to safehead-1"
+  putStrLn $ showPatchEffect p1 (toSing o)
+
+
 testDisjoint :: (Expr, Expr, Expr) -> IO ()
 testDisjoint (o, a, b) = do
   let p1 = computePatch o a
@@ -79,12 +92,22 @@ testDisjoint (o, a, b) = do
 
 parseAndRead :: String -> IO Expr
 parseAndRead fname
-  = readFile fname >>= parseAndPop ""
+  = readFile fname >>= parseFile ""
 
-parseAndPop :: String -> String -> IO Expr
-parseAndPop name src = case parse parseTop name src of
+parseFile :: String -> String -> IO Expr
+parseFile name src = case parse parseTop name src of
   Left err -> error $ show err
-  Right s' -> return $ head s'
+  Right s' -> return s'
+
+parseToExprList :: String -> String -> IO [Expr]
+parseToExprList name src = case parse parseManyExpr name src of
+  Left err -> error $ show err
+  Right s' -> return s'
+
+parseManyExprAndRead :: String -> IO [Expr]
+parseManyExprAndRead fname
+  = readFile fname >>= parseToExprList ""
+
 
 data Opts = Opts
   {

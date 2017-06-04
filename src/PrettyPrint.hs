@@ -1,12 +1,16 @@
 module PrettyPrint
     ( ppTop
+    , ppLines
     ) where
 
 import Text.PrettyPrint.Leijen
 import Parser
 
-ppTop :: [Expr] -> String
-ppTop es = show $ vvcat $ map ppExpr es
+ppTop :: Expr -> String
+ppTop es = show $ ppExpr es
+
+ppLines :: [Expr] -> String
+ppLines es = show $ vvcat $ map ppExpr es
   where
     vvcat ds = vcat $ punctuate line ds
 
@@ -22,6 +26,7 @@ ppExpr (Collection Vec es) = brackets $ ppSepExprList es
 ppExpr (Collection Set es) = braces $ ppSepExprList es
 ppExpr (Comment s) = char ';' <> text s <> linebreak
 ppExpr (Term t) = ppTerm t
+ppExpr (Seq p q) = ppExpr p <> line <> ppExpr q
 
 ppTerm :: Term -> Doc
 ppTerm (TaggedString String s) = dquotes $ text s

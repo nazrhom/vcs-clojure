@@ -1,5 +1,6 @@
 module Parser
     ( parseTop
+    , parseManyExpr
     , parse
     , parseTest
 
@@ -27,6 +28,7 @@ data Expr = Special FormTy Expr
           | Collection CollType (SepExprList)
           | Term Term
           | Comment String
+          | Seq Expr Expr
           deriving (Show, Eq)
 
 -- ref: https://8thlight.com/blog/colin-jones/2012/05/22/quoting-without-confusion.html
@@ -44,7 +46,12 @@ lexer = makeTokenParser javaStyle
   , identLetter = alphaNum <|> oneOf ":_.,'-/^?!><*#\"\\" <|> satisfy isSymbol
   }
 
-parseTop = whiteSpace lexer *> many parseExpr <* eof
+parseTop :: Parsec String () Expr
+parseTop = do
+  p <- parseManyExpr
+  return $ foldl1 Seq p
+
+parseManyExpr = whiteSpace lexer *> many parseExpr <* eof
 
 parseExpr = lexeme lexer $ choice
   [ parseSpecial

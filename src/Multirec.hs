@@ -176,6 +176,9 @@ instance Show (At AlmuH u) where
   show = showAt
 instance Show (Spine (At AlmuH) al u) where
   show = showSpine
+instance Show (All Usingl l) where
+  show An = ""
+  show (a `Ac` as) = show a ++ " " ++ show as
 instance Show (All (At AlmuH) l) where
   show = showAll
 instance Show (Ctx (AtmuPos u) p) where
