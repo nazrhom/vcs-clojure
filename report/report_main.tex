@@ -34,9 +34,10 @@
     \usepackage{graphicx}       % to include graphics
     \usepackage{hyperref}       % to simplify the use of \href
 \fi 
+\graphicspath{ {images/} }
 
-\title{Brief Article}
-\author{The Author}
+\title{Report}
+\author{Giovanni Garufi}
 \date{}
 
 \begin{document}
@@ -55,16 +56,17 @@ ways and the VCS wants to reconcile the two independent changes into a single
 one. This operation is clearly not always possible: if two collaborators have 
 modified the same line , in which case the two resulting edit scripts will 
 ``overlap'', it is not clear which one of the two modifications should be 
-picked. 
+picked.  \\
 In general, some conflicts will always require a manual intervention: when two 
 people change the same thing in two different ways there is no general way of 
 deciding which one will be the one we want to pick; however the diff tool makes 
 a big assumption in considering lines to be the basic units in which change is 
-observable. 
-For diff, two unrelated changes on the same line, would still give rise to a 
+observable.  \\
+According to diff, two unrelated changes on the same line would still give rise to a 
 conflict that requires manual intervention. 
 The main idea of this reasearch is to design an alternative to diff which offers a 
-finer grained control over the units of change. In particular, in the context of 
+finer grained control over the units of change, approaches similar to this one have already been explored in 
+\cite{semantics-VC}, \cite{structure-aware-VC} and \cite{vassena}. In particular, in the context of 
 programming languages we already have abstract syntax trees (AST) that encode 
 the semantical structure of a program. By attempting to extend diff on the AST 
 we gain both more control over the units of change, as a single line will 
@@ -73,15 +75,14 @@ we can use to create transformation that operate on this structure in a principl
 The drawback of this approach is that it moves the problem from the ``flat'' 
 world of strings to the ``layered'' world of trees, and the problem of computing an edit script between them suddendly
 becomes much more computationally expensive. 
-
-
+\\\\
 The following section is an introduction to dependent types in haskell as they will be crucial in encoding 
 the structure we want to express in our data types and their transformations. 
 Following dependent types we will need to introduce sums of products: these give us a general way to view 
 types and will allow us to define an algorithm that is independent of the representation of the AST for the language 
 we are treating.
 In the remainder of the proposal we will show a full Haskell implementation of the algorithm presented in 
-\cite{icfp}, which is coded in Agda in the original paper. Finally we will explore some of the possible 
+\cite{type-directed-diff}, which is coded in Agda in the original paper. Finally we will explore some of the possible 
 future directions that can be explored with this framework both in terms of 
 gathering concrete evidence and in further research.
 
@@ -93,7 +94,7 @@ Hindley-Miller origins and through the use of different language extensions it h
 to express more complex types. In particular, many efforts have gone to add support for dependently
 typed programming in the latest years.
 
-One major stepping stone in this direction is the DataKinds extension which duplicates an ordinary data type, such as
+One major stepping stone in this direction is the DataKinds (\cite{datakinds}) extension which duplicates an ordinary data type, such as
 
 \begin{lstlisting}[language=haskell]
 data Nat = Z | S Nat
@@ -168,7 +169,7 @@ an \texttt{n} of kind \texttt{Nat}, a vector of length \texttt{n\ :+\ m}
 and splits it into a pair of vectors, with respectively \texttt{n} and
 \texttt{m} elements.
 
-The first problem we incur in, is that we can not pass something of kind
+The first problem we incur in is that we can not pass something of kind
 \texttt{Nat} to our \texttt{split} function, infact the types \texttt{K} and \texttt{S} have no inhabitants, so we can
 not construct any term of those types. Furthermore, we want to
 express that this \texttt{n} of kind \texttt{Nat} that we pass as a
@@ -191,16 +192,18 @@ The following figure gives a good representation of this process: the
 DataKinds extensions promotes things of type \texttt{Nat} to things of
 kind \texttt{Nat}. The singleton allows us to take one step back in this
 ladder, and associates to every thing of kind \texttt{Nat} a term from
-the singleton type \texttt{SNat}. \{insert Fig 1 from
-\cite{singletons1}\}
+the singleton type \texttt{SNat}. The following picture, borrowed from \cite{singletons}, gives a good 
+represenation of this process.
+
+\includegraphics[width=\textwidth]{singleton.png}
 
 
-We can think of the DataKinds extension as a way to embedding dynamic information into the static fragment of 
-the language. Singletons are a way to reflect this static information back to 
+We can think of the DataKinds extension as a way of embedding dynamic information into the static fragment of 
+the language. Singletons, on the other hand, are a way to reflect this static information back to 
 the dynamic level, and make runtime decisions based on the types we obtain.
 
 
-Singletons solve the two problems outlined above: it has kind \texttt{*}
+Singletons solve the two problems outlined above: they have kind \texttt{*}
 and it contains a \texttt{Nat} that we can later refer to in our
 function definition. We can now define \texttt{split} as follows:
 
@@ -217,7 +220,7 @@ functions and singletons we can emulate some of the features that are
 present in dependently typed languages such as Agda. These features allow us to 
 emulate explicit dependent quantification; we can actually go even further in 
 Haskell, \cite{hasochism} shows us how to emulate implicit types via type 
-classes and essentially shows how all kinds of quantification, modulo some boilerplate, are possible in 
+classes and ultimately shows how all kinds of quantification, modulo some boilerplate, are possible in 
 Haskell.
 
 \section{Sum of Products}
@@ -236,18 +239,19 @@ different types. A constructor can also take no arguments, in which case we
 can simply use an empty list to represent that, but can also take an argument of 
 the same type it is trying to construct (like the \texttt{S} constructor from the previous example). 
 In this case, the recursive argument can itself be encoded as an \texttt{SOP} 
-and the same encoding can be used all the way down to the leaves.
-
+and the same encoding can be used all the way down to the leaves. 
 Since every data type can be encoded as an \texttt{SOP}, we can write functions 
 that act on this representation and regard them as generics. For every data type 
 we can first convert it to the \texttt{SOP} representation and then pass it to 
 the desired function, since the \texttt{SOP} representation can be easily 
 seen to be isomorphic to the original type, we can eventually reconstruct the 
-desired term once we are done acting on the representation.
+desired term once we are done acting on the representation. This encoding is 
+presented in \cite{true-sop} and represents one of the different ways to 
+approach generic programming in Haskell
 
 \section{Type-directed diff}\label{type-directed-diff}
 
-The approach in \cite{type-directed diff} takes advantage of the structure 
+The approach in \cite{type-directed-diff} takes advantage of the structure 
 encoded in types to define a generic type-directed diff algorithm between
 typed trees. The inspiration comes from the diff utility present in
 Unix which is at the heart of the current methodologies employed by VCS
@@ -255,7 +259,7 @@ to attempt to compute a patch between two different versions of the same
 file. The limitations of the diff algorithm, as it currently stands, is
 that it does not employ any structural information between the data it
 is trying to merge. Files are parsed on a line by line basis and, as
-the authors of \cite{type-directed diff} show, this is somewhat resilient to vertical changes in the
+the authors of \cite{type-directed-diff} show, this is somewhat resilient to vertical changes in the
 source code but completely breaks down when dealing with horizontal
 changes, which constitute a heavy chunk of the changes that are usually
 made to code.
@@ -276,7 +280,7 @@ not necessarily the same, one of the goals of this work is to explore
 this boundary and the choice of what kind of information is beneficial
 for calculating a patch between these two structures.
 
-We will briefly sketch the process outlined in \cite{type-directed diff}, it 
+We will briefly sketch the process outlined in \cite{type-directed-diff}, it 
 will be covered in more detail in the following section about the 
 implementation.
 \ 
@@ -598,8 +602,8 @@ data Almu :: U -> U -> * where
 
 With these types it is easy to write a function that computes the diff between 
 two trees.
-We can start writing this function from the ``bottom up'', 
-with the definition of a diff between two atoms, the function must have the 
+We can start writing this function from the ``bottom up'' 
+with the definition of a diff between two atoms. The function should have the 
 following signature
 \begin{lstlisting}
   diffAt ::  (forall r . IsRecEl r => Usingl r -> Usingl r -> [rec r])
@@ -619,13 +623,16 @@ between recursive elements.
         -> Usingl a -> Usingl a -> [Spine (At rec) (Al (At rec)) a]
 \end{lstlisting}
 Which lifts the parameter it takes, a function to handle the 
-recursive elements of our language, over the predicate parameters to the spine that result 
+recursive elements of our language, over the predicate parameters to the spine that results 
 from the two singletons.
 
 We finally have to define a function that computes the diff in terms of 
-\texttt{Almu}s. This will call \texttt{diffS} in case of spine on the 
-outer level, and will simply be lifted over the context in case of an insertion 
-or deletion. This function will have the following signature
+\texttt{Almu}s. This will call \texttt{diffS} in case of two matching constructors from which we can compute
+the spine wrapping that with the corresponding \texttt{Alspn} constructor. In the other cases it will 
+attempt the inesertion (resp. deletion) at the constructor level by recording the constructor being inserted
+(deleted) and producing a \texttt{Ctx} which describes where the original tree is attached in respect to
+the added (deleted) constructor.
+This function will have the following signature
 
 \begin{lstlisting}
   diffAlmu :: (IsRecEl u, IsRecEl v) => Usingl u -> Usingl v -> [Almu u v]
@@ -634,11 +641,11 @@ or deletion. This function will have the following signature
 As is the case for the alignment between products, here we will simply proceed 
 by enumerating all possible recursive alignments, attempting at each level 
 the alignment of spines, insertions and deletions.
-The problem in this approach however lies in the great combinatorial 
+One shortcoming with this approach, lies in the great combinatorial 
 explosion of possibilities that arises in computing the alignments for 
 constructors and products. The following paragraph will describe an optimization 
 we can employ to prune the number of possible alignments. This optimization 
-will the program to run in an acceptable time in real world scenarios, however 
+will allow the program to run in an acceptable time in real world scenarios, however 
 we are still at least an order of magnitude slower than diff3, this points to 
 the necessity of further and more aggressive optimizations that may be explored 
 in future work.
@@ -670,8 +677,8 @@ can define an \texttt{alignOpt} function with the same signature as
 version will simply avoid performing an insertion if the last step was a
 deletion and vice versa. 
 After every succesfull match, we will call \texttt{alignOpt} to enumerate the alternatives for both insertions and
-deletions. In the case in which we could not match, we still don't 
-want to attempt both a deletion-insertion and insertion-deletion, as the 
+deletions. In the case in which we could not match, we don't 
+want to attempt both a deletion followed by an insertion and insertion followed by a deletion, as the 
 ordering between the two does not really matter. To resolve this we will simply 
 decide that we will only try deletions followed by insertions, and not the other 
 way around.
@@ -680,29 +687,24 @@ The optimization con be used on the two different levels; the same idea is used 
 for both the alignment between the list of atoms and the recursive alignment between constructors.
 
 
-\section{Future Work}\label{future work}
+\subsection{Evaluation process}
 
 Having developed a general framework to compute patches between typed trees the 
 goal is to explore its performance in the context of a real programming 
 language.
-To test this, we developed a parser for Clojure, this parser can be somewhat 
-different to a parser designed to interpret and run Clojure code. While it may 
+To test this, we developed a parser for Clojure, the implementation of this parser can be somewhat 
+different to one designed to interpret and run Clojure code. While it may 
 be fruitful to encode as much domain specific knowledge into the parser, thus 
 enabling possible further optimizations; it is also clear that the parser should 
 capture as much syntactical information as possible, in order to produce code 
 that strives to respect any syntactical convention embraced by the authors.
 
-To look at the extremes of this spectrum: a parser that ignores all domain
-specific knowledge and just parses line of text, would reduce the problem to the 
-standard diff3 approach, not giving us more information to exploit.
-
-\subsection{Evaluation process}
-
 In order to test the framework in a real world context we need to find some suitable data. To aquire this 
 we explored all the Clojure repositories on Github and extraced the ones with the best combination of 
 stars and collaborators. A high number of collaborators will possibly imply a higher chance for conflicts in
 the source tree, the high number of stars is a good indicator of the quality of 
-the Clojure code and a way to hopefully select code from different domains.
+the Clojure code and hopefully provides a selection of repository from different 
+domains.
 
 What we need is a way to identify merge points in a projects history, we also 
 want to know how diff3 performed in those merges, in essence: we want to find all 
@@ -727,52 +729,64 @@ alignments (both recursive and non) and possibly also correlate with
 disjointness, in the sense that on optimal patch should strive to be minimal, 
 and, as such, as disjoint as possible from every other patch with the same source.
 
-\subsection{More things}
-oracle diff3
+\section{Future Work}\label{future work}
 The optimization described in the previous section is probably still not suited 
-for large real world applications. One possible direction in which to focus future work is to explore the 
-possibility of using the standard unix diff algorithm as an oracle to prune the 
+for large real world applications. Even with the optimization the framework can only handle relatively small 
+non-pathological inputs (in the order of 10-15 lines), clearly this is still not good enough to perform experiments
+on real world data. One possible direction in which to focus future work is to explore the 
+possibility of using the standard unix \texttt{diff3} algorithm as an oracle to prune the 
 alignment trees that are being generated. 
 The idea is that instead of enumerating all possible alignments between two 
-trees we can check and see if diff treats the sequence of lines in which that 
-tree resides in the source file in a definite way (either inserting, matching or deleting) 
-and pick that choice.
+trees, we can check and see how \texttt{diff3} treats the sequence of lines in which that 
+tree resides in the source. This can allow us to prune the search space based on 
+the information we can derive from \texttt{diff3} and may be able to speed up 
+the computation to handle larger inputs.
 
 Another subject to explore is to extend what was done up to this point to define 
-a precise notion of a merge between two patches, this is the main motiviation of the 
-research. This notion should be related to disjointness: informally disjoint 
+a precise notion of a merge between two patches which is the main motiviation of the 
+research. This is tightly related to disjointness; informally disjoint 
 patches operate on different parts of the origin file and for that reason should 
 be mergeable into a single patch that incorporates both changes. 
 
-Visualization of patches
+The resulting patch objects that are generated are very complex and contain deeply nested information which is 
+not easy to pick up at a glance. 
+Existing diff tools often prepend a  plus or minus sign at the beginning of a line to signal it being deleted or 
+inserted and have custom notation for conflicts. In our case the problem is 
+complicated by the fact that information can not only be displayed along the 
+different lines but also inside of them. 
+It would be useful to have a representation of these patches which conveys the information 
+they represent in an easy to digest way, this representation could as well be 
+interactive (possibly in HTML) in order to facilitate the navigation through the 
+different levels of the patch.
 
 
-
-\section{Notes}
-Evaluation process:
-\begin{itemize}
-   \item find suitables clojure repos to explore
-  \item find all merges of two branches in git log
-  \item for each merge, whenever we have a file appearing in both branches (file A B)
-  \item Find comon parent of two branches where the file is present, that version of the file will be O
-  \item p1 = All Diff between O and A
-  \item p2 = All Diff between O and B 
-  \item Check if they are disjoint
-      \subitem Check if score produces patches that are more likely to be disjoint
-  \item If they are disjoint check if apply p1 (apply p2 O) = apply p2 (apply p1 O)
+\begin{thebibliography}{9}
   
-\end{itemize}
- 
 
-join clojure + rest phrase merging in terms of disjointness of patches
-calculate patches between origin and version, if disjoint check we can
-apply in both direction statistics about how many are actually mergable
+\bibitem{hasochism}
+  Lindley, Sam, and Conor McBride. "Hasochism: the pleasure and pain of dependently typed Haskell programming." ACM SIGPLAN Notices 48.12 (2014): 81-92.
 
+\bibitem{singletons}
+  Eisenberg, Richard A., and Stephanie Weirich. "Dependently typed programming with singletons." ACM SIGPLAN Notices 47.12 (2013): 117-130.
+\bibitem{datakinds}
+  Yorgey, Brent A., et al. "Giving Haskell a promotion." Proceedings of the 8th ACM SIGPLAN workshop on Types in language design and implementation. ACM, 2012.
+  
+ \bibitem{structure-aware-VC}
+   Miraldo, Victor Cacciari, and Wouter Swierstra. "Structure-aware version control: A generic approach using Agda." (2017).
 
+\bibitem{semantics-VC}
+  Swierstra, Wouter, and Andres Löh. "The semantics of version control." Proceedings of the 2014 ACM International Symposium on New Ideas, New Paradigms, and Reflections on Programming & Software. ACM, 2014.
+  
+\bibitem{vassena}
+  Vassena, Marco. "Generic Diff3 for algebraic datatypes." Proceedings of the 1st International Workshop on Type-Driven Development. ACM, 2016.
+
+\bibitem{type-directed-diff}
+  ???
+  
+\bibitem{true-sop}
+  de Vries, Edsko, and Andres Löh. "True sums of products." Proceedings of the 10th ACM SIGPLAN workshop on Generic programming. ACM, 2014.
+ \end{thebibliography}
 \end{document}  
 
-\section{Biblio}\label{biblio}
 
-{[}1{]} Type-directed diff {[}2{]}
-http://cs.brynmawr.edu/\textasciitilde{}rae/papers/2012/singletons/paper.pdf
 

@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" standalone="yes"?>
 <!DOCTYPE database SYSTEM "file:///System/Library/DTDs/CoreData.dtd">
 
 <database>
@@ -82,7 +82,7 @@
         <relationship name="selected" type="1/1" destination="FILE" idrefs="z105"></relationship>
         <relationship name="settings" type="1/1" destination="SETTINGS" idrefs="z102"></relationship>
         <relationship name="uisettings" type="1/1" destination="UISETTINGS" idrefs="z104"></relationship>
-        <relationship name="items" type="0/0" destination="PROJECTITEM" idrefs="z105 z106 z107"></relationship>
+        <relationship name="items" type="0/0" destination="PROJECTITEM" idrefs="z106 z105 z107"></relationship>
     </object>
     <object type="UISETTINGS" id="z104">
         <attribute name="showlogwarningitems" type="bool">1</attribute>
@@ -100,12 +100,12 @@
     </object>
     <object type="TEXFILE" id="z105">
         <attribute name="wasopen" type="bool">0</attribute>
-        <attribute name="visiblerect" type="string">{{0, 9441}, {808, 686.5}}</attribute>
-        <attribute name="lasteditdate" type="date">516545497.61210602521896362305</attribute>
+        <attribute name="visiblerect" type="string">{{0, 9772}, {808, 656}}</attribute>
+        <attribute name="lasteditdate" type="date">518101453.99389398097991943359</attribute>
         <attribute name="istext" type="bool">1</attribute>
-        <attribute name="fileloaddate" type="date">516545553.05423802137374877930</attribute>
+        <attribute name="fileloaddate" type="date">518101437.52818500995635986328</attribute>
         <attribute name="extension" type="string">tex</attribute>
-        <attribute name="cursor" type="string">{36684, 0}</attribute>
+        <attribute name="cursor" type="string">{37531, 0}</attribute>
         <attribute name="sortindex" type="int32">0</attribute>
         <attribute name="name" type="string">report_main.tex</attribute>
         <attribute name="isexpanded" type="bool">0</attribute>

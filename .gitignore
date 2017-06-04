@@ -37,3 +37,5 @@ papers
 #report
 report/*.log
 report/*.gz
+report/*.blg
+report/*.out

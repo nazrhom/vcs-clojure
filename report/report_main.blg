@@ -1,23 +1,11 @@
 This is BibTeX, Version 0.99d (TeX Live 2015)
 Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
 The top-level auxiliary file: report_main.aux
-White space in argument---line 24 of file report_main.aux
- : \citation{type-directed
- :                         diff}
-I'm skipping whatever remains of this command
-White space in argument---line 25 of file report_main.aux
- : \citation{type-directed
- :                         diff}
-I'm skipping whatever remains of this command
-White space in argument---line 26 of file report_main.aux
- : \citation{type-directed
- :                         diff}
-I'm skipping whatever remains of this command
 I found no \bibdata command---while reading file report_main.aux
 I found no \bibstyle command---while reading file report_main.aux
-You've used 2 entries,
+You've used 8 entries,
             0 wiz_defined-function locations,
-            85 strings with 516 characters,
+            93 strings with 617 characters,
 and the built_in function-call counts, 0 in all, are:
 = -- 0
 > -- 0
@@ -56,4 +44,4 @@ warning$ -- 0
 while$ -- 0
 width$ -- 0
 write$ -- 0
-(There were 5 error messages)
+(There were 2 error messages)
