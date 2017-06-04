@@ -2,6 +2,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE PolyKinds #-}
 module Cost where
 
 import Multirec
@@ -14,7 +15,7 @@ costS :: (forall a . at a -> Int)
 costS costAt costAl Scp = 0
 costS costAt costAl (Scns c p) = sumAll costAt p
   where
-    sumAll :: (forall a . at a -> Int) -> All (at :: U -> *) p -> Int
+    sumAll :: (forall a . at a -> Int) -> All at p -> Int
     sumAll costAt An = 0
     sumAll costAt (a `Ac` as) = costAt a + sumAll costAt as
 costS costAt costAl (Schg i j p) = costAl p
@@ -41,9 +42,20 @@ costAtmuNeg :: AtmuNeg v u -> Int
 costAlmuH :: AlmuH u -> Int
 
 costAlmu (Alspn sp) = costS (costAt costAlmuH) (costAl (costAt costAlmuH)) sp
-costAlmu (Alins c ctx) = foldCtx (\atmu acc -> costAtmuPos atmu + acc) (const (+1)) 0 ctx
-costAlmu (Aldel c ctx) = foldCtx (\atmu acc -> costAtmuNeg atmu + acc) (const (+1)) 0 ctx
+costAlmu (Alins c ctx) = costCtxPos ctx
+costAlmu (Aldel c ctx) = costCtxNeg ctx
 
 costAtmuPos (FixPos almu) = costAlmu almu
 costAtmuNeg (FixNeg almu) = costAlmu almu
 costAlmuH   (AlmuH almu)  = costAlmu almu
+
+costCtxPos :: Ctx (AtmuPos v) l -> Int
+costCtxPos (Here spmu atmus) = costAtmuPos spmu + lengthAll atmus
+costCtxPos (There atmu almu) = 1 + costCtxPos almu
+
+costCtxNeg :: Ctx (AtmuNeg v) l -> Int
+costCtxNeg (Here spmu atmus) = costAtmuNeg spmu + lengthAll atmus
+costCtxNeg (There atmu almu) = 1 + costCtxNeg almu
+
+lengthAll :: All p l -> Int
+lengthAll as = foldAll (const (+1)) 0 as
