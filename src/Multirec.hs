@@ -7,16 +7,19 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Multirec where
 
 import Data.Kind
 import Data.Type.Equality hiding (apply)
 import Control.Applicative
+import Control.Applicative.Alternative
 import qualified Data.Map  as M
 
 import Parser
 import Lang
+import Oracle
 
 -- The actual puzzle
 
@@ -79,44 +82,38 @@ spine x y | otherwise = case (view x, view y) of
 --
 -- The phase records the LAST decision took by the algo (either an insertion,
 -- modification ordeletion)
-data Phase
-  = I | M | D
-  deriving (Eq , Show)
+
 
 align :: (Alternative m) => All Usingl p1 -> All Usingl p2 -> m (Al TrivialA p1 p2)
-align = alignOpt M
+align An           An           = pure A0
+align An           (a `Ac` p)   = Ains a <$> align An p
+align (a `Ac` p)   An           = Adel a <$> align p An
+align (a1 `Ac` p1) (a2 `Ac` p2) = case testEquality a1 a2 of
+  Just Refl -> Amod (Contract (a1, a2)) <$> align p1 p2
+           <|> Adel a1 <$> align p1 (a2 `Ac` p2)
+           <|> Ains a2 <$> align (a1 `Ac` p1) p2
+  Nothing   -> Adel a1 <$> align p1 (a2 `Ac` p2)
+           <|> Ains a2 <$> align (a1 `Ac` p1) p2
 
 
-shouldAlign :: (Alternative m)
-            => Usingl a1 -> Usingl a2 -> m (Al TrivialA p1 p2)
-            -> m (Al TrivialA (a1 ': p1) (a2 ': p2))
-shouldAlign at1 at2 rest
-  = case testEquality at1 at2 of
-      Just Refl -> Amod (Contract (at1, at2)) <$> rest
-      Nothing   -> empty
 
-{- The optimization works as follow: For each step in which we could perform a match, we attempt an insertion aswell. However this insertion only makes sense if it leads to either another match, or to no more deletions.
-Infact, if at any point of this chain we perform a deletion, we will end up in the same state that we would have been if we just performed the original match at the beginning. -}
-alignOpt :: (Alternative m) => Phase -> All Usingl p1 -> All Usingl p2 -> m (Al TrivialA p1 p2)
-alignOpt _ An           An          = pure A0
+-- align :: (Alternative m, Oracle m o a) => o -> All (UsinglA a) p1 -> All (UsinglA a) p2 -> m (Al TrivialA p1 p2)
+-- -- align o p1 p2 = do
+--   (newOracle, xs) <- call o p1 p2
+--   xss <- mapM (handlePhase newOracle p1 p2) xs
+--   afold xss
 
--- alignOp D == align-no-ins
-alignOpt D An           (b `Ac` pb) = empty
-alignOpt D (a `Ac` pa)  (b `Ac` pb) = shouldAlign a b (align pa pb)
-                            <|> Adel a <$> alignOpt D pa (b `Ac` pb)
--- alignOpt I == align-no-del
-alignOpt I (a `Ac` pa)  An          = empty
-alignOpt I (a `Ac` pa)  (b `Ac` pb) = shouldAlign a b (align pa pb)
-                            <|> Ains b <$> alignOpt I (a `Ac` pa) pb
--- alignOpt M == align*
-alignOpt M An           (b `Ac` pb) = Ains b <$> align An pb
-alignOpt M (a `Ac` pa)  An          = Adel a <$> align pa An
-alignOpt M (a `Ac` pa)  (b `Ac` pb) = case testEquality a b of
-  Just Refl -> Amod (Contract (a, b)) <$> align pa pb
-           <|> Ains b <$> alignOpt I (a .@. pa) pb
-           <|> Adel a <$> alignOpt D pa (b .@. pb)
-  Nothing   -> Ains b <$> alignOpt I (a .@. pa) pb
-           <|> Adel a <$> align pa (b .@. pb)
+handlePhase :: (Alternative m, Oracle m o a) => o -> All (UsinglA a)
+ p1 -> All (UsinglA a) p2 -> Phase -> m (Al TrivialA p1 p2)
+handlePhase = undefined
+-- handlePhase o p1 (a2 `Ac` p2) I = Ains _ <$> align o p1 p2
+-- handlePhase o (a1 `Ac` p1) p2 D = Adel _ <$> align o p1 p2
+-- handlePhase o (a1 `Ac` p1) (a2 `Ac` p2) M = case testEquality (_ a1) (_ a2) of
+--   Just Refl -> Amod (Contract (_, _)) <$> align o _ _
+--   Nothing -> empty
+
+
+
 
 
 -- Library stuff
