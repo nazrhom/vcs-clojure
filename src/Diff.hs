@@ -11,87 +11,106 @@ import Multirec
 import Lang
 import Control.Applicative
 import Data.Type.Equality hiding (apply)
+import Control.Monad.Reader
+import Oracle
 
-diffAt :: (Monad m) => forall rec .
-          (forall r . IsRecEl r => Phase -> Usingl r -> Usingl r -> m (rec r))
-       -> Phase -> Usingl a -> Usingl a -> m (At rec a)
-diffAt diffR d x = onRecursiveGuy (\y -> Ai <$> (diffR d x y))
-                              (\ny -> return (As (Contract (x , ny))))
+type DiffAlMu o m rec
+  = forall r . (IsRecEl r , MonadOracle o m)
+            => o -> Usingl r -> Usingl r -> HistoryM m (rec r)
+
+diffAt :: (MonadOracle o m) => forall rec . DiffAlMu o m rec 
+       -> o -> Usingl a -> Usingl a -> HistoryM m (At rec a)
+diffAt diffR orc x = onRecursiveGuy (\y -> Ai <$> (diffR orc x y))
+                                    (\ny -> return (As (Contract (x , ny))))
 
 
-diffS :: (IsRecEl a, Monad m, Alternative m) => forall rec .
-         (forall r . IsRecEl r => Phase -> Usingl r -> Usingl r -> m (rec r))
-      -> Phase -> Usingl a -> Usingl a -> m (Spine (At rec) (Al (At rec)) a)
-diffS diffR d s1 s2
-  = mapSpineM (uncurry (diffAt diffR d) . unContract)
-              (uncurryPair $ alignP diffR d)
+diffS :: (IsRecEl a, MonadOracle o m) => forall rec . DiffAlMu o m rec 
+      -> o -> Usingl a -> Usingl a -> HistoryM m (Spine (At rec) (Al (At rec)) a)
+diffS diffR orc s1 s2
+  = mapSpineM (uncurry (diffAt diffR orc) . unContract)
+              (uncurryPair $ alignP diffR orc)
               (spine s1 s2)
   where
-    alignP :: (Monad m, Alternative m) => (forall r . IsRecEl r => Phase -> Usingl r -> Usingl r -> m (rec r))
-           -> Phase -> All Usingl s -> All Usingl d -> m (Al (At rec) s d)
-    alignP diffR d p1 p2 = do
-      al <- align p1 p2
-      mapAlM (uncurry (diffAt diffR d) . unContract) al
+    alignP :: (MonadOracle o m)
+           => DiffAlMu o m rec 
+           -> o -> All Usingl s -> All Usingl d -> HistoryM m (Al (At rec) s d)
+    alignP diffR orc p1 p2 = do
+      al <- lift $ align orc p1 p2
+      mapAlM (uncurry (diffAt diffR orc) . unContract) al
 
-diffInsCtx :: (IsRecEl v, Alternative m, Monad m)
-           => Usingl v -> All Usingl p -> m (Ctx (AtmuPos v) p)
-diffInsCtx x An = empty
-diffInsCtx x (y `Ac` ay)
-  = onRecursiveGuy (rec x ay) (nonrec x ay) y
+diffInsCtx :: (IsRecEl v, MonadOracle o m)
+           => o -> Usingl v -> All Usingl p -> HistoryM m (Ctx (AtmuPos v) p)
+diffInsCtx orc x An = empty
+diffInsCtx orc x (y `Ac` ay)
+  = onRecursiveGuy (rec orc x ay) (nonrec orc x ay) y
   where
-    rec :: (IsRecEl u , IsRecEl v, Alternative m, Monad m)
-        => Usingl v -> All Usingl p -> Usingl u
-        -> m (Ctx (AtmuPos v) (u ': p))
-    rec x ys y = (flip Here ys <$> FixPos <$> diffAlmu I x y)
-              <|> nonrec x ys y
+    rec :: (IsRecEl u , IsRecEl v, MonadOracle o m)
+        => o -> Usingl v -> All Usingl p -> Usingl u
+        -> HistoryM m (Ctx (AtmuPos v) (u ': p))
+    rec orc x ys y = (flip Here ys <$> FixPos <$> diffAlmuO orc x y)
+                   <|> nonrec orc x ys y
 
-    nonrec :: (IsRecEl v, Alternative m, Monad m)
-           => Usingl v -> All Usingl p -> Usingl u
-           -> m (Ctx (AtmuPos v) (u ': p))
-    nonrec x ys y = There y <$> diffInsCtx x ys
+    nonrec :: (IsRecEl v, MonadOracle o m)
+           => o -> Usingl v -> All Usingl p -> Usingl u
+           -> HistoryM m (Ctx (AtmuPos v) (u ': p))
+    nonrec orc x ys y = There y <$> diffInsCtx orc x ys
 
-diffDelCtx :: (IsRecEl v, Alternative m, Monad m)
-           => All Usingl p -> Usingl v -> m (Ctx (AtmuNeg v) p)
-diffDelCtx An x = empty
-diffDelCtx (y `Ac` ay) x
-  = onRecursiveGuy (rec x ay) (nonrec x ay) y
+diffDelCtx :: (IsRecEl v, MonadOracle o m)
+           => o -> All Usingl p -> Usingl v -> HistoryM m (Ctx (AtmuNeg v) p)
+diffDelCtx orc An x = empty
+diffDelCtx orc (y `Ac` ay) x
+  = onRecursiveGuy (rec orc x ay) (nonrec orc x ay) y
   where
-    rec :: (IsRecEl u , IsRecEl v, Alternative m, Monad m)
-        => Usingl v -> All Usingl p -> Usingl u
-        -> m (Ctx (AtmuNeg v) (u ': p))
-    rec x ys y = (flip Here ys <$> FixNeg <$> diffAlmu D y x)
-              <|> nonrec x ys y
+    rec :: (IsRecEl u , IsRecEl v, MonadOracle o m)
+        => o -> Usingl v -> All Usingl p -> Usingl u
+        -> HistoryM m (Ctx (AtmuNeg v) (u ': p))
+    rec orc x ys y = (flip Here ys <$> FixNeg <$> diffAlmuO orc y x)
+                 <|> nonrec orc x ys y
 
-    nonrec :: (IsRecEl v, Alternative m, Monad m)
-           => Usingl v -> All Usingl p -> Usingl u
-           -> m (Ctx (AtmuNeg v) (u ': p))
-    nonrec x ys y = There y <$> diffDelCtx ys x
+    nonrec :: (IsRecEl v, MonadOracle o m)
+           => o -> Usingl v -> All Usingl p -> Usingl u
+           -> HistoryM m (Ctx (AtmuNeg v) (u ': p))
+    nonrec orc x ys y = There y <$> diffDelCtx orc ys x
 
-diffAlmu :: (IsRecEl u, IsRecEl v, Alternative m, Monad m) => Phase -> Usingl u -> Usingl v -> m (Almu u v)
-diffAlmu M x y = diffMod x y <|> diffIns x y <|> diffDel x y
-diffAlmu I x y = diffMod x y <|> diffIns x y
-diffAlmu D x y = diffMod x y <|> diffDel x y
+diffAlmu :: (IsRecEl u, IsRecEl v, MonadOracle o m)
+         => o -> Usingl u -> Usingl v -> m (Almu u v)
+diffAlmu orc x y = runReaderT (diffAlmuO orc x y) [] 
 
-diffMod :: (IsRecEl u, IsRecEl v, Alternative m, Monad m)
-        => Usingl u -> Usingl v -> m (Almu u v)
-diffMod s1 s2 = case testEquality s1 s2 of
-  Just Refl -> Alspn <$> diffS (\p -> toH (diffAlmu p)) M s1 s2
+diffAlmuO :: (IsRecEl u, IsRecEl v, MonadOracle o m)
+          => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
+diffAlmuO o x y = callF o x y >>= porsue o x y
+  where
+    porsue :: (IsRecEl u , IsRecEl v , MonadOracle o m)
+           => o -> Usingl u -> Usingl v -> [Path] -> HistoryM m (Almu u v)
+    porsue o x y [] = empty
+    porsue o x y (i:is) = follow o x y i <|> porsue o x y is
+    
+    follow :: (IsRecEl u , IsRecEl v , MonadOracle o m)
+           => o -> Usingl u -> Usingl v -> Path -> HistoryM m (Almu u v)
+    follow o x y I = diffIns o x y
+    follow o x y D = diffDel o x y
+    follow o x y M = diffMod o x y
+
+diffMod :: (IsRecEl u, IsRecEl v, MonadOracle o m)
+        => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
+diffMod orc s1 s2 = case testEquality s1 s2 of
+  Just Refl -> Alspn <$> diffS (toH diffAlmuO) orc s1 s2
   Nothing -> empty
   where
-    toH :: (IsRecEl u, Alternative m)
-        => (Usingl u -> Usingl u -> m (Almu u u))
-        -> Usingl u -> Usingl u -> m (AlmuH u)
-    toH f x y = AlmuH <$> f x y
+    toH :: (IsRecEl u, MonadOracle o m)
+        => (o -> Usingl u -> Usingl u -> HistoryM m (Almu u u))
+        -> o -> Usingl u -> Usingl u -> HistoryM m (AlmuH u)
+    toH f o x y = AlmuH <$> local (M:) (f o x y)
 
-diffIns :: (IsRecEl u, IsRecEl v, Alternative m, Monad m)
-        => Usingl u -> Usingl v -> m (Almu u v)
-diffIns x s = case view s of
-  (Tag c p) -> Alins c <$> diffInsCtx x p
+diffIns :: (IsRecEl u, IsRecEl v, MonadOracle o m)
+        => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
+diffIns orc x s = case view s of
+  (Tag c p) -> Alins c <$> local (I:) (diffInsCtx orc x p)
 
-diffDel :: (IsRecEl u, IsRecEl v, Alternative m, Monad m)
-        => Usingl u -> Usingl v -> m (Almu u v)
-diffDel s x = case (view s) of
-  (Tag c p) -> Aldel c <$> diffDelCtx p x
+diffDel :: (IsRecEl u, IsRecEl v, MonadOracle o m)
+        => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
+diffDel orc s x = case (view s) of
+  (Tag c p) -> Aldel c <$> local (D:) (diffDelCtx orc p x)
 
 --- Utility
 uncurryPair :: (Monad m)

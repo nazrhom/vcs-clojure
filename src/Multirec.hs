@@ -91,6 +91,7 @@ align orc p1 p2 = runReaderT (alignO orc p1 p2) []
 alignO :: (MonadOracle o m)
        => o -> All Usingl p1 -> All Usingl p2
        -> HistoryM m (Al TrivialA p1 p2)
+alignO orc An An = return A0
 alignO orc p1 p2
   = do
     paths <- callP orc p1 p2
@@ -110,7 +111,7 @@ followAllPaths (i:is) orc p1 p2
 followPath :: (MonadOracle o m)
            => Path -> o -> All Usingl p1 -> All Usingl p2
            -> HistoryM m (Al TrivialA p1 p2)
-followPath _ orc An An         = pure A0
+followPath _ orc An An         = pure A0 -- XXX: Should never be called!
 followPath I orc p1 (a `Ac` p) = Ains a <$> local (I:) (alignO orc p1 p)
 followPath D orc (a `Ac` p) p2 = Adel a <$> local (D:) (alignO orc p p2)
 followPath M orc (a1 `Ac` p1) (a2 `Ac` p2)

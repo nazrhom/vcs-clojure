@@ -38,4 +38,29 @@ class (Monad m) => OracleP o m where
 class (Monad m) => OracleF o m where
   callF :: o -> Usingl u -> Usingl v -> HistoryM m [Path]
 
-type MonadOracle o m = (Alternative m , OracleP o m)
+type MonadOracle o m = (Alternative m , OracleP o m , OracleF o m)
+
+-- XXX: Every Oracle should go in its own module
+
+-- * The "dumb" oracle, then, is:
+data NoOracle = NoOracle
+instance (Monad m) => OracleP NoOracle m where
+  callP _ _ _ = return [I , M , D]
+instance (Monad m) => OracleF NoOracle m where
+  callF _ _ _ = return [I , M , D]
+  
+data NoDupBranches = NoDubBranches
+
+nextPaths :: [Paths] -> [Paths]
+nextPaths []    = [I , M , D]
+nextPaths (I:_) = [I , M]
+nextPaths (D:_) = [D , M]
+nextPaths (M:_) = [I , M , D]
+
+instance (Monad m) => OracleP NoDupBranches where
+  callP _ An An                 = return []
+  callP _ (_ `Ac` _) (_ `Ac` _) = ask >>= return . nextPaths
+  -- XXX: finish!
+
+instance (Monad m) => OracleF NoDubBranches where
+  callF = undefined
