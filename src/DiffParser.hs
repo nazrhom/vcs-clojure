@@ -1,7 +1,6 @@
 module DiffParser where
 
 import Control.Monad.State
-import Control.Monad.Trans.Either
 import Data.Char hiding (Space)
 import Text.Parsec
 
@@ -15,7 +14,7 @@ data FileTarget = FileTarget
   }
 
 defaultTarget :: String -> String -> String -> FileTarget
-defaultTarget m y p = FileTarget
+defaultTarget m p y = FileTarget
   { mine = m
   , yours = y
   , parent = p
