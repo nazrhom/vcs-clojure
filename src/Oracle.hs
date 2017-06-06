@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE KindSignatures #-}
@@ -12,37 +13,29 @@ module Oracle where
 
 import Control.Applicative
 import Data.Type.Equality hiding (apply)
+import Control.Monad.Reader
 
 import Lang
 
-data Phase
+data Path
   = I | M | D
   deriving (Eq , Show)
+
+-- * The history is the list of all issued instructions.
+--   XXX: DO NOT CONFUSE WITH THE LIST OF POSSIBLE PATHS
+--        TO PORSUE
+type History = [Path]
+
+-- * The Oracle will have access to it's previously issued history
+--   ON THE CURRENT BRANCH.
 --
--- Oracle m o a where
---   call (Ann f a) => [options] -> o -> f a -> f a -> m [options]
+type HistoryM = ReaderT History
 
--- the f is free as it represents different ast data types which are all annotated by a
---  The first options list is the sequence of choices made up to that point, the return list is the list of all next steps that should be taken
--- options = Phase
-class Ann f a where
-  extract :: f a -> a
--- instance Ann (All Usingl p1) () where
---   extract = const ()
+-- * Oracle for alignment
+class (Monad m) => OracleP o m where
+  callP :: o -> All Usingl p1 -> All Usingl p2 -> HistoryM m [Path]
 
-class (Monad m) => Oracle m o a where
-  call :: (Ann f a , Ann g a) => o -> f a -> g a -> m (o, [Phase])
---
--- instance (Monad m) => Oracle m () () where
---   call :: (Ann (All Usingl p1) (), Ann (All Usingl p2) ()) =>
---           () -> All Usingl p1 -> All Usingl p2 ->
---           m ((), [Phase])
---   call _ An _ = return ((), [I])
---   call _ _ An = return ((), [D])
---   call _ _ _  = return ((), [I,M,D])
+class (Monad m) => OracleF o m where
+  callF :: o -> Usingl u -> Usingl v -> HistoryM m [Path]
 
-type NoOptOracle = ()
-type Opt1Oracle = [Phase]
-
--- instance (Monad m) => Oracle m [Phase] where
---   call (I:)
+type MonadOracle o m = (Alternative m , OracleP o m)

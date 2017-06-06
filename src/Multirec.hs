@@ -14,8 +14,8 @@ module Multirec where
 import Data.Kind
 import Data.Type.Equality hiding (apply)
 import Control.Applicative
-import Control.Applicative.Alternative
 import qualified Data.Map  as M
+import Control.Monad.Reader
 
 import Parser
 import Lang
@@ -83,38 +83,40 @@ spine x y | otherwise = case (view x, view y) of
 -- The phase records the LAST decision took by the algo (either an insertion,
 -- modification ordeletion)
 
+align :: (MonadOracle o m)
+      => o -> All Usingl p1 -> All Usingl p2
+      -> m (Al TrivialA p1 p2)
+align orc p1 p2 = runReaderT (alignO orc p1 p2) []
 
-align :: (Alternative m) => All Usingl p1 -> All Usingl p2 -> m (Al TrivialA p1 p2)
-align An           An           = pure A0
-align An           (a `Ac` p)   = Ains a <$> align An p
-align (a `Ac` p)   An           = Adel a <$> align p An
-align (a1 `Ac` p1) (a2 `Ac` p2) = case testEquality a1 a2 of
-  Just Refl -> Amod (Contract (a1, a2)) <$> align p1 p2
-           <|> Adel a1 <$> align p1 (a2 `Ac` p2)
-           <|> Ains a2 <$> align (a1 `Ac` p1) p2
-  Nothing   -> Adel a1 <$> align p1 (a2 `Ac` p2)
-           <|> Ains a2 <$> align (a1 `Ac` p1) p2
+alignO :: (MonadOracle o m)
+       => o -> All Usingl p1 -> All Usingl p2
+       -> HistoryM m (Al TrivialA p1 p2)
+alignO orc p1 p2
+  = do
+    paths <- callP orc p1 p2
+    followAllPaths paths orc p1 p2
 
-
-
--- align :: (Alternative m, Oracle m o a) => o -> All (UsinglA a) p1 -> All (UsinglA a) p2 -> m (Al TrivialA p1 p2)
--- -- align o p1 p2 = do
---   (newOracle, xs) <- call o p1 p2
---   xss <- mapM (handlePhase newOracle p1 p2) xs
---   afold xss
-
-handlePhase :: (Alternative m, Oracle m o a) => o -> All (UsinglA a)
- p1 -> All (UsinglA a) p2 -> Phase -> m (Al TrivialA p1 p2)
-handlePhase = undefined
--- handlePhase o p1 (a2 `Ac` p2) I = Ains _ <$> align o p1 p2
--- handlePhase o (a1 `Ac` p1) p2 D = Adel _ <$> align o p1 p2
--- handlePhase o (a1 `Ac` p1) (a2 `Ac` p2) M = case testEquality (_ a1) (_ a2) of
---   Just Refl -> Amod (Contract (_, _)) <$> align o _ _
---   Nothing -> empty
+followAllPaths :: (MonadOracle o m)
+               => [Path] -> o -> All Usingl p1 -> All Usingl p2
+               -> HistoryM m (Al TrivialA p1 p2)
+followAllPaths []     _   _  _
+  = empty
+followAllPaths (i:is) orc p1 p2
+  = (followPath i orc p1 p2) <|> (followAllPaths is orc p1 p2)
 
 
-
-
+-- * Follows one specific path. Makes sure the recursive call to
+--   alignO has access to this path, for later inspection.
+followPath :: (MonadOracle o m)
+           => Path -> o -> All Usingl p1 -> All Usingl p2
+           -> HistoryM m (Al TrivialA p1 p2)
+followPath _ orc An An         = pure A0
+followPath I orc p1 (a `Ac` p) = Ains a <$> local (I:) (alignO orc p1 p)
+followPath D orc (a `Ac` p) p2 = Adel a <$> local (D:) (alignO orc p p2)
+followPath M orc (a1 `Ac` p1) (a2 `Ac` p2)
+  = case testEquality a1 a2 of
+      Just Refl -> Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
+      Nothing   -> empty
 
 -- Library stuff
 newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
