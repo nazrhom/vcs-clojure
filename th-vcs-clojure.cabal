@@ -25,13 +25,14 @@ library
                      , Disjoint
                      , PPPatch
                      , DiffParser
+                     , Oracle
   build-depends:       base >= 4.7 && < 5
                      , containers
                      , optparse-applicative >= 0.13.0.0
                      , parsec
                      , wl-pprint
                      , mtl
-                     , either
+                     , monadplus
   default-language:    Haskell2010
 
 executable th-vcs-clojure-exe

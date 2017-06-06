@@ -16,6 +16,7 @@ import Multirec
 import Cost
 import Disjoint
 import PPPatch
+import Oracle
 
 import Data.Maybe
 

@@ -18,6 +18,10 @@ data All (p :: k -> *) :: [k] -> * where
   An :: All p '[]
   Ac :: p x -> All p xs -> All p (x ': xs)
 
+data AllA (p :: k -> * -> *) :: [k] -> * -> * where
+  AnA :: AllA p '[] a
+  AcA :: p x a -> AllA p xs a -> AllA p (x ': xs) a
+
 (.@.) :: p x -> All p xs -> All p (x ': xs)
 (.@.) = Ac
 infixr 2 .@.
@@ -42,6 +46,26 @@ data Usingl :: U -> * where
   UCollType :: CollType -> Usingl KCollType
   UTerm :: Term -> Usingl KTerm
   UTag :: Tag -> Usingl KTag
+
+data UsinglA :: * -> U -> * where
+  UStringAnn :: a -> String -> UsinglA a KString
+  USepAnn :: a ->  Sep -> UsinglA a KSep
+  USepExprListAnn :: a ->  SepExprList -> UsinglA a KSepExprList
+  UExprAnn :: a ->  Expr -> UsinglA a KExpr
+  UFormTyAnn :: a ->  FormTy -> UsinglA a KFormTy
+  UCollTypeAnn :: a ->  CollType -> UsinglA a KCollType
+  UTermAnn :: a ->  Term -> UsinglA a KTerm
+  UTagAnn :: a ->  Tag -> UsinglA a KTag
+
+forget :: UsinglA ann k -> Usingl k
+forget (UStringAnn a k) = UString k
+forget (USepAnn a k) = USep k
+forget (USepExprListAnn a k) = USepExprList k
+forget (UExprAnn a k) = UExpr k
+forget (UFormTyAnn a k) = UFormTy k
+forget (UCollTypeAnn a k) = UCollType k
+forget (UTermAnn a k) = UTerm k
+forget (UTagAnn a k) = UTag k
 
 data Constr :: * where
   C1Nil  :: Constr
@@ -277,6 +301,7 @@ instance TestEquality Usingl where
   testEquality (UTerm _) (UTerm _) = Just Refl
   testEquality (UTag _) (UTag _) = Just Refl
   testEquality _ _ = Nothing
+
 
 instance Eq (Usingl a) where
   (UString a) == (UString b) = a == b

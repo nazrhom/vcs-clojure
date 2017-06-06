@@ -15,17 +15,17 @@ ppLines es = show $ vvcat $ map ppExpr es
     vvcat ds = vcat $ punctuate line ds
 
 ppExpr :: Expr -> Doc
-ppExpr (Special Quote e) = char '\'' <> ppExpr e
-ppExpr (Special SQuote e) = char '`' <> ppExpr e
-ppExpr (Special UnQuote e) = char '~' <> ppExpr e
-ppExpr (Special SUnQuote e) = text "~@" <> ppExpr e
-ppExpr (Special DeRef e) = char '@' <> ppExpr e
-ppExpr (Dispatch e) = char '#' <> ppExpr e
-ppExpr (Collection Parens es) = parens $ ppSepExprList es
-ppExpr (Collection Vec es) = brackets $ ppSepExprList es
-ppExpr (Collection Set es) = braces $ ppSepExprList es
-ppExpr (Comment s) = char ';' <> text s <> linebreak
-ppExpr (Term t) = ppTerm t
+ppExpr (Special Quote e _) = char '\'' <> ppExpr e
+ppExpr (Special SQuote e _) = char '`' <> ppExpr e
+ppExpr (Special UnQuote e _) = char '~' <> ppExpr e
+ppExpr (Special SUnQuote e _) = text "~@" <> ppExpr e
+ppExpr (Special DeRef e _) = char '@' <> ppExpr e
+ppExpr (Dispatch e _) = char '#' <> ppExpr e
+ppExpr (Collection Parens es _) = parens $ ppSepExprList es
+ppExpr (Collection Vec es _) = brackets $ ppSepExprList es
+ppExpr (Collection Set es _) = braces $ ppSepExprList es
+ppExpr (Comment s _) = char ';' <> text s <> linebreak
+ppExpr (Term t _) = ppTerm t
 ppExpr (Seq p q) = ppExpr p <> line <> ppExpr q
 
 ppTerm :: Term -> Doc
