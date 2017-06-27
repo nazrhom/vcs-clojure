@@ -9,7 +9,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Multirec where
+module VCS.Multirec where
 
 import Data.Kind
 import Data.Type.Equality hiding (apply)
@@ -17,11 +17,10 @@ import Control.Applicative
 import qualified Data.Map  as M
 import Control.Monad.Reader
 
-import Debug.Trace
 
-import Parser
-import Lang
-import Oracle
+import Clojure.AST
+import Clojure.Lang
+import Oracle.Oracle
 
 -- The actual puzzle
 
@@ -120,10 +119,6 @@ followPath M orc (a1 `Ac` p1) (a2 `Ac` p2)
   = case testEquality a1 a2 of
       Just Refl -> Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
       Nothing   -> empty
-followPath p orc p1 p2 = trace
-    (  "Phase: " ++ show p
-    ++ "\np1: "  ++ show p1
-    ++ "\np2: "  ++ show p2) undefined
 
 -- Library stuff
 newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }

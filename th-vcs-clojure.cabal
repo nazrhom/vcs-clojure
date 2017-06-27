@@ -15,16 +15,18 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Parser
-                     , PrettyPrint
-                     , Lang
-                     , Apply
-                     , Diff
-                     , Multirec
-                     , Cost
-                     , Disjoint
-                     , PPPatch
-                     , DiffParser
+  exposed-modules:     Clojure.AST
+                     , Clojure.Parser
+                     , Clojure.PrettyPrint
+                     , Clojure.Lang
+                     , VCS.Apply
+                     , VCS.Diff
+                     , VCS.Multirec
+                     , VCS.Cost
+                     , VCS.Disjoint
+                     , Util.PPPatch
+                     , Util.DiffParser
+                     , Oracle.Oracle
   build-depends:       base >= 4.7 && < 5
                      , containers
                      , optparse-applicative >= 0.13.0.0

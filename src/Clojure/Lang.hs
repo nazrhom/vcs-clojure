@@ -8,11 +8,12 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE RankNTypes #-}
-module Lang where
+module Clojure.Lang where
 
 import Data.Type.Equality hiding (apply)
 import GHC.TypeLits (ErrorMessage(..), TypeError)
-import Parser
+import Clojure.AST
+
 -- UNIVERSE
 data All (p :: k -> *) :: [k] -> * where
   An :: All p '[]

@@ -5,20 +5,21 @@ import Options.Applicative
 import Data.Monoid
 import Data.List (sortBy)
 import Data.Ord (comparing)
-
-import Parser
-import PrettyPrint
-
-import Diff
-import Lang
-import Apply
-import Multirec
-import Cost
-import Disjoint
-import PPPatch
-import Oracle
-
 import Data.Maybe
+
+import Clojure.Parser
+import Clojure.Lang
+import Clojure.PrettyPrint
+
+import VCS.Diff
+import VCS.Apply
+import VCS.Multirec
+import VCS.Cost
+import VCS.Disjoint
+
+import Util.PPPatch
+
+import Oracle.Oracle
 
 main :: IO ()
 main = do

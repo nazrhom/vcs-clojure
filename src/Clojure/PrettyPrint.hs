@@ -1,10 +1,10 @@
-module PrettyPrint
+module Clojure.PrettyPrint
     ( ppTop
     , ppLines
     ) where
 
 import Text.PrettyPrint.Leijen
-import Parser
+import Clojure.AST
 
 ppTop :: Expr -> String
 ppTop es = show $ ppExpr es

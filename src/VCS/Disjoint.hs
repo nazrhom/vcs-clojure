@@ -4,12 +4,12 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE PolyKinds #-}
 
-module Disjoint where
+module VCS.Disjoint where
 
 import Data.Type.Equality hiding (apply)
 
-import Multirec
-import Lang
+import VCS.Multirec
+import Clojure.Lang
 
 
 disjoint :: Almu u v -> Almu u w -> Bool

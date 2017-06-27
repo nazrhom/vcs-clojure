@@ -4,15 +4,16 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeOperators #-}
-module Diff where
+module VCS.Diff where
 
-import Apply
-import Multirec
-import Lang
 import Control.Applicative
 import Data.Type.Equality hiding (apply)
 import Control.Monad.Reader
-import Oracle
+
+import VCS.Apply
+import VCS.Multirec
+import Clojure.Lang
+import Oracle.Oracle
 
 type DiffAlMu o m rec
   = forall r . (IsRecEl r , MonadOracle o m)

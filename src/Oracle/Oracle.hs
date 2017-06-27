@@ -10,13 +10,13 @@
 {-# LANGUAGE LambdaCase #-}
 
 
-module Oracle where
+module Oracle.Oracle where
 
 import Control.Applicative
 import Data.Type.Equality hiding (apply)
 import Control.Monad.Reader
 
-import Lang
+import Clojure.Lang
 
 data Path
   = I | M | D

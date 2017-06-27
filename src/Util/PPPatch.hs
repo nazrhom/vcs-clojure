@@ -3,10 +3,10 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 
-module PPPatch where
+module Util.PPPatch where
 
-import Multirec
-import Lang
+import VCS.Multirec
+import Clojure.Lang
 import Data.Type.Equality hiding (apply)
 import Debug.Trace
 

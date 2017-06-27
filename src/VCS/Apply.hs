@@ -6,11 +6,12 @@
 {-# LANGUAGE TypeOperators #-}
 
 
-module Apply where
+module VCS.Apply where
+
 import Data.Type.Equality hiding (apply)
 
-import Multirec
-import Lang
+import VCS.Multirec
+import Clojure.Lang
 import Debug.Trace
 
 applyS :: IsRecEl r => (forall a . at a -> Usingl a -> Maybe (Usingl a))
@@ -85,4 +86,4 @@ applyAlmu (Alins constr ctx) x = inj constr <$> ctxIns (\p -> applyAtmuPos p x) 
 applyAlmu (Aldel constr ctx) x = case view x of
   (Tag c1 p1) -> case testEquality constr c1 of
     Just Refl -> ctxDel ctx p1
-    Nothing -> trace ("applyAlmu failing.")  Nothing
+    Nothing -> trace ("applyAlmu failing.") Nothing

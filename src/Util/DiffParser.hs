@@ -1,10 +1,10 @@
-module DiffParser where
+module Util.DiffParser where
 
 import Control.Monad.State
 import Data.Char hiding (Space)
 import Text.Parsec
 
-import PrettyPrint
+import Clojure.PrettyPrint
 
 data FileTarget = FileTarget
   { mine :: String

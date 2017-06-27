@@ -3,10 +3,10 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE PolyKinds #-}
-module Cost where
+module VCS.Cost where
 
-import Multirec
-import Lang
+import VCS.Multirec
+import Clojure.Lang
 
 
 costS :: (forall a . at a -> Int)
