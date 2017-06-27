@@ -18,13 +18,13 @@ type DiffAlMu o m rec
   = forall r . (IsRecEl r , MonadOracle o m)
             => o -> Usingl r -> Usingl r -> HistoryM m (rec r)
 
-diffAt :: (MonadOracle o m) => forall rec . DiffAlMu o m rec 
+diffAt :: (MonadOracle o m) => forall rec . DiffAlMu o m rec
        -> o -> Usingl a -> Usingl a -> HistoryM m (At rec a)
 diffAt diffR orc x = onRecursiveGuy (\y -> Ai <$> (diffR orc x y))
                                     (\ny -> return (As (Contract (x , ny))))
 
 
-diffS :: (IsRecEl a, MonadOracle o m) => forall rec . DiffAlMu o m rec 
+diffS :: (IsRecEl a, MonadOracle o m) => forall rec . DiffAlMu o m rec
       -> o -> Usingl a -> Usingl a -> HistoryM m (Spine (At rec) (Al (At rec)) a)
 diffS diffR orc s1 s2
   = mapSpineM (uncurry (diffAt diffR orc) . unContract)
@@ -32,7 +32,7 @@ diffS diffR orc s1 s2
               (spine s1 s2)
   where
     alignP :: (MonadOracle o m)
-           => DiffAlMu o m rec 
+           => DiffAlMu o m rec
            -> o -> All Usingl s -> All Usingl d -> HistoryM m (Al (At rec) s d)
     alignP diffR orc p1 p2 = do
       al <- lift $ align orc p1 p2
@@ -74,17 +74,17 @@ diffDelCtx orc (y `Ac` ay) x
 
 diffAlmu :: (IsRecEl u, IsRecEl v, MonadOracle o m)
          => o -> Usingl u -> Usingl v -> m (Almu u v)
-diffAlmu orc x y = runReaderT (diffAlmuO orc x y) [] 
+diffAlmu orc x y = runReaderT (diffAlmuO orc x y) []
 
 diffAlmuO :: (IsRecEl u, IsRecEl v, MonadOracle o m)
           => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
-diffAlmuO o x y = callF o x y >>= porsue o x y
+diffAlmuO o x y = callF o x y >>= pursue o x y
   where
-    porsue :: (IsRecEl u , IsRecEl v , MonadOracle o m)
+    pursue :: (IsRecEl u , IsRecEl v , MonadOracle o m)
            => o -> Usingl u -> Usingl v -> [Path] -> HistoryM m (Almu u v)
-    porsue o x y [] = empty
-    porsue o x y (i:is) = follow o x y i <|> porsue o x y is
-    
+    pursue o x y [] = empty
+    pursue o x y (i:is) = follow o x y i <|> pursue o x y is
+
     follow :: (IsRecEl u , IsRecEl v , MonadOracle o m)
            => o -> Usingl u -> Usingl v -> Path -> HistoryM m (Almu u v)
     follow o x y I = diffIns o x y

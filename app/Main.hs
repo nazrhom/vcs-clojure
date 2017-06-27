@@ -16,6 +16,7 @@ import Multirec
 import Cost
 import Disjoint
 import PPPatch
+import Oracle
 
 import Data.Maybe
 
@@ -29,7 +30,7 @@ main = do
   d <- readFile (dstFile opts)
   dst <- parseFile (dstFile opts) d
 
-  let almus = diffAlmu M (toSing src) (toSing dst)
+  let almus = diffAlmu NoDupBranches (toSing src) (toSing dst)
   let patches = map (flip applyAlmu (toSing src)) almus
   let almusCost = sortBy (comparing costAlmu) almus
   let worst = last almusCost
@@ -55,9 +56,12 @@ choose :: [Almu u v] -> Almu u v
 choose (x:xs) = choose' x (costAlmu x) xs
 choose []     = error "boom"
 
+computePatches :: Expr -> Expr -> [Almu (Le Expr) (Le Expr)]
+computePatches x y = diffAlmu NoDupBranches (toSing x) (toSing y)
+
 computePatch :: Expr -> Expr -> Almu (Le Expr) (Le Expr)
 computePatch x y
-  = let almus = diffAlmu M (toSing x) (toSing y)
+  = let almus = computePatches x y
      in choose almus
 
 getFiles :: IO (Expr , Expr , Expr)
@@ -73,14 +77,10 @@ getFiles = do
 test :: IO ()
 test = do
   (o, a, b) <- getFiles
-  let p1 = computePatch o a
-      p2 = computePatch o b
-  putStrLn $ show p1
-  putStrLn "Head to safehead-2"
-  putStrLn $ showPatchEffect p2 (toSing o)
-  putStrLn "Head to safehead-1"
-  putStrLn $ showPatchEffect p1 (toSing o)
-
+  let almu1 = computePatches o a
+      almu2 = computePatches o b
+  putStrLn $ "Length almu1 " ++ show (length almu1)
+  putStrLn $ "Length almu2 " ++ show (length almu2)
 
 testDisjoint :: (Expr, Expr, Expr) -> IO ()
 testDisjoint (o, a, b) = do

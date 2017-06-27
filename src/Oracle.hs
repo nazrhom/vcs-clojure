@@ -7,6 +7,7 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
 
 
 module Oracle where
@@ -23,7 +24,7 @@ data Path
 
 -- * The history is the list of all issued instructions.
 --   XXX: DO NOT CONFUSE WITH THE LIST OF POSSIBLE PATHS
---        TO PORSUE
+--        TO PURSUE
 type History = [Path]
 
 -- * The Oracle will have access to it's previously issued history
@@ -45,22 +46,27 @@ type MonadOracle o m = (Alternative m , OracleP o m , OracleF o m)
 -- * The "dumb" oracle, then, is:
 data NoOracle = NoOracle
 instance (Monad m) => OracleP NoOracle m where
-  callP _ _ _ = return [I , M , D]
+  callP _ An         An         = return []
+  callP _ An         (_ `Ac` _) = return [I]
+  callP _ (_ `Ac` _) An         = return [D]
+  callP _ _          _          = return [I , M , D]
+
 instance (Monad m) => OracleF NoOracle m where
   callF _ _ _ = return [I , M , D]
-  
-data NoDupBranches = NoDubBranches
 
-nextPaths :: [Paths] -> [Paths]
-nextPaths []    = [I , M , D]
-nextPaths (I:_) = [I , M]
-nextPaths (D:_) = [D , M]
-nextPaths (M:_) = [I , M , D]
+data NoDupBranches = NoDupBranches
 
-instance (Monad m) => OracleP NoDupBranches where
-  callP _ An An                 = return []
+nextPaths :: [Path] -> [Path]
+nextPaths []        = [I , M , D]
+nextPaths (I:_)     = [I , M]
+nextPaths (D:_)     = [D , M]
+nextPaths (M:_)     = [I , M , D]
+
+instance (Monad m) => OracleP NoDupBranches m where
+  callP _ An         An         = return []
+  callP _ An         (_ `Ac` _) = return []
+  callP _ (_ `Ac` _) An         = return [D]
   callP _ (_ `Ac` _) (_ `Ac` _) = ask >>= return . nextPaths
-  -- XXX: finish!
 
-instance (Monad m) => OracleF NoDubBranches where
-  callF = undefined
+instance (Monad m) => OracleF NoDupBranches m where
+  callF _ _ _  = ask >>= return . nextPaths
