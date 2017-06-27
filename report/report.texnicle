@@ -5,7 +5,7 @@
     <databaseInfo>
         <version>134481920</version>
         <UUID>927D7D9D-98A0-419A-819C-55B8BC4EA10B</UUID>
-        <nextObjectID>107</nextObjectID>
+        <nextObjectID>109</nextObjectID>
         <metadata>
             <plist version="1.0">
                 <dict>
@@ -85,7 +85,7 @@
         <relationship name="items" type="0/0" destination="PROJECTITEM" idrefs="z106 z105 z107"></relationship>
     </object>
     <object type="UISETTINGS" id="z104">
-        <attribute name="showlogwarningitems" type="bool">1</attribute>
+        <attribute name="showlogwarningitems" type="bool">0</attribute>
         <attribute name="showloginfoitems" type="bool">0</attribute>
         <attribute name="showlogerroritems" type="bool">1</attribute>
         <attribute name="pdfviewscrollrect" type="string">{{0, 0}, {0, 0}}</attribute>
@@ -100,12 +100,12 @@
     </object>
     <object type="TEXFILE" id="z105">
         <attribute name="wasopen" type="bool">0</attribute>
-        <attribute name="visiblerect" type="string">{{0, 9772}, {808, 656}}</attribute>
-        <attribute name="lasteditdate" type="date">518101453.99389398097991943359</attribute>
+        <attribute name="visiblerect" type="string">{{0, 10376}, {808, 633}}</attribute>
+        <attribute name="lasteditdate" type="date">520089000.61522501707077026367</attribute>
         <attribute name="istext" type="bool">1</attribute>
-        <attribute name="fileloaddate" type="date">518101437.52818500995635986328</attribute>
+        <attribute name="fileloaddate" type="date">520089001.46850401163101196289</attribute>
         <attribute name="extension" type="string">tex</attribute>
-        <attribute name="cursor" type="string">{37531, 0}</attribute>
+        <attribute name="cursor" type="string">{40774, 0}</attribute>
         <attribute name="sortindex" type="int32">0</attribute>
         <attribute name="name" type="string">report_main.tex</attribute>
         <attribute name="isexpanded" type="bool">0</attribute>
@@ -114,7 +114,7 @@
         <relationship name="project" type="1/1" destination="PROJECT" idrefs="z103"></relationship>
         <relationship name="mainfileofproject" type="1/1" destination="PROJECT" idrefs="z103"></relationship>
         <relationship name="children" type="0/0" destination="PROJECTITEM"></relationship>
-        <relationship name="bookmarks" type="0/0" destination="BOOKMARK"></relationship>
+        <relationship name="bookmarks" type="0/0" destination="BOOKMARK" idrefs="z108"></relationship>
     </object>
     <object type="FOLDER" id="z106">
         <attribute name="sortindex" type="int32">1</attribute>
@@ -133,5 +133,17 @@
         <relationship name="parent" type="1/1" destination="PROJECTITEM"></relationship>
         <relationship name="project" type="1/1" destination="PROJECT" idrefs="z103"></relationship>
         <relationship name="children" type="0/0" destination="PROJECTITEM"></relationship>
+    </object>
+    <object type="BOOKMARK" id="z108">
+        <attribute name="text" type="string">
+</attribute>
+        <attribute name="linenumber" type="int64">391</attribute>
+        <relationship name="parentfile" type="1/1" destination="FILE" idrefs="z105"></relationship>
+    </object>
+    <object type="BOOKMARK" id="z109">
+        <attribute name="text" type="string">\\begin{lstlisting}[language=clojure]
+</attribute>
+        <attribute name="linenumber" type="int64">391</attribute>
+        <relationship name="parentfile" type="1/1" destination="FILE"></relationship>
     </object>
 </database>
