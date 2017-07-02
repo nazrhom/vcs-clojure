@@ -38,51 +38,100 @@ parseExpr = lexeme lexer $ choice
   , parseDispatch
   , parseCollection
   , parseComment
-  , Term <$> parseTerm
+  , parseTerm
   ]
 
-parseTerm = lexeme lexer $ parseTaggedString
+parseTerm =
+  do
+    start <- getPosition
+    term <- parseTaggedString
+    end <- getPosition
+    return $ Term term (mkRange start end)
 
 parseCollection = choice [ parseParens, parseVec, parseSet ]
 
-parseSpecial = choice [parseQuote, parseSQuote, try parseSUnQuote, parseUnQuote, parseDeRef]
+parseSpecial = do
+  start <- getPosition
+  ident <- parseSpecialIdent
+  expr <- parseExpr
+  end <- getPosition
+  return $ Special ident expr (mkRange start end)
 
-parseQuote = Special <$> pure Quote <* char '\'' <*> parseExpr
-
-parseSQuote = Special <$> pure SQuote <* char '`' <*> parseExpr
-
-parseSUnQuote = Special <$> pure SUnQuote <* char '~' <* char '@' <*> parseExpr
-
-parseUnQuote = Special <$> pure UnQuote <* char '~' <* optional (char '@') <*> parseExpr
-
-parseDeRef = Special <$> pure DeRef <* char '@' <*> parseExpr
+parseSpecialIdent = choice
+  [ Quote <$ char '\''
+  , SQuote <$ char '`'
+  , UnQuote <$ char '~'
+  , DeRef <$ char '@'
+  ]
 
 parseTaggedString = choice [parseString, parseVar, parseMetadata]
 
-
-parseDispatch = Dispatch <$ char '#' <*> parseDispatchable
+parseDispatch = do
+  start <- getPosition
+  char '#'
+  disp <- parseDispatchable
+  end <- getPosition
+  return $ Dispatch disp (mkRange start end)
   where
-    parseDispatchable = parseSet <|> parseDiscard <|> parseRegExp <|> parseParens <|> parseTaggedLit <|> parseMeta
+    parseDispatchable = choice
+      [ parseSet
+      , parseRegExp
+      , parseParens
+      , parseTaggedLit
+      , parseMeta
+      ]
     --- ref: https://yobriefca.se/blog/2014/05/19/the-weird-and-wonderful-characters-of-clojure/
     -- parseParens covers the function marco
     -- parseTaggedLit covers the var macro (as identifiers can start with a quote ('))
-    parseDiscard = Term <$> (TaggedString <$> pure Var <*> string "_")
-    parseRegExp = Term <$> parseString
-    parseTaggedLit = Term <$> parseVar
-    parseMeta = Term <$> parseMetadata
+    parseRegExp = do
+      start <- getPosition
+      regExp <- parseString
+      end <- getPosition
+      return $ Term regExp (mkRange start end)
 
-parseComment = Comment <$ char ';' <*> manyTill anyChar (string "\n")
+    parseTaggedLit = do
+      start <- getPosition
+      tLit <- parseVar
+      end <- getPosition
+      return $ Term tLit (mkRange start end)
 
-parseParens = Collection <$> pure Parens <*> parens lexer parseSepExprList
+    parseMeta = do
+      start <- getPosition
+      meta <- parseMetadata
+      end <- getPosition
+      return $ Term meta (mkRange start end)
 
-parseSet = Collection <$> pure Set <*> braces lexer parseSepExprList
+parseComment = do
+  start <- getPosition
+  char ';'
+  comment <- manyTill anyChar (string "\n")
+  end <- getPosition
+  return $ Comment comment (mkRange start end)
 
-parseVec = Collection <$> pure Vec <*> brackets lexer parseSepExprList
+parseParens = do
+  start <- getPosition
+  contents <- (parens lexer) parseSepExprList
+  end <- getPosition
+  return $ Collection Parens contents (mkRange start end)
+--
+parseSet = do
+  start <- getPosition
+  contents <- (braces lexer) parseSepExprList
+  end <- getPosition
+  return $ Collection Set contents (mkRange start end)
 
-parseSepExprList = try parseSepExprList1 <|> parseSingleton <|> return Nil
+parseVec = do
+  start <- getPosition
+  contents <- (brackets lexer) parseSepExprList
+  end <- getPosition
+  return $ Collection Vec contents (mkRange start end)
 
-parseSingleton = Singleton <$> parseExpr
-
+parseSepExprList = try parseSepExprList1 <|> parseSingleton <|> (return Nil)
+--
+parseSingleton = do
+  expr <- parseExpr
+  return $ Singleton expr
+--
 parseSepExprList1 = do
   x <- parseExpr
   sep <- parseSep
@@ -90,9 +139,9 @@ parseSepExprList1 = do
   return $ Cons x sep xs
 
 parseSep = choice
-  [ Comma <$ lexeme lexer (char ',')
+  [ Space <$ whiteSpace lexer
+  , Comma <$ lexeme lexer (char ',')
   , NewLine <$ lexeme lexer (newline)
-  , Space <$ whiteSpace lexer
   ]
 
 parseString = TaggedString <$> pure String <*> quotedString

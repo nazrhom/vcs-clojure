@@ -14,6 +14,7 @@ import Data.Type.Equality hiding (apply)
 import GHC.TypeLits (ErrorMessage(..), TypeError)
 import Clojure.AST
 
+
 -- UNIVERSE
 data All (p :: k -> *) :: [k] -> * where
   An :: All p '[]
@@ -63,7 +64,6 @@ data Constr :: * where
   C4Quote :: Constr
   C4SQuote :: Constr
   C4UnQuote :: Constr
-  C4SUnQuote :: Constr
   C4DeRef :: Constr
 
   C5Vec :: Constr
@@ -96,7 +96,6 @@ data ConstrFor :: U -> Constr -> * where
   C4QuoteProof :: ConstrFor KFormTy C4Quote
   C4SQuoteProof :: ConstrFor KFormTy C4SQuote
   C4UnQuoteProof :: ConstrFor KFormTy C4UnQuote
-  C4SUnQuoteProof :: ConstrFor KFormTy C4SUnQuote
   C4DeRefProof :: ConstrFor KFormTy C4DeRef
 
   C5VecProof :: ConstrFor KCollType C5Vec
@@ -130,7 +129,6 @@ showConstr C3SeqProof = "Seq "
 showConstr C4QuoteProof = "Quote "
 showConstr C4SQuoteProof = "SQuote "
 showConstr C4UnQuoteProof = "UnQuote "
-showConstr C4SUnQuoteProof = "SUnQuote "
 showConstr C4DeRefProof = "DeRef "
 
 showConstr C5VecProof = "Vec "
@@ -162,7 +160,6 @@ type family TypeOf (c :: Constr) :: [U] where
   TypeOf C4Quote = '[]
   TypeOf C4SQuote = '[]
   TypeOf C4UnQuote = '[]
-  TypeOf C4SUnQuote = '[]
   TypeOf C4DeRef = '[]
 
   TypeOf C5Vec = '[]
@@ -194,16 +191,15 @@ inj C1ConsProof (e `Ac` sep `Ac` sl `Ac` An) = USepExprList (Cons (eval e) (eval
 inj C2SpaceProof An = USep Space
 inj C2CommaProof An = USep Comma
 inj C2NewLineProof An = USep NewLine
-inj C3SpecialProof (fty `Ac` e `Ac` An) = UExpr (Special (eval fty) (eval e))
-inj C3DispatchProof (e `Ac` An) = UExpr (Dispatch (eval e))
-inj C3CollectionProof (ct `Ac` sl `Ac` An) = UExpr (Collection (eval ct) (eval sl))
-inj C3TermProof (t `Ac` An) = UExpr (Term (eval t))
-inj C3CommentProof (c `Ac` An) = UExpr (Comment (eval c))
+inj C3SpecialProof (fty `Ac` e `Ac` An) = UExpr (Special (eval fty) (eval e) emptyRange)
+inj C3DispatchProof (e `Ac` An) = UExpr (Dispatch (eval e) emptyRange)
+inj C3CollectionProof (ct `Ac` sl `Ac` An) = UExpr (Collection (eval ct) (eval sl) emptyRange)
+inj C3TermProof (t `Ac` An) = UExpr (Term (eval t) emptyRange)
+inj C3CommentProof (c `Ac` An) = UExpr (Comment (eval c) emptyRange)
 inj C3SeqProof (p `Ac` q `Ac` An) = UExpr (Seq (eval p) (eval q))
 inj C4QuoteProof An = UFormTy Quote
 inj C4SQuoteProof An = UFormTy SQuote
 inj C4UnQuoteProof An = UFormTy UnQuote
-inj C4SUnQuoteProof An = UFormTy SUnQuote
 inj C4DeRefProof An = UFormTy DeRef
 inj C5VecProof An = UCollType Vec
 inj C5SetProof An = UCollType Set
@@ -255,7 +251,6 @@ testEquality' C3SeqProof C3SeqProof = Just (Refl, Refl)
 testEquality' C4QuoteProof C4QuoteProof = Just (Refl, Refl)
 testEquality' C4SQuoteProof C4SQuoteProof = Just (Refl, Refl)
 testEquality' C4UnQuoteProof C4UnQuoteProof = Just (Refl, Refl)
-testEquality' C4SUnQuoteProof C4SUnQuoteProof = Just (Refl, Refl)
 testEquality' C4DeRefProof C4DeRefProof = Just (Refl, Refl)
 testEquality' C5VecProof C5VecProof = Just (Refl, Refl)
 testEquality' C5SetProof C5SetProof = Just (Refl, Refl)
@@ -312,18 +307,17 @@ viewSep Comma = Tag C2CommaProof An
 viewSep NewLine = Tag C2NewLineProof An
 
 viewExpr :: Expr -> View KExpr
-viewExpr (Special fty e) = Tag C3SpecialProof (UFormTy fty .@. UExpr e .@. An)
-viewExpr (Dispatch e) = Tag C3DispatchProof  (UExpr e .@. An)
-viewExpr (Collection ct sl) = Tag C3CollectionProof (UCollType ct .@. USepExprList sl .@. An)
-viewExpr (Term t) = Tag C3TermProof (UTerm t .@. An)
-viewExpr (Comment c) = Tag C3CommentProof (UString c .@. An)
+viewExpr (Special fty e _) = Tag C3SpecialProof (UFormTy fty .@. UExpr e .@. An)
+viewExpr (Dispatch e _) = Tag C3DispatchProof  (UExpr e .@. An)
+viewExpr (Collection ct sl _) = Tag C3CollectionProof (UCollType ct .@. USepExprList sl .@. An)
+viewExpr (Term t _) = Tag C3TermProof (UTerm t .@. An)
+viewExpr (Comment c _) = Tag C3CommentProof (UString c .@. An)
 viewExpr (Seq p q)  = Tag C3SeqProof (UExpr p .@. UExpr q .@. An)
 
 viewFormTy :: FormTy -> View KFormTy
 viewFormTy Quote = Tag C4QuoteProof An
 viewFormTy SQuote = Tag C4SQuoteProof An
 viewFormTy UnQuote = Tag C4UnQuoteProof An
-viewFormTy SUnQuote = Tag C4SUnQuoteProof An
 viewFormTy DeRef = Tag C4DeRefProof An
 
 viewCollType :: CollType -> View KCollType
@@ -372,17 +366,16 @@ instance Sing SepExprList where
   toSing (Singleton e) = USepExprList (Singleton e)
   toSing (Cons e s sl) = USepExprList (Cons e s sl)
 instance Sing Expr where
-  toSing (Special fty e) = UExpr (Special fty e)
-  toSing (Dispatch e) = UExpr (Dispatch e)
-  toSing (Collection ct sl) = UExpr (Collection ct sl)
-  toSing (Term t) = UExpr (Term t)
-  toSing (Comment c) = UExpr (Comment c)
-  toSing (Seq p q)   = UExpr (Seq p q)
+  toSing (Special fty e _) = UExpr (Special fty e emptyRange)
+  toSing (Dispatch e _) = UExpr (Dispatch e emptyRange)
+  toSing (Collection ct sl _) = UExpr (Collection ct sl emptyRange)
+  toSing (Term t _) = UExpr (Term t emptyRange)
+  toSing (Comment c _) = UExpr (Comment c emptyRange)
+  toSing (Seq p q) = UExpr (Seq p q)
 instance Sing FormTy where
   toSing Quote = UFormTy Quote
   toSing SQuote = UFormTy SQuote
   toSing UnQuote = UFormTy UnQuote
-  toSing SUnQuote = UFormTy SUnQuote
   toSing DeRef = UFormTy DeRef
 instance Sing CollType where
   toSing Vec = UCollType Vec

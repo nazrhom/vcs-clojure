@@ -1,5 +1,5 @@
-import Parser
-import PrettyPrint
+import Clojure.Parser
+import Clojure.PrettyPrint
 import System.FilePath.Find
 import System.Directory
 
@@ -25,4 +25,6 @@ testFile f = do
     Right p -> do
       case parse parseTop ("Parse Result of: " ++ f) (ppTop p) of
         Left err -> error $ "Error on second parse " ++ show err
-        Right p1 -> putStrLn $ "Parse == Reparse " ++ show (p == p1)
+        Right p1 -> case p == p1 of
+          True -> return ()
+          False -> error $ "Parse != Reparse\n" ++ show p ++ "\n" ++ show p1
