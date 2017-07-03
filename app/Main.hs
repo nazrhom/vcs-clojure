@@ -21,6 +21,8 @@ import Util.PPPatch
 
 import Oracle.Oracle
 
+import Util.UnixDiff
+
 main :: IO ()
 main = do
   opts <- execParser optsHelper
@@ -30,8 +32,9 @@ main = do
 
   d <- readFile (dstFile opts)
   dst <- parseFile (dstFile opts) d
-
-  let almus = diffAlmu NoDupBranches (toSing src) (toSing dst)
+  let prep = preprocess s d
+  let oracle = ComposeOracle (DiffOracle $ buildOracle prep) (NoDupBranches)
+  let almus = diffAlmu oracle (toSing src) (toSing dst)
   let patches = map (flip applyAlmu (toSing src)) almus
   let almusCost = sortBy (comparing costAlmu) almus
   let worst = last almusCost
@@ -100,14 +103,6 @@ parseFile name src = case parse parseTop name src of
   Left err -> error $ show err
   Right s' -> return s'
 
-parseToExprList :: String -> String -> IO [Expr]
-parseToExprList name src = case parse parseManyExpr name src of
-  Left err -> error $ show err
-  Right s' -> return s'
-
-parseManyExprAndRead :: String -> IO [Expr]
-parseManyExprAndRead fname
-  = readFile fname >>= parseToExprList ""
 
 
 data Opts = Opts

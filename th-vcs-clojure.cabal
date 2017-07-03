@@ -40,7 +40,7 @@ library
 executable th-vcs-clojure-exe
   hs-source-dirs:      app
   main-is:             Main.hs
-  ghc-options:         -threaded -rtsopts -O -with-rtsopts=-N
+  ghc-options:         -threaded -rtsopts -O2 -with-rtsopts=-N
   build-depends:       base
                      , bytestring
                      , optparse-applicative

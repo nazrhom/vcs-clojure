@@ -15,32 +15,46 @@ ppLines es = show $ vvcat $ map ppExpr es
     vvcat ds = vcat $ punctuate line ds
 
 ppExpr :: Expr -> Doc
-ppExpr (Special Quote e _) = char '\'' <> ppExpr e
-ppExpr (Special SQuote e _) = char '`' <> ppExpr e
-ppExpr (Special UnQuote e _) = char '~' <> ppExpr e
-ppExpr (Special DeRef e _) = char '@' <> ppExpr e
+ppExpr (Special fty e _) = ppFormTy fty <> ppExpr e
 ppExpr (Dispatch e _) = char '#' <> ppExpr e
-ppExpr (Collection Parens es _) = parens $ ppSepExprList es
-ppExpr (Collection Vec es _) = brackets $ ppSepExprList es
-ppExpr (Collection Set es _) = braces $ ppSepExprList es
+ppExpr (Collection cty es _) = ppCollType cty $ ppSepExprList es
 ppExpr (Comment s _) = char ';' <> text s <> linebreak
 ppExpr (Term t _) = ppTerm t
-ppExpr (Seq p q) = ppExpr p <> line <> ppExpr q
+ppExpr (Seq p1 p2 _) = ppExpr p1 <$$> ppExpr p2
+
+ppCollType :: String -> (Doc -> Doc)
+ppCollType s = case s of
+  "Parens" -> parens
+  "Vec" -> brackets
+  "Set" -> braces
+  _     -> const $ error "nosense collty"
+
+ppFormTy :: String -> Doc
+ppFormTy s = case s of
+  "Quote" ->  char '\''
+  "SQuote" ->  char '`'
+  "UnQuote" ->  char '~'
+  "DeRef" ->  char '@'
+  _ -> error "nosense formty"
 
 ppTerm :: Term -> Doc
-ppTerm (TaggedString String s) = dquotes $ text s
-ppTerm (TaggedString Metadata s) = char '^' <> text s
-ppTerm (TaggedString Var s) = text s
+ppTerm (TaggedString tag s _) = case tag of
+  "String" -> dquotes $ text s
+  "Metadata" -> char '^' <> text s
+  "Var" -> text s
+  _     -> error "nosense term"
 
 ppSepExprList :: SepExprList -> Doc
-ppSepExprList Nil         = empty
-ppSepExprList (Singleton a) = ppExpr a
-ppSepExprList (Cons x sep xs) = ppExpr x <> ppSep sep <> ppSepExprList xs
+ppSepExprList (Nil _)         = empty
+ppSepExprList (Singleton a _) = ppExpr a
+ppSepExprList (Cons x sep xs _) = ppExpr x <> ppSep sep <> ppSepExprList xs
 
-ppSep :: Sep -> Doc
-ppSep Comma = char ','
-ppSep Space = space
-ppSep NewLine = linebreak
+ppSep :: String -> Doc
+ppSep s = case s of
+  "Comma" -> char ','
+  "NewLine" -> space
+  "Space" -> linebreak
+  _    -> error "nosense sep"
 
 ppSepPair :: [Expr] -> Doc -> Doc
 ppSepPair xs sep = hsep $ punctuate sep (go xs)

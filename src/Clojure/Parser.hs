@@ -1,6 +1,5 @@
 module Clojure.Parser
     ( parseTop
-    , parseManyExpr
     , parse
     , parseTest
 
@@ -26,12 +25,15 @@ lexer = makeTokenParser javaStyle
   , identLetter = alphaNum <|> oneOf ":_.,'-/^?!><*#\"\\" <|> satisfy isSymbol
   }
 
-parseTop :: Parsec String () Expr
-parseTop = do
-  p <- parseManyExpr
-  return $ foldl1 Seq p
+parseSeq :: Parsec String () Expr
+parseSeq = do
+  start <- getPosition
+  p1 <- parseExpr
+  p2 <- (try parseSeq <|> parseExpr)
+  end <- getPosition
+  return $ Seq p1 p2 (mkRange start end)
 
-parseManyExpr = whiteSpace lexer *> many parseExpr <* eof
+parseTop = whiteSpace lexer *> (try parseSeq <|> parseExpr) <* eof
 
 parseExpr = lexeme lexer $ choice
   [ parseSpecial
@@ -58,10 +60,10 @@ parseSpecial = do
   return $ Special ident expr (mkRange start end)
 
 parseSpecialIdent = choice
-  [ Quote <$ char '\''
-  , SQuote <$ char '`'
-  , UnQuote <$ char '~'
-  , DeRef <$ char '@'
+  [ "Quote" <$ char '\''
+  , "SQuote" <$ char '`'
+  , "UnQuote" <$ char '~'
+  , "DeRef" <$ char '@'
   ]
 
 parseTaggedString = choice [parseString, parseVar, parseMetadata]
@@ -112,39 +114,51 @@ parseParens = do
   start <- getPosition
   contents <- (parens lexer) parseSepExprList
   end <- getPosition
-  return $ Collection Parens contents (mkRange start end)
+  return $ Collection "Parens" contents (mkRange start end)
 --
 parseSet = do
   start <- getPosition
   contents <- (braces lexer) parseSepExprList
   end <- getPosition
-  return $ Collection Set contents (mkRange start end)
+  return $ Collection "Set" contents (mkRange start end)
 
 parseVec = do
   start <- getPosition
   contents <- (brackets lexer) parseSepExprList
   end <- getPosition
-  return $ Collection Vec contents (mkRange start end)
+  return $ Collection "Vec" contents (mkRange start end)
 
-parseSepExprList = try parseSepExprList1 <|> parseSingleton <|> (return Nil)
---
+parseSepExprList = try parseSepExprList1 <|> parseSingleton <|> parseEmptyList
+
+parseEmptyList = do
+  start <- getPosition
+  return $ Nil (mkRange start start)
+
 parseSingleton = do
+  start <- getPosition
   expr <- parseExpr
-  return $ Singleton expr
+  end <- getPosition
+  return $ Singleton expr (mkRange start end)
 --
 parseSepExprList1 = do
+  start <- getPosition
   x <- parseExpr
   sep <- parseSep
   xs <- parseSepExprList
-  return $ Cons x sep xs
+  end <- getPosition
+  return $ Cons x sep xs (mkRange start end)
 
 parseSep = choice
-  [ Space <$ whiteSpace lexer
-  , Comma <$ lexeme lexer (char ',')
-  , NewLine <$ lexeme lexer (newline)
+  [ "Space" <$ whiteSpace lexer
+  , "Comma" <$ lexeme lexer (char ',')
+  , "NewLine" <$ lexeme lexer (newline)
   ]
 
-parseString = TaggedString <$> pure String <*> quotedString
+parseString = do
+  start <- getPosition
+  qstring <- quotedString
+  end <- getPosition
+  return $ TaggedString "String" qstring (mkRange start end)
   where
     quotedString :: Parsec String () String
     quotedString = do
@@ -153,6 +167,15 @@ parseString = TaggedString <$> pure String <*> quotedString
       char '"'
       return $ concat x
 
-parseVar = TaggedString <$> pure Var <*> (identifier lexer <|> operator lexer)
+parseVar = do
+  start <- getPosition
+  vstring <- (identifier lexer <|> operator lexer)
+  end <- getPosition
+  return $ TaggedString "Var" vstring (mkRange start end)
 
-parseMetadata = TaggedString <$> pure Metadata <* char '^' <*> identifier lexer
+parseMetadata = do
+  start <- getPosition
+  char '^'
+  meta <- identifier lexer
+  end <- getPosition
+  return $ TaggedString "Metadata" meta (mkRange start end)
