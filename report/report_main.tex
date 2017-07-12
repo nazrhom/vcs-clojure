@@ -65,7 +65,7 @@ observable.  \\
 According to diff, two unrelated changes on the same line would still give rise to a 
 conflict that requires manual intervention. 
 The main idea of this research is to design an alternative to diff which offers a 
-finer grained control over the units of change, approaches similar to this one have already been explored in previous litterature
+finer grained control over the units of change, approaches similar to this one have already been explored in previous literature
 \cite{semantics-VC}, \cite{structure-aware-VC} and \cite{vassena} but the novelty in the approach that will be presented 
 relies on making heavy use of type information to guide the algorithm. In particular, in the context of 
 programming languages we already have abstract syntax trees (AST) that encode 
@@ -82,7 +82,7 @@ In the remainder of the proposal we will show a full Haskell implementation of t
 
 The following section is an introduction to dependent types in haskell as they will be crucial in encoding 
 the structure we want to express in our data types and their transformations. 
-Essentially we want to characterize patches by the transformation they operate 
+Essentially we want to characterise patches by the transformation they operate 
 on the source code, e.g. the patch that adds an extra argument to a function, as 
 such we need dependent types to reflect onto the type system the action of a 
 patch on a certain value.
@@ -96,7 +96,7 @@ LISP and by the need to select a language that is popular enough to have large
 active projects, available on Github, that will provide us a good sample of data 
 to test.
 
-In the last sections we will explore some of the possible 
+In the last sections we will review some of the possible 
 future directions that can be explored with this framework both in terms of 
 gathering concrete evidence about the performance of the algorithm and extending 
 it to explore the different design choices that were made along the way.
@@ -260,7 +260,7 @@ the desired function, since the SOP representation is isomorphic to the original
 desired term once we are done acting on the representation. This encoding is 
 presented by Loh et al. \cite{true-sop} and represents one of the different ways to 
 approach generic programming in Haskell. 
-The remainder of this section will try to formalize the intuition presented 
+The remainder of this section will try to formalise the intuition presented 
 above by building the SOP representation of a simple data type. 
 
 \vfill
@@ -357,7 +357,7 @@ data View u where
 
 An element of type \texttt{View u} represents an element of type \texttt{u} 
 deconstructed into its SOP view; the first argument records the choice 
-of the constructor for that datatype and the second is the heterogeneus list of 
+of the constructor for that datatype and the second is the heterogenous list of 
 arguments that are required to build that constructor, note that we are 
 dependently relating the shape of the product to the actual choice of 
 constructor (the \emph{c}).
@@ -405,7 +405,7 @@ changes the name of the function from \emph{head} to \emph{fst}.
 
 When attempting to reconcile these two changes with the diff algorithm we will run into problems.
 Despite the two are modifying disjoint pieces of the 
-actual code, the diff algorithm, which is emplyed by most VCS when trying to 
+actual code, the diff algorithm, which is employed by most VCS when trying to 
 compute a merge patch between three objects will output a conflict. 
 The reason is that both changes touch the same line, this is both a nuisance in  
 terms of having to manually solve the conflicts, but more importantly also 
@@ -735,20 +735,26 @@ had to be manually fixed.
 For each file where a conflict may arise we want to find a common ancestor 
 between the branches and calculate two sets of patches, transforming this file 
 into the two versions that are currently present at the top of their respective 
-tree. 
+tree. This operation will yield three files, the common ancestor (O) and the two 
+versions from the conflicting branches (A and B). Before feeding this files to 
+the algorithm we take one additional step by running diff3 on the three files 
+and picking out just the fragments of these files that generated the merge 
+conflicts, we then expand these fragments to the full subexpression that 
+contains them ending up with three new files (O1, A1, B1) which contain only the 
+Clojure expressions that turned out to be conflicting during the merge process.
 
 We wrote some scripts to mine the data from Github and to walk through the 
 source trees mining conflict points  that can be used to test the framework. 
 Unfortunately tests on real world data are still out of reach in the current 
 implementation, the sheer number of patches to enumerate is still to big, even 
-with the optimization described above, and the vast majority of tests ran on 
+with the optimisation described above, and the vast majority of tests ran on 
 real world data simply consume too much memory and get terminated by the OS.
 
 While this data set turned out not to be useful in the current iteration it 
 still provides a good benchmark to keep testing different ideas that can make 
 the problem more tractable. The next section will describe possible future work 
 that can be done on the algorithm but the main line of improvement will be to 
-optimize the algorithm enough to make it handle this data set.
+optimise the algorithm enough to make it handle this data set.
 
 \section{Future Work}\label{future work}
 The optimisation described in the previous section is probably still not suited 
@@ -789,14 +795,14 @@ and, as such, as disjoint as possible from every other patch with the same sourc
 \vfill
 Ideally all these points should be completed in future work, one consideration 
 that can be made is that both the oracle approach and the cost heuristic should 
-be considered os primary importance, as the results from experimenting on 
+be considered of primary importance, as the results from experimenting on 
 concrete data sets (or lack of results) clearly point out. 
 A nice visual representation of patches is independent of the rest but would 
 probably help all future work on the subject, since it makes debugging and 
 experimenting easier to mentally parse and follow.
 Finally, exploring the definition of disjointness, however central to the original problem of merges, is something that makes more 
 sense once the algorithm is running in acceptable time, and as such should be 
-postponed in favor of exploring the optimizations.
+postponed in favour of exploring the optimisations.
 \begin{thebibliography}{9}
   
 
