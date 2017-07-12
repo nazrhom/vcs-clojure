@@ -52,8 +52,8 @@ ppSepExprList (Cons x sep xs _) = ppExpr x <> ppSep sep <> ppSepExprList xs
 ppSep :: String -> Doc
 ppSep s = case s of
   "Comma" -> char ','
-  "NewLine" -> space
-  "Space" -> linebreak
+  "NewLine" -> linebreak
+  "Space" -> space
   _    -> error "nosense sep"
 
 ppSepPair :: [Expr] -> Doc -> Doc

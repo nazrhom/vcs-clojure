@@ -2,6 +2,7 @@ module Clojure.Parser
     ( parseTop
     , parse
     , parseTest
+    , parseAsExprList
 
     -- AST
     , Expr(..)
@@ -34,6 +35,8 @@ parseSeq = do
   return $ Seq p1 p2 (mkRange start end)
 
 parseTop = whiteSpace lexer *> (try parseSeq <|> parseExpr) <* eof
+
+parseAsExprList = whiteSpace lexer *> (many parseExpr) <* eof
 
 parseExpr = lexeme lexer $ choice
   [ parseSpecial
@@ -149,9 +152,9 @@ parseSepExprList1 = do
   return $ Cons x sep xs (mkRange start end)
 
 parseSep = choice
-  [ "Space" <$ whiteSpace lexer
-  , "Comma" <$ lexeme lexer (char ',')
+  [ "Comma" <$ lexeme lexer (char ',')
   , "NewLine" <$ lexeme lexer (newline)
+  , "Space" <$ whiteSpace lexer
   ]
 
 parseString = do
