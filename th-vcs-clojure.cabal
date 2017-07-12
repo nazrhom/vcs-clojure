@@ -28,12 +28,17 @@ library
                      , Util.DiffParser
                      , Util.UnixDiff
                      , Oracle.Oracle
+                     , Oracle.DiffOracle
+                     , Oracle.DumbOracle
+                     , Oracle.Internal
+                     , Oracle.NoDupBranches
   build-depends:       base >= 4.7 && < 5
                      , containers
                      , optparse-applicative >= 0.13.0.0
                      , parsec
                      , wl-pprint
                      , mtl
+                     , directory
                      , Diff
   default-language:    Haskell2010
 
