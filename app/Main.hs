@@ -92,7 +92,6 @@ processConflictFolder = do
   putStrLn $ "Patch O-B: " ++ show almuOB
 
 
-
 allTheSame :: (Eq a) => [a] -> Bool
 allTheSame xs = and $ map (== head xs) (tail xs)
 

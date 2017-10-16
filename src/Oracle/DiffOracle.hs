@@ -32,17 +32,11 @@ buildOracle (first:rest) = (process first) `unionDelInsMap` (buildOracle rest)
 
 askOracle :: DiffOracle -> LineRange -> LineRange -> [Path]
 askOracle (DiffOracle (delMap, insMap)) srcRange dstRange =
-  trace ("srcRange: " ++ show srcRange ++ " dstRange: " ++ show dstRange)
-  (if containsRange delMap srcRange && containsRange insMap dstRange
+  if containsRange delMap srcRange && containsRange insMap dstRange
     then []
-  else if containsRange delMap srcRange then
-    if intersectsRange insMap dstRange then [ M, D ]
-    else trace "D" [ D ]
-  else if containsRange insMap dstRange then
-    if intersectsRange delMap srcRange then [ M, I ]
-    else trace "I" [ I ]
-  else
-    [ M ])
+  else if containsRange delMap srcRange then [ M, D ]
+  else if containsRange insMap dstRange then [ M, I ]
+  else [ M ]
       -- dstSpan = findSpan insMap dstRange
       -- srcSpan = findSpan delMap srcRange
       -- dstOffset = calculateOffset (delMap, insMap) dstStart
@@ -86,7 +80,6 @@ containsRange m (Range start end) = go m start
 
 instance (Monad m) => OracleF DiffOracle m where
   callF o s d = do
-    traceM ("src: " ++ show s ++ "\ndst: " ++ show d)
     return $ askOracle o (fromJust $ extractRange s) (fromJust $ extractRange d)
 
 instance (Monad m) => OracleP DiffOracle m where
