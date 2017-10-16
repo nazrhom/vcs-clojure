@@ -1,0 +1,209 @@
+{
+    "text": {
+        "name": "Alspn"
+    },
+    "children": [
+        {
+            "text": {
+                "value": "Collection",
+                "name": "Scns"
+            },
+            "children": [
+                {
+                    "text": {
+                        "value": "\"Parens\""
+                    }
+                },
+                {
+                    "text": {
+                        "name": "Alspn"
+                    },
+                    "children": [
+                        {
+                            "text": {
+                                "value": "Cons",
+                                "name": "Scns"
+                            },
+                            "children": [
+                                {
+                                    "text": {
+                                        "name": "Alspn"
+                                    },
+                                    "children": [
+                                        {
+                                            "text": {
+                                                "name": "Scp"
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "text": {
+                                        "value": "\"Space\""
+                                    }
+                                },
+                                {
+                                    "text": {
+                                        "name": "Alspn"
+                                    },
+                                    "children": [
+                                        {
+                                            "text": {
+                                                "value": "Cons",
+                                                "name": "Scns"
+                                            },
+                                            "children": [
+                                                {
+                                                    "text": {
+                                                        "name": "Alspn"
+                                                    },
+                                                    "children": [
+                                                        {
+                                                            "text": {
+                                                                "name": "Scp"
+                                                            }
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "text": {
+                                                        "value": "\"Space\""
+                                                    }
+                                                },
+                                                {
+                                                    "text": {
+                                                        "name": "Alspn"
+                                                    },
+                                                    "children": [
+                                                        {
+                                                            "text": {
+                                                                "value": "Cons",
+                                                                "name": "Scns"
+                                                            },
+                                                            "children": [
+                                                                {
+                                                                    "text": {
+                                                                        "name": "Alspn"
+                                                                    },
+                                                                    "children": [
+                                                                        {
+                                                                            "text": {
+                                                                                "value": "Collection",
+                                                                                "name": "Scns"
+                                                                            },
+                                                                            "children": [
+                                                                                {
+                                                                                    "text": {
+                                                                                        "value": "\"Parens\""
+                                                                                    }
+                                                                                },
+                                                                                {
+                                                                                    "text": {
+                                                                                        "name": "Alspn"
+                                                                                    },
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "text": {
+                                                                                                "value": "Cons",
+                                                                                                "name": "Scns"
+                                                                                            },
+                                                                                            "children": [
+                                                                                                {
+                                                                                                    "text": {
+                                                                                                        "name": "Alspn"
+                                                                                                    },
+                                                                                                    "children": [
+                                                                                                        {
+                                                                                                            "text": {
+                                                                                                                "value": "Term",
+                                                                                                                "name": "Scns"
+                                                                                                            },
+                                                                                                            "children": [
+                                                                                                                {
+                                                                                                                    "text": {
+                                                                                                                        "name": "Alspn"
+                                                                                                                    },
+                                                                                                                    "children": [
+                                                                                                                        {
+                                                                                                                            "text": {
+                                                                                                                                "value": "TaggedString",
+                                                                                                                                "name": "Scns"
+                                                                                                                            },
+                                                                                                                            "children": [
+                                                                                                                                {
+                                                                                                                                    "text": {
+                                                                                                                                        "value": "\"Var\""
+                                                                                                                                    }
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "text": {
+                                                                                                                                        "dst": "\"2\"",
+                                                                                                                                        "src": "\"1\""
+                                                                                                                                    }
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        }
+                                                                                                                    ]
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ]
+                                                                                                },
+                                                                                                {
+                                                                                                    "text": {
+                                                                                                        "value": "\"Space\""
+                                                                                                    }
+                                                                                                },
+                                                                                                {
+                                                                                                    "text": {
+                                                                                                        "name": "Alspn"
+                                                                                                    },
+                                                                                                    "children": [
+                                                                                                        {
+                                                                                                            "text": {
+                                                                                                                "name": "Scp"
+                                                                                                            }
+                                                                                                        }
+                                                                                                    ]
+                                                                                                }
+                                                                                            ]
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "text": {
+                                                                        "value": "\"Space\""
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "text": {
+                                                                        "name": "Alspn"
+                                                                    },
+                                                                    "children": [
+                                                                        {
+                                                                            "text": {
+                                                                                "name": "Scp"
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

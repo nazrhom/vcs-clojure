@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title></title>
+    <!-- stylesheets -->
+    <link rel="stylesheet" href="treant/Treant.css" type="text/css"/>
+    <style>
+      .Treant > .node {
+        width: auto;
+        border: 2px solid #000;
+        border-radius: 7px;
+        display: flex;
+        flex-direction: column;
+        padding: 5px;
+      }
+      .Treant .collapse-switch { width: 100%; height: 100%; border: none; }
+      .Treant .node.collapsed { background-color: #76b4e0 }
+      .Treant .node.collapsed .collapse-switch { background: none; }
+
+      .ins-node {
+        background-color: #C1F6E2;
+      }
+
+      .del-node {
+        background-color: #FD8182;
+      }
+
+      .node > p {margin: 1px;}
+      .node > .node-name { order: 1;}
+      .node > .node-type { order: 2; }
+      .node > .node-value { order: 3; }
+      .node > .node-src { order: 4; }
+      .node > .node-from { order: 4; }
+      .node > p { order: 100;}
+      /*.node > .node-name {
+        position: absolute;
+        top: 2px;
+      }*/
+      </style>
+</head>
+<body>
+    <!-- HTML -->
+    <div id="tree-simple" </div>
+    <!-- javascript -->
+    <script src="treant/vendor/raphael.js"></script>
+    <script src="treant/vendor/jquery.min.js"></script>
+    <script src="treant/vendor/jquery.easing.js"></script>
+    <script src="treant/Treant.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
