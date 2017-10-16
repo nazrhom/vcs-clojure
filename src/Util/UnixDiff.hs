@@ -3,37 +3,56 @@
 module Util.UnixDiff where
 
 import Data.Algorithm.Diff
-import Data.Algorithm.DiffOutput hiding (LineRange)
+import qualified Data.Algorithm.DiffOutput as O
 
 import Clojure.AST
 
-preprocess :: String -> String -> [DiffResult]
-preprocess f1 f2 = map processDiff diff
-  where
-    diff = getDiffBy ignoringLines (withLineN f1) (withLineN f2)
+instance Functor Diff where
+  fmap f (First a) = First $ f a
+  fmap f (Second a) = Second $ f a
+  fmap f (Both a1 a2) = Both (f a1) (f a2)
 
+preprocess :: String -> String -> [DiffAction]
+preprocess s1 s2 = map processDiff (diff s1 s2)
 
-data DiffResult = DiffResult DiffAction Int
-data DiffAction = Mod | Ins | Del
+preprocessGrouped :: String -> String -> [GroupDiffAction]
+preprocessGrouped s1 s2 = map processGroupedDiff (groupedDiff s1 s2)
+
+diff s1 s2 = getDiffBy eqIgnoringLines (withLineN s1) (withLineN s2)
+
+groupedDiff f1 f2 = O.diffToLineRanges $ getGroupedDiff (lines f1) (lines f2)
+
+data DiffAction = Mod (Int, Int) | Ins Int | Del Int
   deriving Eq
 
 withLineN :: String -> [(String, Int)]
 withLineN s = zip (lines s) [1..]
 
-ignoringLines s1 s2 = fst s1 == fst s2
+eqIgnoringLines s1 s2 = fst s1 == fst s2
 
-ppPDiff :: [DiffResult] -> String
+ppPDiff :: [DiffAction] -> String
 ppPDiff = foldl (\d a -> d ++ "\n" ++ show a) ""
 
-processDiff :: Diff (String, Int) -> DiffResult
-processDiff (Both (s, i) _) = DiffResult Mod i
-processDiff (First (s, i))  = DiffResult Ins i
-processDiff (Second (s, i)) = DiffResult Del i
+processDiff :: Diff (String, Int) -> DiffAction
+processDiff (Both (_, i1) (_, i2)) = (Mod (i1, i2))
+processDiff (First (_, i))  = (Del i)
+processDiff (Second (_, i)) = (Ins i)
 
-instance Show DiffResult where
-  show (DiffResult a i) = show i ++ ": " ++ show a
+data GroupDiffAction = OMod LineRange LineRange
+                     | OIns LineRange Int
+                     | ODel LineRange Int deriving (Show)
+
+processGroupedDiff :: O.DiffOperation O.LineRange -> GroupDiffAction
+processGroupedDiff (O.Change srcR dstR) = OMod (extractLineRange srcR) (extractLineRange dstR)
+processGroupedDiff (O.Addition lr line) = OIns (extractLineRange lr) line
+processGroupedDiff (O.Deletion lr line) = ODel (extractLineRange lr) line
+
+extractLineRange :: O.LineRange -> LineRange
+extractLineRange lr = Range start end
+  where
+    (start, end) = O.lrNumbers lr
 
 instance Show DiffAction where
-  show Mod = "%"
-  show Ins = "+"
-  show Del = "-"
+  show (Mod (i1, i2)) = show i1 ++ " % " ++ show i2
+  show (Ins i) = show i ++ "+"
+  show (Del i) = show i ++ "-"

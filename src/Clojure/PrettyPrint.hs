@@ -1,6 +1,9 @@
 module Clojure.PrettyPrint
     ( ppTop
     , ppLines
+    , ppExpr
+    , ppTerm
+    , ppSepExprList
     ) where
 
 import Text.PrettyPrint.Leijen

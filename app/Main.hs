@@ -8,6 +8,8 @@ import Data.List (sortBy)
 import Data.Ord (comparing)
 import Data.Maybe
 import Data.Proxy
+import Data.Aeson.Encode.Pretty
+import qualified Data.ByteString.Lazy as B
 
 import Clojure.Parser
 import Clojure.Lang
@@ -20,6 +22,7 @@ import VCS.Cost
 import VCS.Disjoint
 
 import Util.PPPatch
+import Util.ToJSON
 
 import Oracle.Oracle
 
@@ -35,11 +38,24 @@ main = do
   d <- readFile (dstFile opts)
   dst <- parseFile (dstFile opts) d
 
-  let diff3 = preprocess s d
-  let oracle = (DiffOracle $ buildOracle diff3) <°> NoDupBranches
 
-  let almu = computePatch oracle src dst
-  putStrLn $ "Best patch " ++ show almu
+  let diff3 = preprocess s d
+
+  putStrLn $ show $ buildOracle diff3
+
+  let oracle = (DiffOracle $ buildOracle diff3) <+> (ConsOracle <°> NoDupBranches)
+  let almus = computePatches oracle src dst
+
+
+  case almus of
+    []    -> error "boom"
+    almus -> do
+      putStrLn $ "Found " ++ show (length almus) ++ " patches"
+      case (jsonOutput opts) of
+        Nothing -> return ()
+        Just path -> do
+          let almusCost = sortBy (comparing costAlmu) almus
+          B.writeFile path $ encodePretty (head almusCost)
   -- let almus = diffAlmu oracle (toSing src) (toSing dst)
   -- let patches = map (flip applyAlmu (toSing src)) almus
   -- let almusCost = sortBy (comparing costAlmu) almus
@@ -50,7 +66,6 @@ main = do
   -- putStrLn $ "Corresponding to \n" ++ show worst
   -- putStrLn $ "Lowest cost found: " ++ show (costAlmu best)
   -- putStrLn $ "Corresponding to \n" ++ show best
-  -- putStrLn $ "All the same? " ++ show (allTheSame patches)
   -- putStrLn $ show $ applyAlmu (head almus) (toSing src)
 
 processConflictFolder :: IO ()
@@ -142,6 +157,7 @@ data Opts = Opts
   {
     srcFile :: String
   , dstFile :: String
+  , jsonOutput :: Maybe String
   }
 
 setHandle :: Maybe String -> (Handle -> IO a) -> IO a
@@ -162,6 +178,12 @@ opts = Opts
     <> metavar "DST_TARGET"
     <> help "Destination file"
     )
+  <*> optional (strOption
+    (  long "json-output"
+    <> short 'j'
+    <> metavar "OUT_TARGET"
+    <> help "Output file"
+    ))
 
 optsHelper :: ParserInfo Opts
 optsHelper = info (helper <*> opts)

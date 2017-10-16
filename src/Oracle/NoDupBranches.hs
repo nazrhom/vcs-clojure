@@ -19,7 +19,7 @@ nextPaths (M:_)     = [I , M , D]
 
 instance (Monad m) => OracleP NoDupBranches m where
   callP _ An         An         = return []
-  callP _ An         (_ `Ac` _) = return []
+  callP _ An         (_ `Ac` _) = return [I]
   callP _ (_ `Ac` _) An         = return [D]
   callP _ (_ `Ac` _) (_ `Ac` _) = ask >>= return . nextPaths
 

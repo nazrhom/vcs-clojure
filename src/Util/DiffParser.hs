@@ -6,9 +6,12 @@ import Data.Char hiding (Space)
 import Text.Parsec
 import System.Directory
 import System.IO
+import Data.List
 
 import Clojure.PrettyPrint
 import Clojure.Parser
+
+import Debug.Trace
 
 testPath = "test/conflicts/mined"
 
@@ -23,13 +26,38 @@ processDir :: IO ()
 processDir = do
   merge <- readFile "M.clj"
   process "A1.clj" "O1.clj" "B1.clj" merge
-  files <- readFiles
-  (a1, o1, b1) <- parseFiles files
-  let (a, o, b) = minimize a1 o1 b1
+  (fA, fO, fB) <- readFiles
+  (pA, pO, pB) <- parseFiles (fA, fO, fB)
+  let (a, o, b) = minimize pA pO pB
+      lrA = map extractExprLines a
+      lrO = map extractExprLines o
+      lrB = map extractExprLines b
 
-  writeFile "A1.clj" $ ppLines a
-  writeFile "O1.clj" $ ppLines o
-  writeFile "B1.clj" $ ppLines b
+  writeSelectedLines fA "A1.clj" lrA
+  writeSelectedLines fO "O1.clj" lrO
+  writeSelectedLines fB "B1.clj" lrB
+
+extractExprLines :: Expr -> LineRange
+extractExprLines (Special _ _ lr) = lr
+extractExprLines (Dispatch _ lr)  = lr
+extractExprLines (Collection _ _ lr) = lr
+extractExprLines (Term _ lr) = lr
+extractExprLines (Comment _ lr) = lr
+extractExprLines (Seq _ _ lr) = lr
+
+writeSelectedLines :: String -> FilePath -> [LineRange] -> IO ()
+writeSelectedLines f tgt lrs = do
+  let fl = lines f
+  writeFile tgt (unlines $ concat $ extractLines fl lrs)
+    where
+      extractLines _ [] = []
+      extractLines l ((Range start end):rest) =
+        (extractRange start end l):(extractLines l rest)
+
+      extractRange s e l | s < e = (l !! (s - 1)):(extractRange (s+1) e l)
+      extractRange s e l | otherwise = []
+
+
 
 readFiles :: IO (String, String, String)
 readFiles = do
@@ -142,24 +170,9 @@ resetState = do
   put $ defaultTarget (mine s) (yours s) (parent s)
 
 minimize :: Eq a => [a] -> [a] -> [a] -> ([a], [a], [a])
-minimize [] (o:os) (b:bs) = if o == b then ([], remO, remB)
-  else ([], o:remO, b:remB)
+minimize as os bs =
+  (as \\ asCommonElems, os \\ osCommonElemns, bs \\ bsCommonElemns)
   where
-    (remA, remO, remB) = minimize [] os bs
-minimize (a:as) (o:os) [] = if o == a then (remA, remO, [])
-  else (a:remA, o:remO, [])
-  where
-    (remA, remO, remB) = minimize as os []
-minimize (a:as) (o:os) (b:bs) =
-  if a == o && o == b
-  then (remA, remO, remB)
-  else if a == o then
-      (remANoB, o:remONoB, b:remBNoB)
-  else if b == o then
-    (a:remANoB, o:remONoB, remBNoB)
-  else (a:remA, o:remO, b:remB)
-  where
-    (remA, remO, remB) = minimize as os bs
-    (remANoB, remONoB, remBNoB) = minimize as os (b:bs)
-    (remANoA, remONoA, remBNoA) = minimize (a:as) os bs
-minimize a o b = (a, o, b)
+    asCommonElems = [a | a <- as,  a `elem` os, a `elem` bs]
+    osCommonElemns = [o | o <- os, o `elem` as, o `elem` bs]
+    bsCommonElemns = [b | b <- bs, b `elem` as, b `elem` os]

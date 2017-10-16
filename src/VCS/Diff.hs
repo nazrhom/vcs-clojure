@@ -10,6 +10,8 @@ import Control.Applicative
 import Data.Type.Equality hiding (apply)
 import Control.Monad.Reader
 
+import Debug.Trace
+
 import VCS.Apply
 import VCS.Multirec
 import Clojure.Lang
@@ -91,17 +93,32 @@ diffAlmuO o x y = callF o x y >>= pursue o x y
     follow o x y I = diffIns o x y
     follow o x y D = diffDel o x y
     follow o x y M = diffMod o x y
+    follow o x y FM = diffModUnsafe o x y
 
 diffMod :: (IsRecEl u, IsRecEl v, MonadOracle o m)
         => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
 diffMod orc s1 s2 = case testEquality s1 s2 of
   Just Refl -> Alspn <$> diffS (toH diffAlmuO) orc s1 s2
   Nothing -> empty
-  where
-    toH :: (IsRecEl u, MonadOracle o m)
-        => (o -> Usingl u -> Usingl u -> HistoryM m (Almu u u))
-        -> o -> Usingl u -> Usingl u -> HistoryM m (AlmuH u)
-    toH f o x y = AlmuH <$> local (M:) (f o x y)
+    -- case unsafeCoerceEquality s1 s2 of
+    --   Just Refl -> Alspn <$> diffS (toH diffAlmuO) orc s1 s2
+        -- trace ("unsafeCoerce?" ++ show s1 ++ show s2) empty -- May need to cast here
+
+diffModUnsafe :: (IsRecEl u, IsRecEl v, MonadOracle o m)
+        => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
+diffModUnsafe orc s1 s2 = case testEquality s1 s2 of
+  Just Refl -> Alspn <$> diffS (toH diffAlmuO) orc s1 s2
+  Nothing ->
+    case unsafeCoerceEquality s1 s2 of
+      Just Refl -> do
+        traceM "UnsafeCoerce"
+        Alspn <$> diffS (toH diffAlmuO) orc s1 s2
+        -- trace ("unsafeCoerce?" ++ show s1 ++ show s2) empty -- May need to cast here
+
+toH :: (IsRecEl u, MonadOracle o m)
+    => (o -> Usingl u -> Usingl u -> HistoryM m (Almu u u))
+    -> o -> Usingl u -> Usingl u -> HistoryM m (AlmuH u)
+toH f o x y = AlmuH <$> local (M:) (f o x y)
 
 diffIns :: (IsRecEl u, IsRecEl v, MonadOracle o m)
         => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
@@ -114,7 +131,6 @@ diffDel orc s x = case (view s) of
   (Tag c p) -> Aldel c <$> local (D:) (diffDelCtx orc p x)
 
 --- Utility
-uncurryPair :: (Monad m)
-            => (All Usingl s -> All Usingl d -> m (Al rec s d))
-            -> TrivialP s d -> m (Al rec s d)
+uncurryPair :: (All Usingl s -> All Usingl d -> res)
+            -> TrivialP s d -> res
 uncurryPair f (Pair l r) = f l r

@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Clojure.Parser
     ( parseTop
     , parse
@@ -12,10 +14,11 @@ module Clojure.Parser
     , Tag(..)
     , SepExprList(..)
     , Sep(..)
+    , LineRange(..)
     ) where
 
 import Text.Parsec
-import Text.Parsec.Token
+import Text.Parsec.Token hiding (braces, parens, brackets, identifier, operator)
 import Text.Parsec.Language
 import Data.Char hiding (Space)
 
@@ -46,8 +49,7 @@ parseExpr = lexeme lexer $ choice
   , parseTerm
   ]
 
-parseTerm =
-  do
+parseTerm = do
     start <- getPosition
     term <- parseTaggedString
     end <- getPosition
@@ -113,23 +115,32 @@ parseComment = do
   end <- getPosition
   return $ Comment comment (mkRange start end)
 
-parseParens = do
-  start <- getPosition
-  contents <- (parens lexer) parseSepExprList
-  end <- getPosition
-  return $ Collection "Parens" contents (mkRange start end)
---
+
+
+parens p = between (symbol lexer "(") (string ")") p
+braces p = between (symbol lexer "{") (string "}") p
+brackets p = between (symbol lexer "[") (string "]") p
+
 parseSet = do
   start <- getPosition
-  contents <- (braces lexer) parseSepExprList
+  contents <- braces parseSepExprList
   end <- getPosition
+  whiteSpace lexer
   return $ Collection "Set" contents (mkRange start end)
 
 parseVec = do
   start <- getPosition
-  contents <- (brackets lexer) parseSepExprList
+  contents <- brackets parseSepExprList
   end <- getPosition
+  whiteSpace lexer
   return $ Collection "Vec" contents (mkRange start end)
+
+parseParens = do
+  start <- getPosition
+  contents <- parens parseSepExprList
+  end <- getPosition
+  whiteSpace lexer
+  return $ Collection "Parens" contents (mkRange start end)
 
 parseSepExprList = try parseSepExprList1 <|> parseSingleton <|> parseEmptyList
 
@@ -154,7 +165,7 @@ parseSepExprList1 = do
 parseSep = choice
   [ "Comma" <$ lexeme lexer (char ',')
   , "NewLine" <$ lexeme lexer (newline)
-  , "Space" <$ whiteSpace lexer
+  , "Space" <$ lexeme lexer (whiteSpace lexer)
   ]
 
 parseString = do
@@ -172,13 +183,25 @@ parseString = do
 
 parseVar = do
   start <- getPosition
-  vstring <- (identifier lexer <|> operator lexer)
+  vstring <- (identifier <|> operator)
   end <- getPosition
+  whiteSpace lexer
   return $ TaggedString "Var" vstring (mkRange start end)
+
+identifier = do
+  c <- alphaNum <|> oneOf "_':*-&\\,"
+  cs <- many (alphaNum <|> oneOf ":_.,'-/^?!><*#\"\\" <|> satisfy isSymbol)
+  return (c:cs)
+
+operator = do
+  o <- oneOf ":!#$%&*+./<=>?@\\^|-~"
+  os <- many (oneOf ":!#$%&*+./<=>?@\\^|-~")
+  return (o:os)
 
 parseMetadata = do
   start <- getPosition
   char '^'
-  meta <- identifier lexer
+  meta <- identifier
   end <- getPosition
+  whiteSpace lexer
   return $ TaggedString "Metadata" meta (mkRange start end)

@@ -2,7 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE GADTs #-}
 
-module Oracle.DumbOracle where
+module Oracle.NoOracle where
 
 import Oracle.Internal
 import Clojure.Lang

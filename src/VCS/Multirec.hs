@@ -8,6 +8,8 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DeriveGeneric #-}
+
 
 module VCS.Multirec where
 
@@ -16,7 +18,10 @@ import Data.Type.Equality hiding (apply)
 import Control.Applicative
 import qualified Data.Map  as M
 import Control.Monad.Reader
+import Unsafe.Coerce
+import GHC.Generics
 
+import Debug.Trace
 
 import Clojure.AST
 import Clojure.Lang
@@ -48,7 +53,7 @@ data Almu :: U -> U -> * where
 
 data AlmuH :: U -> * where
   AlmuH :: Almu u u -> AlmuH u
-  deriving Show
+  deriving (Show, Generic)
 
 unH :: AlmuH u -> Almu u u
 unH (AlmuH u) = u
@@ -56,14 +61,14 @@ unH (AlmuH u) = u
 -- Atmu positive and negative variations
 data AtmuPos (v :: U) :: U -> * where
   FixPos :: Almu v u -> AtmuPos v u
-  deriving Show
+  deriving (Show, Generic)
 
 unPos :: AtmuPos v u -> Almu v u
 unPos (FixPos p) = p
 
 data AtmuNeg (v :: U) :: U -> * where
   FixNeg :: Almu u v -> AtmuNeg v u
-  deriving Show
+  deriving (Show, Generic)
 
 unNeg :: AtmuNeg u v -> Almu v u
 unNeg (FixNeg n) = n
@@ -118,7 +123,15 @@ followPath D orc (a `Ac` p) p2 = Adel a <$> local (D:) (alignO orc p p2)
 followPath M orc (a1 `Ac` p1) (a2 `Ac` p2)
   = case testEquality a1 a2 of
       Just Refl -> Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
-      Nothing   -> empty
+      Nothing -> empty
+followPath FM orc (a1 `Ac` p1) (a2 `Ac` p2)
+  = case testEquality a1 a2 of
+      Just Refl -> Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
+      Nothing ->
+        case unsafeCoerceEquality a1 a2 of
+          Just Refl -> do
+            traceM "UnsafeCoerce"
+            Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
 
 -- Library stuff
 newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
@@ -126,6 +139,7 @@ newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
 type TrivialA = Contract Usingl
 data TrivialP :: [U] -> [U] -> * where
  Pair :: All Usingl l -> All Usingl r -> TrivialP l r
+  deriving (Generic)
 
 mapAll :: (forall a . p a -> q a) -> All p l -> All q l
 mapAll f An = An
@@ -168,14 +182,17 @@ mapAt :: (forall a . rec1 a -> rec2 a)
       -> At rec1 a -> At rec2 a
 mapAt f (Ai r) = Ai (f r)
 mapAt f (As t) = As t
+
+unsafeCoerceEquality :: Usingl a -> Usingl b -> Maybe (a :~: b)
+unsafeCoerceEquality a b = unsafeCoerce $ Just Refl
 -- Show instances
 instance Show (Almu u v) where
   show = showAlmu
-instance Show (Al at p1 p2) where
+instance Show (Al (At AlmuH) p1 p2) where
   show = showAl
 instance Show (At AlmuH u) where
   show = showAt
-instance Show (Spine (At AlmuH) al u) where
+instance Show (Spine (At AlmuH) (Al (At AlmuH)) u) where
   show = showSpine
 instance Show (All Usingl l) where
   show An = ""
@@ -193,15 +210,15 @@ showAll :: All (At AlmuH) l -> String
 showAll An = ""
 showAll (x `Ac` xs) = show x ++ show xs
 
-showSpine :: Spine (At AlmuH) al u -> String
+showSpine :: Spine (At AlmuH) (Al (At AlmuH)) u -> String
 showSpine (Scp) = "Scp. "
 showSpine (Scns i p) = "Scns " ++ show i ++ " (" ++ show p ++ ") "
-showSpine (Schg i j p) = "Schg From: " ++ show i ++ " to " ++ show j ++ "{missing almu}"
+showSpine (Schg i j p) = "Schg From: " ++ show i ++ " to " ++ show j ++ showAl p
 
 showAlmu :: Almu u v -> String
 showAlmu (Alspn s) = "M-" ++ show s
-showAlmu (Alins c d) = "I-" ++ show d
-showAlmu (Aldel c d) = "D-" ++ show d
+showAlmu (Alins c d) = "I-{" ++ show c ++ "}" ++ show d
+showAlmu (Aldel c d) = "D-{" ++ show c ++ "}" ++ show d
 
 showCtxP :: Ctx (AtmuPos u) p -> String
 showCtxP (Here r p) = show r
@@ -215,8 +232,8 @@ showAt :: At AlmuH u -> String
 showAt (Ai r) = show r
 showAt (As t) = show t
 
-showAl :: Al at p1 p2 -> String
-showAl A0 = "0"
-showAl (Ains _ al) = '+' : showAl al
-showAl (Adel _ al) = '-' : showAl al
-showAl (Amod _ al) = '%' : showAl al
+showAl :: Al (At AlmuH) p1 p2 -> String
+showAl A0 = ""
+showAl (Ains i al) = "+{" ++ show i ++ "}" ++ showAl al
+showAl (Adel d al) = "-{" ++ show d ++ "}" ++ showAl al
+showAl (Amod m al) = "%{" ++ show m ++ "}" ++ showAl al

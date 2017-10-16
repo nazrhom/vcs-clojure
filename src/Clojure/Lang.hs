@@ -13,6 +13,7 @@ module Clojure.Lang where
 import Data.Type.Equality hiding (apply)
 import GHC.TypeLits (ErrorMessage(..), TypeError)
 import Clojure.AST
+import Clojure.PrettyPrint
 
 
 -- UNIVERSE
@@ -69,18 +70,16 @@ data ConstrFor :: U -> Constr -> * where
 deriving instance Show (ConstrFor u c)
 
 showConstr :: ConstrFor u c -> String
-showConstr C1NilProof = "Nil "
-showConstr C1SingletonProof = "Singleton "
-showConstr C1ConsProof = "Cons "
-
-showConstr C3SpecialProof = "Special "
-showConstr C3DispatchProof = "Dispatch "
-showConstr C3CollectionProof = "Collection "
-showConstr C3TermProof = "Term "
-showConstr C3CommentProof = "Comment "
-showConstr C3SeqProof = "Seq "
-
-showConstr C6TaggedStringProof = "TaggedString "
+showConstr C1NilProof = "Nil"
+showConstr C1SingletonProof = "Singleton"
+showConstr C1ConsProof = "Cons"
+showConstr C3SpecialProof = "Special"
+showConstr C3DispatchProof = "Dispatch"
+showConstr C3CollectionProof = "Collection"
+showConstr C3TermProof = "Term"
+showConstr C3CommentProof = "Comment"
+showConstr C3SeqProof = "Seq"
+showConstr C6TaggedStringProof = "TaggedString"
 
 type family TypeOf (c :: Constr) :: [U] where
   TypeOf C1Nil = '[]
@@ -186,6 +185,7 @@ instance Eq (Usingl a) where
   (USepExprList a) == (USepExprList b) = a == b
   (UExpr a) == (UExpr b) = a == b
   (UTerm a) == (UTerm b) = a == b
+  _ == _ = False
 
 data View u where
  Tag :: ConstrFor u c -> All Usingl (TypeOf c) -> View u
@@ -246,6 +246,6 @@ instance Sing Term where
 
 instance Show (Usingl u) where
   show (UString u) = show u
-  show (USepExprList u) = show u
-  show (UExpr u) = show u
-  show (UTerm u) = show u
+  show (USepExprList u) = show $ ppSepExprList u
+  show (UExpr u) = show $ ppExpr u
+  show (UTerm u) = show $ ppTerm u

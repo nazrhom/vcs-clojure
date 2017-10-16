@@ -1,12 +1,15 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module Clojure.AST where
 
 import Text.Parsec.Pos
+import GHC.Generics
 
 data SepExprList =
    Nil LineRange
  | Singleton Expr LineRange
  | Cons Expr Sep SepExprList LineRange
- deriving (Show)
+ deriving (Show, Generic)
 
 type Sep = String
 -- data Sep = Space | Comma | NewLine deriving (Show, Eq)
@@ -17,7 +20,7 @@ data Expr = Special FormTy Expr LineRange
           | Term Term LineRange
           | Comment String LineRange
           | Seq Expr Expr LineRange
-          deriving (Show)
+          deriving (Show, Generic)
 
 -- ref: https://8thlight.com/blog/colin-jones/2012/05/22/quoting-without-confusion.html
 type FormTy = String
@@ -27,7 +30,7 @@ type CollType = String
 -- data CollType = Vec | Set | Parens deriving (Show, Eq)
 
 data Term = TaggedString Tag String LineRange
-          deriving (Show)
+          deriving (Show, Generic)
 
 type Tag = String
 -- data Tag = String | Metadata | Var  deriving (Show, Eq)

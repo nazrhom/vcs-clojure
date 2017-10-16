@@ -27,11 +27,14 @@ library
                      , Util.PPPatch
                      , Util.DiffParser
                      , Util.UnixDiff
+                     , Util.ToJSON
                      , Oracle.Oracle
                      , Oracle.DiffOracle
-                     , Oracle.DumbOracle
+                     , Oracle.NoOracle
                      , Oracle.Internal
                      , Oracle.NoDupBranches
+                     , Oracle.ConsOracle
+                     , Oracle.GroupedDiffOracle
   build-depends:       base >= 4.7 && < 5
                      , containers
                      , optparse-applicative >= 0.13.0.0
@@ -40,6 +43,9 @@ library
                      , mtl
                      , directory
                      , Diff
+                     , aeson
+                     , text
+                     , vector
   default-language:    Haskell2010
 
 executable th-vcs-clojure-exe
@@ -51,6 +57,16 @@ executable th-vcs-clojure-exe
                      , optparse-applicative
                      , optparse-applicative >= 0.13.0.0
                      , th-vcs-clojure
+                     , aeson-pretty
+  default-language:    Haskell2010
+
+executable th-vcs-clojure-tester
+  hs-source-dirs:      app
+  main-is:             Tester.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , process
+                     , directory
   default-language:    Haskell2010
 
 test-suite th-vcs-clojure-test
