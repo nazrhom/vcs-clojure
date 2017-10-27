@@ -33,8 +33,9 @@ library
                      , Oracle.NoOracle
                      , Oracle.Internal
                      , Oracle.NoDupBranches
-                     , Oracle.ConsOracle
+                     , Oracle.CostOracle
                      , Oracle.GroupedDiffOracle
+                     , Patches.Diff3
   build-depends:       base >= 4.7 && < 5
                      , containers
                      , optparse-applicative >= 0.13.0.0

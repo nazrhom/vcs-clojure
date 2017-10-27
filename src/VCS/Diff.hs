@@ -9,11 +9,13 @@ module VCS.Diff where
 import Control.Applicative
 import Data.Type.Equality hiding (apply)
 import Control.Monad.Reader
+import Control.Monad.State
 
 import Debug.Trace
 
 import VCS.Apply
 import VCS.Multirec
+import VCS.Cost
 import Clojure.Lang
 import Oracle.Oracle
 
@@ -51,7 +53,7 @@ diffInsCtx orc x (y `Ac` ay)
         => o -> Usingl v -> All Usingl p -> Usingl u
         -> HistoryM m (Ctx (AtmuPos v) (u ': p))
     rec orc x ys y = (flip Here ys <$> FixPos <$> diffAlmuO orc x y)
-                   <|> nonrec orc x ys y
+                  <|> nonrec orc x ys y
 
     nonrec :: (IsRecEl v, MonadOracle o m)
            => o -> Usingl v -> All Usingl p -> Usingl u
@@ -77,7 +79,7 @@ diffDelCtx orc (y `Ac` ay) x
 
 diffAlmu :: (IsRecEl u, IsRecEl v, MonadOracle o m)
          => o -> Usingl u -> Usingl v -> m (Almu u v)
-diffAlmu orc x y = runReaderT (diffAlmuO orc x y) []
+diffAlmu orc x y = runReaderT (diffAlmuO orc x y) [I,M,D]
 
 diffAlmuO :: (IsRecEl u, IsRecEl v, MonadOracle o m)
           => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
@@ -94,15 +96,13 @@ diffAlmuO o x y = callF o x y >>= pursue o x y
     follow o x y D = diffDel o x y
     follow o x y M = diffMod o x y
     follow o x y FM = diffModUnsafe o x y
+    follow o x y S = empty
 
 diffMod :: (IsRecEl u, IsRecEl v, MonadOracle o m)
         => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
 diffMod orc s1 s2 = case testEquality s1 s2 of
   Just Refl -> Alspn <$> diffS (toH diffAlmuO) orc s1 s2
   Nothing -> empty
-    -- case unsafeCoerceEquality s1 s2 of
-    --   Just Refl -> Alspn <$> diffS (toH diffAlmuO) orc s1 s2
-        -- trace ("unsafeCoerce?" ++ show s1 ++ show s2) empty -- May need to cast here
 
 diffModUnsafe :: (IsRecEl u, IsRecEl v, MonadOracle o m)
         => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
@@ -111,9 +111,8 @@ diffModUnsafe orc s1 s2 = case testEquality s1 s2 of
   Nothing ->
     case unsafeCoerceEquality s1 s2 of
       Just Refl -> do
-        traceM "UnsafeCoerce"
+        -- traceM "UnsafeCoerce"
         Alspn <$> diffS (toH diffAlmuO) orc s1 s2
-        -- trace ("unsafeCoerce?" ++ show s1 ++ show s2) empty -- May need to cast here
 
 toH :: (IsRecEl u, MonadOracle o m)
     => (o -> Usingl u -> Usingl u -> HistoryM m (Almu u u))

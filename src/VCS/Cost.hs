@@ -7,6 +7,7 @@ module VCS.Cost where
 
 import VCS.Multirec
 import Clojure.Lang
+import Clojure.AST
 
 
 costS :: (forall a . at a -> Int)
@@ -23,8 +24,8 @@ costS costAt costAl (Schg i j p) = costAl p
 costAl :: (forall a . at a -> Int)
        -> Al at p1 p2 -> Int
 costAl costAt A0 = 0
-costAl costAt (Adel a al) = 1 + costAl costAt al
-costAl costAt (Ains a al) = 1 + costAl costAt al
+costAl costAt (Adel a al) = costUsingl a + costAl costAt al
+costAl costAt (Ains a al) = costUsingl a + costAl costAt al
 costAl costAt (Amod at al) = costAt at + costAl costAt al
 
 costAt :: (IsRecEl a => rec a -> Int)
@@ -42,20 +43,42 @@ costAtmuNeg :: AtmuNeg v u -> Int
 costAlmuH :: AlmuH u -> Int
 
 costAlmu (Alspn sp) = costS (costAt costAlmuH) (costAl (costAt costAlmuH)) sp
-costAlmu (Alins c ctx) = costCtxPos ctx
-costAlmu (Aldel c ctx) = costCtxNeg ctx
+costAlmu (Alins c ctx) = 1 + costCtxPos ctx
+costAlmu (Aldel c ctx) = 1 + costCtxNeg ctx
 
 costAtmuPos (FixPos almu) = costAlmu almu
 costAtmuNeg (FixNeg almu) = costAlmu almu
 costAlmuH   (AlmuH almu)  = costAlmu almu
 
 costCtxPos :: Ctx (AtmuPos v) l -> Int
-costCtxPos (Here spmu atmus) = costAtmuPos spmu + lengthAll atmus
-costCtxPos (There atmu almu) = 1 + costCtxPos almu
+costCtxPos (Here spmu atmus) = costAtmuPos spmu + costAll atmus
+costCtxPos (There atmu almu) = costUsingl atmu + costCtxPos almu
 
 costCtxNeg :: Ctx (AtmuNeg v) l -> Int
-costCtxNeg (Here spmu atmus) = costAtmuNeg spmu + lengthAll atmus
-costCtxNeg (There atmu almu) = 1 + costCtxNeg almu
+costCtxNeg (Here spmu atmus) = costAtmuNeg spmu + costAll atmus
+costCtxNeg (There atmu almu) = costUsingl atmu + costCtxNeg almu
 
-lengthAll :: All p l -> Int
-lengthAll as = foldAll (const (+1)) 0 as
+costAll :: All Usingl l -> Int
+costAll as = foldAll (\u acc -> acc + costUsingl u) 0 as
+
+costUsingl :: Usingl u -> Int
+costUsingl (UString u) = 1
+costUsingl (UExpr e) = costExpr e
+costUsingl (USepExprList sel) = costSepExprist sel
+costUsingl (UTerm t) = costTerm t
+
+costExpr :: Expr -> Int
+costExpr (Special fty e _) = 1 + costExpr e
+costExpr (Dispatch e _) = costExpr e
+costExpr (Collection cty sel _) = 1 + costSepExprist sel
+costExpr (Term t _) = costTerm t
+costExpr (Comment s _) = 1
+costExpr (Seq e1 e2 _) = costExpr e1 + costExpr e2
+
+costSepExprist :: SepExprList -> Int
+costSepExprist (Nil _) = 0
+costSepExprist (Singleton e _) = costExpr e
+costSepExprist (Cons e sep sel _) = 1 + costExpr e + costSepExprist sel
+
+costTerm :: Term -> Int
+costTerm t = 2

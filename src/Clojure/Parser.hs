@@ -33,15 +33,17 @@ parseSeq :: Parsec String () Expr
 parseSeq = do
   start <- getPosition
   p1 <- parseExpr
+  whiteSpace lexer
   p2 <- (try parseSeq <|> parseExpr)
   end <- getPosition
+  whiteSpace lexer
   return $ Seq p1 p2 (mkRange start end)
 
-parseTop = whiteSpace lexer *> (try parseSeq <|> parseExpr) <* eof
+parseTop = whiteSpace lexer *> (try parseSeq <|> parseExpr) <* whiteSpace lexer <* eof
 
-parseAsExprList = whiteSpace lexer *> (many parseExpr) <* eof
+parseAsExprList = whiteSpace lexer *> (many parseExpr) <* whiteSpace lexer <* eof
 
-parseExpr = lexeme lexer $ choice
+parseExpr = choice
   [ parseSpecial
   , parseDispatch
   , parseCollection
@@ -125,21 +127,18 @@ parseSet = do
   start <- getPosition
   contents <- braces parseSepExprList
   end <- getPosition
-  whiteSpace lexer
   return $ Collection "Set" contents (mkRange start end)
 
 parseVec = do
   start <- getPosition
   contents <- brackets parseSepExprList
   end <- getPosition
-  whiteSpace lexer
   return $ Collection "Vec" contents (mkRange start end)
 
 parseParens = do
   start <- getPosition
   contents <- parens parseSepExprList
   end <- getPosition
-  whiteSpace lexer
   return $ Collection "Parens" contents (mkRange start end)
 
 parseSepExprList = try parseSepExprList1 <|> parseSingleton <|> parseEmptyList
@@ -164,8 +163,8 @@ parseSepExprList1 = do
 
 parseSep = choice
   [ "Comma" <$ lexeme lexer (char ',')
-  , "NewLine" <$ lexeme lexer (newline)
-  , "Space" <$ lexeme lexer (whiteSpace lexer)
+  , "NewLine" <$ lexeme lexer newline
+  , "Space" <$ whiteSpace lexer
   ]
 
 parseString = do
@@ -185,7 +184,6 @@ parseVar = do
   start <- getPosition
   vstring <- (identifier <|> operator)
   end <- getPosition
-  whiteSpace lexer
   return $ TaggedString "Var" vstring (mkRange start end)
 
 identifier = do
@@ -203,5 +201,4 @@ parseMetadata = do
   char '^'
   meta <- identifier
   end <- getPosition
-  whiteSpace lexer
   return $ TaggedString "Metadata" meta (mkRange start end)

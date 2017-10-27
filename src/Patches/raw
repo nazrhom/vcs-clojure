@@ -1,0 +1,52 @@
+Alspn (Scns C3CollectionProof
+(Ac (As (Contract {unContract = (UString "Parens",UString "Parens")}))
+(Ac (Ai (AlmuH (Alspn (Scns C1ConsProof
+  (Ac (Ai (AlmuH (Alspn Scp)))
+  (Ac (As (Contract {unContract = (UString "Space",UString "Space")}))
+  (Ac (Ai (AlmuH (Alspn (Scns C1ConsProof
+    (Ac (Ai (AlmuH (Alspn Scp)))
+    (Ac (As (Contract {unContract = (UString "NewLine",UString "NewLine")}))
+    (Ac (Ai (AlmuH (Alspn (Scns C1ConsProof
+      (Ac (Ai (AlmuH (Alspn Scp)))
+      (Ac (As (Contract {unContract = (UString "Space",UString "Space")}))
+      (Ac (Ai (AlmuH (Aldel C1ConsProof
+        (There (UExpr (Collection "Parens" (Cons (Term (TaggedString "Var" "trash1" (Range 2 2)) (Range 2 2)) "Space" (Cons (Term (TaggedString "Var" "trash" (Range 2 2)) (Range 2 2)) "Space" (Cons (Term (TaggedString "Var" "trash" (Range 2 2)) (Range 2 2)) "Space" (Nil (Range 2 2)) (Range 2 2)) (Range 2 2)) (Range 2 2)) (Range 2 2)))
+        (There (UString "NewLine")
+        (Here (FixNeg (Alspn (Scns C1ConsProof
+          (Ac (Ai (AlmuH (Alspn (Scns C3CollectionProof
+            (Ac (As (Contract {unContract = (UString "Parens",UString "Parens")}))
+            (Ac (Ai (AlmuH (Alspn (Scns C1ConsProof
+              (Ac (Ai (AlmuH (Alspn Scp)))
+              (Ac (As (Contract {unContract = (UString "Space",UString "Space")}))
+              (Ac (Ai (AlmuH (Alspn (Scns C1ConsProof
+                (Ac (Ai (AlmuH (Alspn Scp)))
+                (Ac (As (Contract {unContract = (UString "Space",UString "Space")}))
+                (Ac (Ai (AlmuH (Alspn (Scns C1ConsProof
+                  (Ac (Ai (AlmuH (Alspn Scp)))
+                  (Ac (As (Contract {unContract = (UString "Space",UString "Space")}))
+                  (Ac (Ai (AlmuH (Alspn (Schg C1NilProof C1ConsProof
+                    (Ains (UExpr (Term (TaggedString "Var" "new" (Range 2 2)) (Range 2 2)))
+                    (Ains (UString "Space")
+                    (Ains (USepExprList (Nil (Range 2 2))) A0))))))) An))))))) An))))))) An))))))) An))))))
+            (Ac (As (Contract {unContract = (UString "NewLine",UString "NewLine")}))
+            (Ac (Ai (AlmuH (Alspn (Scns C1ConsProof --8
+              (Ac (Ai (AlmuH (Alspn (Scns C3CollectionProof --12
+                (Ac (As (Contract {unContract = (UString "Parens",UString "Parens")}))
+                (Ac (Ai (AlmuH (Alspn (Scns C1ConsProof -- 13
+                  (Ac (Ai (AlmuH (Alspn (Scns C3TermProof --14
+                    (Ac (Ai (AlmuH (Alspn (Scns C6TaggedStringProof
+                      (Ac (As (Contract {unContract = (UString "Var",UString "Var")}))
+                      (Ac (As (Contract {unContract = (UString "trash3",UString "keep4")})) An)))))) An)))))
+                  (Ac (As (Contract {unContract = (UString "Space",UString "Space")}))
+                  (Ac (Ai (AlmuH (Alspn (Scns C1ConsProof --15
+                    (Ac (Ai (AlmuH (Alspn (Scns C3TermProof --16
+                      (Ac (Ai (AlmuH (Alspn (Scns C6TaggedStringProof
+                        (Ac (As (Contract {unContract = (UString "Var",UString "Var")}))
+                        (Ac (As (Contract {unContract = (UString "trash",UString "keep")})) An)))))) An)))))
+                    (Ac (As (Contract {unContract = (UString "Space",UString "Space")}))
+                    (Ac (Ai (AlmuH (Alspn Scp))) An))))))) An))))))) An))))))
+              (Ac (As (Contract {unContract = (UString "NewLine",UString "NewLine")}))
+              (Ac (Ai (AlmuH (Alspn (Schg C1ConsProof C1NilProof --17
+                (Adel (UExpr (Collection "Parens" (Cons (Term (TaggedString "Var" "keep4" (Range 5 5)) (Range 5 5)) "Space" (Cons (Term (TaggedString "Var" "keep" (Range 5 5)) (Range 5 5)) "Space" (Nil (Range 5 5)) (Range 5 5)) (Range 5 5)) (Range 5 5)))
+                (Adel (UString "NewLine")
+                (Adel (USepExprList (Nil (Range 6 6))) A0))))))) An))))))) An)))))) An)))))) An))))))) An))))))) An))))))) An)))

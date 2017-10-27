@@ -2,7 +2,11 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE GADTs #-}
 
-module Oracle.DiffOracle where
+module Oracle.DiffOracle
+  ( DiffOracle(..)
+  , buildOracle
+  )
+  where
 
 import qualified Data.IntMap as M
 import Data.Maybe
@@ -32,10 +36,16 @@ buildOracle (first:rest) = (process first) `unionDelInsMap` (buildOracle rest)
 
 askOracle :: DiffOracle -> LineRange -> LineRange -> [Path]
 askOracle (DiffOracle (delMap, insMap)) srcRange dstRange =
-  if containsRange delMap srcRange && containsRange insMap dstRange
-    then []
-  else if containsRange delMap srcRange then [ M, D ]
-  else if containsRange insMap dstRange then [ M, I ]
+  if containsRange delMap srcRange
+    && containsRange insMap dstRange
+    && inSync srcRange dstRange
+      then []
+  else if containsRange delMap srcRange
+       && not (inSync srcRange dstRange)
+        then [ D ]
+  else if containsRange insMap dstRange
+       && not (inSync srcRange dstRange)
+        then [ I ]
   else [ M ]
       -- dstSpan = findSpan insMap dstRange
       -- srcSpan = findSpan delMap srcRange
@@ -43,6 +53,9 @@ askOracle (DiffOracle (delMap, insMap)) srcRange dstRange =
       -- srcOffset = calculateOffset (delMap, insMap) srcStart
       -- dstSpan = (Range (dstStart + dstOffset) (dstEnd + dstOffset))
       -- srcSpan = (Range (srcStart - srcOffset) (srcEnd - srcOffset))
+
+inSync :: LineRange -> LineRange -> Bool
+inSync (Range s1 _) (Range s2 _) = s1 == s2
 
 findSpan :: M.IntMap DiffOp -> LineRange -> LineRange
 findSpan m (Range start end) = go m start end
@@ -80,17 +93,31 @@ containsRange m (Range start end) = go m start
 
 instance (Monad m) => OracleF DiffOracle m where
   callF o s d = do
-    return $ askOracle o (fromJust $ extractRange s) (fromJust $ extractRange d)
+    -- traceM ("src[" ++ show (fromJust $ extractRange s) ++ "]: " ++ show s)
+    -- traceM ("dst[" ++ show (fromJust $ extractRange d) ++ "]: " ++ show d)
+    let ans = askOracle o (fromJust $ extractRange s) (fromJust $ extractRange d)
+    -- traceM ("ans: " ++ show ans)
+    return ans
 
 instance (Monad m) => OracleP DiffOracle m where
   callP _ An         An         = return []
   callP _ An         (_ `Ac` _) = return [ I ]
   callP _ (_ `Ac` _) An         = return [ D ]
-  callP o (s `Ac` _) (d `Ac` _) = case (extractRange s, extractRange d) of
-    (Nothing, Nothing)         -> return [ M ]
-    (Just sRange, Nothing)     -> return [ D ]
-    (Nothing, Just dRange)     -> return [ I ]
-    (Just sRange, Just dRange) -> return $ askOracle o sRange dRange
+  callP o (s `Ac` _) (d `Ac` _) = do
+    case (extractRange s, extractRange d) of
+      (Nothing, Nothing)         -> do
+        -- traceM "ans: M"
+        return [ M ]
+      (Just sRange, Nothing)     -> do
+        -- traceM "ans: D"
+        return [ D ]
+      (Nothing, Just dRange)     -> do
+        -- traceM "ans: I"
+        return [ I ]
+      (Just sRange, Just dRange) -> do
+        let ans = askOracle o sRange dRange
+        -- traceM ("ans: " ++ show ans)
+        return ans
 
 instance Show DiffOracle where
   show (DiffOracle m) = show m

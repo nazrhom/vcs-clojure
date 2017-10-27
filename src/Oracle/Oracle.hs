@@ -3,12 +3,13 @@ module Oracle.Oracle
   , module Oracle.NoOracle
   , module Oracle.NoDupBranches
   , module Oracle.DiffOracle
-  , module Oracle.ConsOracle
+  , module Oracle.CostOracle
+  , module Oracle.GroupedDiffOracle
   ) where
 
 import Oracle.Internal
 import Oracle.NoOracle
 import Oracle.NoDupBranches
 import Oracle.DiffOracle
-import Oracle.ConsOracle
+import Oracle.CostOracle
 import Oracle.GroupedDiffOracle

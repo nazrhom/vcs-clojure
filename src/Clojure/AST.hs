@@ -22,6 +22,21 @@ data Expr = Special FormTy Expr LineRange
           | Seq Expr Expr LineRange
           deriving (Show, Generic)
 
+extractRangeExpr :: Expr -> LineRange
+extractRangeExpr (Special _ _ r) = r
+extractRangeExpr (Dispatch _ r) = r
+extractRangeExpr (Collection _ _ r) = r
+extractRangeExpr (Term _ r) = r
+extractRangeExpr (Comment _ r) = r
+extractRangeExpr (Seq _ _ r) = r
+
+extractRangeSepExprList :: SepExprList -> LineRange
+extractRangeSepExprList (Nil r) = r
+extractRangeSepExprList (Singleton _ r) = r
+extractRangeSepExprList (Cons _ _ _ r) = r
+
+extractRangeTerm :: Term -> LineRange
+extractRangeTerm (TaggedString _ _ r) = r
 -- ref: https://8thlight.com/blog/colin-jones/2012/05/22/quoting-without-confusion.html
 type FormTy = String
 -- data FormTy = Quote | SQuote | UnQuote | DeRef deriving (Show, Eq)

@@ -28,6 +28,8 @@ import Oracle.Oracle
 
 import Util.UnixDiff
 
+import Patches.Diff3
+
 main :: IO ()
 main = do
   opts <- execParser optsHelper
@@ -39,22 +41,28 @@ main = do
   dst <- parseFile (dstFile opts) d
 
 
-  let diff3 = preprocess s d
+  let diff3 = preprocessGrouped s d
 
-  putStrLn $ show $ buildOracle diff3
+  putStrLn $ show $ diff3
 
-  let oracle = (DiffOracle $ buildOracle diff3) <+> (ConsOracle <°> NoDupBranches)
+  let oracle = (GroupedDiffOracle $ diff3) <°> (NoDupBranches)
   let almus = computePatches oracle src dst
-
+  -- mapM (\p -> do
+  --   putStrLn ("Cost: " ++ show (costAlmu p) ++ "\n" ++ show p ++ "\n")) almus
 
   case almus of
     []    -> error "boom"
     almus -> do
       putStrLn $ "Found " ++ show (length almus) ++ " patches"
       case (jsonOutput opts) of
-        Nothing -> return ()
+        Nothing -> do
+          if (printAll opts)
+          then printPatchesWithCost almus
+          else return ()
         Just path -> do
           let almusCost = sortBy (comparing costAlmu) almus
+          -- putStrLn $ show (applyAlmu lvl1 (toSing src))
+          printPatchWithCost (head almusCost)
           B.writeFile path $ encodePretty (head almusCost)
   -- let almus = diffAlmu oracle (toSing src) (toSing dst)
   -- let patches = map (flip applyAlmu (toSing src)) almus
@@ -67,6 +75,13 @@ main = do
   -- putStrLn $ "Lowest cost found: " ++ show (costAlmu best)
   -- putStrLn $ "Corresponding to \n" ++ show best
   -- putStrLn $ show $ applyAlmu (head almus) (toSing src)
+printPatchesWithCost :: [Almu u v] -> IO ()
+printPatchesWithCost almus = mapM_ printPatchWithCost almus
+
+printPatchWithCost :: Almu u v -> IO ()
+printPatchWithCost almu = do
+  putStrLn $ "Cost: " ++ show (costAlmu almu)
+  putStrLn (show $ almu)
 
 processConflictFolder :: IO ()
 processConflictFolder = do
@@ -157,6 +172,7 @@ data Opts = Opts
     srcFile :: String
   , dstFile :: String
   , jsonOutput :: Maybe String
+  , printAll :: Bool
   }
 
 setHandle :: Maybe String -> (Handle -> IO a) -> IO a
@@ -166,7 +182,7 @@ setHandle (Just path) act = withFile path WriteMode act
 opts :: Parser Opts
 opts = Opts
   <$> strOption
-    (  long "soure"
+    (  long "source"
     <> short 's'
     <> metavar "SRC_TARGET"
     <> help "Source file"
@@ -183,6 +199,10 @@ opts = Opts
     <> metavar "OUT_TARGET"
     <> help "Output file"
     ))
+  <*> switch
+    ( long "all"
+    <> short 'a'
+    <> help "Print all patches")
 
 optsHelper :: ParserInfo Opts
 optsHelper = info (helper <*> opts)

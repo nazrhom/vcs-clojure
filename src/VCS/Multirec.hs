@@ -9,6 +9,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 
 module VCS.Multirec where
@@ -92,7 +93,7 @@ spine x y | otherwise = case (view x, view y) of
 align :: (MonadOracle o m)
       => o -> All Usingl p1 -> All Usingl p2
       -> m (Al TrivialA p1 p2)
-align orc p1 p2 = runReaderT (alignO orc p1 p2) []
+align orc p1 p2 = runReaderT (alignO orc p1 p2) [I,M,D]
 
 alignO :: (MonadOracle o m)
        => o -> All Usingl p1 -> All Usingl p2
@@ -130,9 +131,8 @@ followPath FM orc (a1 `Ac` p1) (a2 `Ac` p2)
       Nothing ->
         case unsafeCoerceEquality a1 a2 of
           Just Refl -> do
-            traceM "UnsafeCoerce"
             Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
-
+followPath S orc _ _ = empty
 -- Library stuff
 newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
 
@@ -186,25 +186,60 @@ mapAt f (As t) = As t
 unsafeCoerceEquality :: Usingl a -> Usingl b -> Maybe (a :~: b)
 unsafeCoerceEquality a b = unsafeCoerce $ Just Refl
 -- Show instances
-instance Show (Almu u v) where
-  show = showAlmu
-instance Show (Al (At AlmuH) p1 p2) where
-  show = showAl
-instance Show (At AlmuH u) where
-  show = showAt
-instance Show (Spine (At AlmuH) (Al (At AlmuH)) u) where
-  show = showSpine
-instance Show (All Usingl l) where
-  show An = ""
-  show (a `Ac` as) = show a ++ " " ++ show as
-instance Show (All (At AlmuH) l) where
-  show = showAll
-instance Show (Ctx (AtmuPos u) p) where
-  show = showCtxP
-instance Show (Ctx (AtmuNeg u) p) where
-  show = showCtxN
-instance Show (f x) => Show (Contract f x) where
-  show c = show $ unContract c
+deriving instance Show (Almu u v)
+  -- show = showAlmu
+deriving instance Show (Al (At AlmuH) p1 p2)
+  -- show = showAl
+deriving instance Show (At AlmuH u)
+  -- show = showAt
+deriving instance Show (Spine (At AlmuH) (Al (At AlmuH)) u)
+  -- show = showSpine
+deriving instance Show (All Usingl l)
+  -- show An = ""
+  -- show (a `Ac` as) = show a ++ " " ++ show as
+deriving instance Show (All (At AlmuH) l)
+  -- show = showAll
+deriving instance Show (Ctx (AtmuPos u) p)
+  -- show = showCtxP
+deriving instance Show (Ctx (AtmuNeg u) p)
+  -- show = showCtxN
+deriving instance Show (f x) => Show (Contract f x)
+-- show c = show $ unContract c
+
+-- Eq instances
+instance Eq (Almu u v) where
+  (Alspn s1) == (Alspn s2) = s1 == s2
+  (Alins c1 ctx1) == (Alins c2 ctx2) = case testEquality c1 c2 of
+    Nothing -> False
+    Just Refl -> ctx1 == ctx2
+  (Aldel c1 ctx1) == (Aldel c2 ctx2) = case testEquality c1 c2 of
+    Nothing -> False
+    Just Refl -> ctx1 == ctx2
+  _ == _ = False
+
+instance Eq (Spine (At AlmuH) (Al (At AlmuH)) u) where
+  Scp == Scp = True
+  (Scns c1 p1) == (Scns c2 p2) = case testEquality c1 c2 of
+    Nothing -> False
+    Just Refl -> p1 == p2
+  (Schg i1 j1 p1) == (Schg i2 j2 p2) = case testEquality i1 i2 of
+    Nothing -> False
+    Just Refl -> case testEquality j1 j2 of
+      Nothing -> False
+      Just Refl -> p1 == p2
+  _ == _ = False
+
+deriving instance Eq (Ctx (AtmuPos u) p)
+deriving instance Eq (Ctx (AtmuNeg u) p)
+deriving instance Eq (All Usingl l)
+deriving instance Eq (AtmuPos u v)
+deriving instance Eq (AtmuNeg u v)
+deriving instance Eq (AlmuH u)
+deriving instance Eq (Al (At AlmuH) p1 p2)
+deriving instance Eq (All (At AlmuH) l)
+deriving instance Eq (At AlmuH u)
+deriving instance Eq (TrivialA u)
+
 
 showAll :: All (At AlmuH) l -> String
 showAll An = ""

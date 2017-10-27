@@ -119,23 +119,10 @@ inj C3SeqProof (p `Ac` q `Ac` An) = UExpr (Seq (eval p) (eval q) emptyRange)
 inj C6TaggedStringProof (t `Ac` s `Ac` An) = UTerm (TaggedString (eval t) (eval s) emptyRange)
 
 extractRange :: Usingl r -> Maybe LineRange
-extractRange (UExpr e) = extractRangeExpr e
-extractRange (USepExprList sl) = extractRangeSepExprList sl
-extractRange (UTerm t) = extractRangeTerm t
+extractRange (UExpr e) = Just (extractRangeExpr e)
+extractRange (USepExprList sl) = Just (extractRangeSepExprList sl)
+extractRange (UTerm t) = Just (extractRangeTerm t)
 extractRange (UString s) = Nothing
-
-extractRangeExpr (Special _ _ r) = Just r
-extractRangeExpr (Dispatch _ r) = Just r
-extractRangeExpr (Collection _ _ r) = Just r
-extractRangeExpr (Term _ r) = Just r
-extractRangeExpr (Comment _ r) = Just r
-extractRangeExpr (Seq _ _ r) = Just r
-
-extractRangeSepExprList (Nil r) = Just r
-extractRangeSepExprList (Singleton _ r) = Just r
-extractRangeSepExprList (Cons _ _ _ r) = Just r
-
-extractRangeTerm (TaggedString _ _ r) = Just r
 
 type family El (u :: U) where
   El KString = String
@@ -185,7 +172,6 @@ instance Eq (Usingl a) where
   (USepExprList a) == (USepExprList b) = a == b
   (UExpr a) == (UExpr b) = a == b
   (UTerm a) == (UTerm b) = a == b
-  _ == _ = False
 
 data View u where
  Tag :: ConstrFor u c -> All Usingl (TypeOf c) -> View u
@@ -224,6 +210,7 @@ type family Le (k :: *) :: U where
   Le SepExprList = KSepExprList
   Le Expr = KExpr
   Le Term = KTerm
+  Le String = KString
 
 class Sing a where
   toSing :: a -> Usingl (Le a)
@@ -233,6 +220,7 @@ instance Sing SepExprList where
   toSing (Singleton e r) = USepExprList (Singleton e r)
   toSing (Cons e s sl r) = USepExprList (Cons e s sl r)
 
+
 instance Sing Expr where
   toSing (Special fty e r) = UExpr (Special fty e r)
   toSing (Dispatch e r) = UExpr (Dispatch e r)
@@ -241,11 +229,17 @@ instance Sing Expr where
   toSing (Comment c r) = UExpr (Comment c r)
   toSing (Seq p q r) = UExpr (Seq p q r)
 
+
 instance Sing Term where
   toSing (TaggedString t s r) = UTerm (TaggedString t s r)
+
+
+instance Sing String where
+  toSing s = UString s
 
 instance Show (Usingl u) where
   show (UString u) = show u
   show (USepExprList u) = show $ ppSepExprList u
   show (UExpr u) = show $ ppExpr u
   show (UTerm u) = show $ ppTerm u
+-- deriving instance Show (Usingl u)
