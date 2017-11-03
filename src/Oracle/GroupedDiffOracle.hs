@@ -24,8 +24,8 @@ data GroupedDiffOracle = GroupedDiffOracle [GroupDiffAction]
 askOracle :: GroupedDiffOracle -> Usingl u -> Usingl v -> [Path]
 askOracle (GroupedDiffOracle o) src dst = case (extractRange src, extractRange dst) of
       (Nothing, Nothing)         -> [ M ]
-      (Just sRange, Nothing)     -> [ D ]
-      (Nothing, Just dRange)     -> [ I ]
+      (Just sRange, Nothing)     -> [ ]
+      (Nothing, Just dRange)     -> [ ]
       (Just sRange, Just dRange) -> giveAdvice o src dst
         -- traceM ("src[" ++ show sRange ++ "]: " ++ show s)
         -- traceM ("dst[" ++ show dRange ++ "]: " ++ show d)
@@ -39,9 +39,9 @@ giveAdvice [] src dst = [ M ]
     srcRange = fromJust $ extractRange src
 giveAdvice ((OMod srcLr dstLr):os) src dst =
   if src `shouldMod` srcLr && dst `shouldMod` dstLr then []
-  else if src `shouldMod` srcLr && not (dst `shouldMod` dstLr) then
+  else if src `shouldMod` srcLr then
     [ D ]
-  else if dst `shouldMod` dstLr && not (src `shouldMod` srcLr) then
+  else if dst `shouldMod` dstLr then
     [ I ]
   else giveAdvice os src dst
   where
@@ -49,24 +49,34 @@ giveAdvice ((OMod srcLr dstLr):os) src dst =
     srcRange = fromJust $ extractRange src
 
 giveAdvice ((OIns lr i):os) src dst =
-  if dstRange `inSync` lr
+  if dst `shouldMod` lr
   then [ I ]
   else giveAdvice os src dst
   where
     dstRange = fromJust $ extractRange dst
 
 giveAdvice ((ODel lr i):os) src dst =
-  if srcRange `inSync` lr
+  if src `shouldMod` lr
   then [ D ]
   else giveAdvice os src dst
   where
     srcRange = fromJust $ extractRange src
 
+tryDirection :: LineRange -> LineRange -> [Path]
+tryDirection srcRange dstRange =
+  if (rangeSpan srcRange) > (rangeSpan dstRange) then [ I ]
+  else if (rangeSpan srcRange) < (rangeSpan dstRange) then [ D ]
+  else []
+
+rangeSpan :: LineRange -> Int
+rangeSpan (Range s e) = e - s
+
 inSync :: LineRange -> LineRange -> Bool
 inSync (Range s1 _) (Range s2 _) = s1 == s2
 
 isContainedIn :: LineRange -> LineRange -> Bool
-isContainedIn (Range s1 e1) (Range s2 e2) = s2 <= s1 && s1 <= e2-- && e1 <= e2
+isContainedIn (Range s1 e1) (Range s2 e2) = s2 <= s1 && s1 <= e2
+-- && s1 <= e2-- && e1 <= e2
 
 shouldMod :: Usingl u -> LineRange -> Bool
 shouldMod u lr = uRange `isContainedIn` lr

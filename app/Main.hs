@@ -40,12 +40,15 @@ main = do
   d <- readFile (dstFile opts)
   dst <- parseFile (dstFile opts) d
 
-
+  -- putStrLn $ show src
+  -- putStrLn $ show dst
   let diff3 = preprocessGrouped s d
+  let diff3_plain = preprocess s d
+  --
+  -- putStrLn $ show $ diff3
+  -- putStrLn $ show $ diff3_plain
 
-  putStrLn $ show $ diff3
-
-  let oracle = (GroupedDiffOracle $ diff3) <°> (NoDupBranches)
+  let oracle = SeqOracle <°> (GroupedDiffOracle $ diff3) <°> (NoDupBranches)
   let almus = computePatches oracle src dst
   -- mapM (\p -> do
   --   putStrLn ("Cost: " ++ show (costAlmu p) ++ "\n" ++ show p ++ "\n")) almus

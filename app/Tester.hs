@@ -14,7 +14,7 @@ executablePathRoot = ".stack-work/dist/x86_64-osx/Cabal-1.24.2.0/build/th-vcs-cl
 executablePath = "../../../../" ++ executablePathRoot
 
 timeout_time :: Int
-timeout_time = 30000000
+timeout_time = 60000000
 
 main :: IO ()
 main = do

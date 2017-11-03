@@ -128,10 +128,11 @@ followPath M orc (a1 `Ac` p1) (a2 `Ac` p2)
 followPath FM orc (a1 `Ac` p1) (a2 `Ac` p2)
   = case testEquality a1 a2 of
       Just Refl -> Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
-      Nothing ->
-        case unsafeCoerceEquality a1 a2 of
+      Nothing -> case unsafeCoerceEquality a1 a2 of
           Just Refl -> do
             Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
+      -- (Ains a2 <$> local (I:) (alignO orc (a1 `Ac` p1) p2)) <|> (Adel a1 <$> local (D:) (alignO orc p1 (a2 `Ac` p2)))
+      
 followPath S orc _ _ = empty
 -- Library stuff
 newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }

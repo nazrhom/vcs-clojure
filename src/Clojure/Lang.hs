@@ -172,6 +172,7 @@ instance Eq (Usingl a) where
   (USepExprList a) == (USepExprList b) = a == b
   (UExpr a) == (UExpr b) = a == b
   (UTerm a) == (UTerm b) = a == b
+  _ == _ = True
 
 data View u where
  Tag :: ConstrFor u c -> All Usingl (TypeOf c) -> View u

@@ -819,7 +819,7 @@ by enumerating all possible recursive alignments, attempting at each level
 the alignment of spines, insertions and deletions.
 One shortcoming with this approach lies in the great combinatorial 
 explosion of possibilities that arises in computing the alignments for 
-constructors and products. The following paragraph will describe an optimisation 
+constructors and products. The following paragraph will describe an  
 we can employ to prune the number of possible alignments. This optimisation 
 will allow the program to run in an acceptable time in real world scenarios, however 
 we are still at least an order of magnitude slower than \texttt{diff3}, this points to 
@@ -991,6 +991,284 @@ phases can proceed in a loop as the correct definition of this notion is still
 unclear and will become clearer through experimentation and comparison against 
 current diffing algorithms.
 
+\section{Oracles}
+Oracles, are something we want to introduce in the non-deterministic parts of 
+the algorithm. The goal is to be able to have a uniform interface to implement 
+different kinds of optimisations, heuristic and possibly even human interaction. 
+The key idea, is to extend the algorithm to perform a mondaic action at each 
+non-deterministic ``junction''. The result of this action will be a list that 
+encodes which branches should be explored and which should be cut from the enumeration of patches.
+
+We can start by observing that in both places where we have non-determinism, we always have a 
+choice between three possible paths: to insert/delete something, or to try and 
+modify a pair. We can model this with a very simple datatype
+
+\begin{lstlisting}[language=haskell]
+  data Path = I | M | D 
+\end{lstlisting}
+
+As the optimisation described in the previous section requires knowledge about 
+which path we took at the previous step, we want to give our oracles the 
+possibility to inspect the history of issued paths on each branch.
+
+We can now define our Oracle class
+
+\begin{lstlisting}[language=haskell]
+type HistoryM = ReaderT [Path]
+
+class Oracle o m where
+  callP :: o -> All Usingl p1 -> All Usingl p2 -> HistoryM m [Path]
+  callF :: (IsRecEl u, IsRecEl v) => o -> Usingl u -> Usingl v -> HistoryM m [Path]
+\end{lstlisting}
+
+The Oracle class has two functions, one for the choice on the constructor level 
+and one for the choice on the product level. At each choice, the oracle has 
+access to the history of paths issued on the branch via a reader monad, and 
+has also access to whatever global information it may contain (the $o$ type).
+ 
+ \subsection{NoOracle}
+To get back our original behaviour we can define the most simple Oracle:
+
+\begin{lstlisting}[language=haskell]
+data NoOracle = NoOracle
+instance (Monad m) => OracleP NoOracle m where
+  callP _ An         An         = return []
+  callP _ An         (_ `Ac` _) = return [I]
+  callP _ (_ `Ac` _) An         = return [D]
+  callP _ _          _          = return [I , M , D]
+
+instance (Monad m) => OracleF NoOracle m where
+  callF _ _ _ = return [I , M , D]
+\end{lstlisting}
+
+This oracle will not contain any global information and will ignore the history 
+of issued paths. It will simply output all possible choices in any non-trivial 
+case.
+
+\subsection{NoDupBranches}
+We can also encode the same optimisation presented earlier as an oracle. We can 
+define the following function that looks at the history of issued paths to avoid 
+performing an insertion if the last step was a deletion and viceversa.
+
+\begin{lstlisting}[language=haskell]
+nextPaths :: [Path] -> [Path]
+nextPaths (I:_)     = [I, M]
+nextPaths (D:_)     = [D, M]
+nextPaths (M:_)     = [I, M, D]
+\end{lstlisting}
+
+With this function we can implement the \texttt{NoDupBranches Oracle}
+
+\begin{lstlisting}[language=haskell]
+data NoDupBranches = NoDupBranches
+
+instance (Monad m) => OracleP NoDupBranches m where
+  callP _ An         An         = return []
+  callP _ An         (_ `Ac` _) = return [I]
+  callP _ (_ `Ac` _) An         = return [D]
+  callP _ (s `Ac` _) (d `Ac` _) = ask >>= return . nextPaths
+
+instance (Monad m) => OracleF NoDupBranches m where
+  callF _ s d = ask >>= return . nextPaths
+\end{lstlisting}
+
+\subsection{Oracle composition}
+
+We are now back to the starting point, but we have an interface that allows us 
+to keep the implementation immutable while still giving us the chance to tweak 
+its behaviour. An advantage of this is that we can define a notion of 
+composition between oracles, this way, we can layer different processes each of 
+which is independent of the other in terms of implenentation.
+
+The composition we define wants to model a stack of oracles, the oracles are 
+interrogated in the order in which they appear on the stack. When an oracle is 
+interrogated, only if the answer is an empty list we will go down the stack and 
+ask the oracle underneath. 
+
+This means that we can build other optimisations on top of 
+\texttt{NoDupBranches}, these optimisations can also be partial or based on 
+heuristics, as long as we have a ``safe'' oracle at the bottom of the stack we 
+can always fallback to the ones below in the cases when it is not clear which 
+choice should be done.
+
+
+\begin{lstlisting}[language=haskell]
+  data ComposeOracle a b = ComposeOracle a b
+
+-- Give it a nice constructor
+(<°>) :: a -> b -> ComposeOracle a b
+a <°> b = ComposeOracle a b
+
+instance (Monad m, Oracle a m, Oracle b m) => Oracle (ComposeOracle a b) m where
+  callF (ComposeOracle a b) s d = do
+    o1 <- callF a s d
+    case o1 of
+      [] -> callF b s d
+      o1 -> return o1
+
+  callP (ComposeOracle a b) s d = do
+    o1 <- callP a s d
+    case o1 of
+      [] -> callP b s d
+      o1 -> return o1
+\end{lstlisting}
+
+\subsection{DiffOracle}
+A considerable speedup can be obtained by using \texttt{diff3} to prune the 
+search space. We can define a datatype, which mirrors the definition of a path 
+and identifies which lines are copied, which are deleted and which are inserted 
+according to \texttt{diff3}.
+
+We will call this datatype \texttt{DiffAction} and it will have the following 
+definition.
+
+\begin{lstlisting}[language=haskell]
+  data DiffAction = 
+    OMod LineRange LineRange
+  | OIns LineRange
+  | ODel LineRange  
+\end{lstlisting}
+
+We will produce an OMod every time we have two contiguous regions of insertions 
+or deletions between the source and destination file.
+Given this pair of source and destination
+\begin{lstlisting}[language=lisp]
+  (defn function
+    [a b]
+    return a)
+\end{lstlisting}
+
+\begin{lstlisting}[language=lisp]
+  ;; A comment
+  (defn function
+    [a b]
+    doSomethingElse
+    return b)
+\end{lstlisting}
+
+The preprocessing will produce the list [OIns (1,1), OMod (3,3) (3,4)]. The 
+first line can be definately ruled as an insertion as it is adiacent to a copy 
+on both the source and destination. \texttt{Diff3} records line 3 of the source 
+as a deletion and lines 3 and 4 of the destination as insertions. This gives us 
+two contiguous regions of insertions and deletions between source and 
+destination and are accordingly recorded as a Mod. 
+
+We can now define the following predicate
+
+\begin{lstlisting}[language=haskell]
+  isContainedIn (s1, e1) (s2, e2) = s2 <= s1 && s1 <= e2
+\end{lstlisting}
+That is: a range is contained in another if the other one starts before it and 
+is not disjoint from it.
+
+We will use this predicate to detect which action does the oracle suggest for 
+a given expression. The predicate detects when the two ranges are overlapping by 
+looking at their starting point. The reason we don't want to restrict the end of 
+the range to be properly contained is that on some occasions we might have to 
+delete (resp. insert) on a node containing the actual expression that is marked for 
+deletion. This can be seen in this easy example, given a source file that looks 
+like this:
+
+\begin{lstlisting}[language=lisp]
+ (keep
+   trash
+   keep)
+\end{lstlisting}
+
+and a destination 
+
+\begin{lstlisting}[language=lisp]
+ (keep
+   keep)
+\end{lstlisting}
+
+The patch we want to generate will delete line 2. The preprocessing will correctly produce the list [ ODel (2, 2) ] 
+but, to produce the optimal patch, we actually have to delete a Cons that has 
+range (2,3) (it contains the rest of the expression as well). If we were to restrict ourselves to only delete 
+what lives on line 2, we would just be able to delete the variable "trash", but would still end up with too 
+many Cons nodes in the resulting patch.
+
+We are now ready to define the askOracle function. This function will take as input the list of DiffActions that 
+was generated by the preprocessing and the source and destination line ranges respectively. 
+
+\begin{lstlisting}[language=haskell]
+askOracle :: [DiffAction] -> LineRange -> LineRange -> [Path]
+askOracle [] src dst = [ M ]
+
+askOracle ((OMod srcLr dstLr):os) src dst =
+  if src `isContainedIn` srcLr && dst `isContainedIn` dstLr then []
+  else if src `isContainedIn` srcLr && not (dst `isContainedIn` dstLr) then
+    [ D ]
+  else if dst `isContainedIn` dstLr && not (src `isContainedIn` srcLr) then
+    [ I ]
+  else askOracle os src dst
+
+askOracle ((OIns lr):os) src dst =
+  if dst `isContainedIn` lr
+  then [ I ]
+  else askOracle os src dst
+
+askOracle ((ODel lr):os) src dst =
+  if src `isContainedIn` lr
+  then [ D ]
+  else askOracle os src dst
+\end{lstlisting}
+
+In case in which the ranges do 
+not match with anything in our list of DiffActions, we simply want to M, as 
+these expressions lie in lines that diff3 identified as copies (we will see that this gives rise to some problems
+as diff3 con copy in a way that our algorithm does not support). When both 
+source and destination ranges match with the ranges of an OMod, we are essentially in a range where
+we know that \texttt{diff3} can not reconcile the changes between source and destination 
+and will simply delete everything in the source and insert everything in the 
+destination. This is the case where we can attempt to generate a more efficient 
+patch, so we return an empty list to fall back to any underlying oracle that 
+will compute a full enumaration in that range. We want to add the two other else 
+branches to handle the case when transforming a source into the destination, we 
+end up on a branch that has inserted (resp. deleted) everything it had to, and 
+it simply needs to delete (rep. insert) the remaining range.
+
+\subsection{Shortcomings}
+One of the issues with this optimisation is that not every modification between 
+source and destination file is correctly identified by this procedure. Some 
+problems arise when changes in the resulting AST are invisible to diff. Given 
+our grammar this can only happen in one place, on the external level of the 
+\texttt{Seq}s. For example, given this pair of source and destination files.
+\begin{lstlisting}[language=haskell]
+(keep
+  old keep)
+\end{lstlisting}
+
+\begin{lstlisting}[language=haskell]
+(keep
+  new keep)
+(new new)
+\end{lstlisting}
+
+The preprocessing will produce the following list of \texttt{DiffAction}s [OMod (2,2) 
+(2,3)]. However, to perform the optimal patch between these two programs we 
+clearly want to insert a \texttt{Seq} on the first line and proceed with the 
+diffing from there. With our optimisation instead, we realise we had to change 
+the external node when it is too late, we are already on line 2 and have already 
+decided to copy over the first line. 
+At its core, the problem lies in the fact that the external change is invisible to 
+\texttt{diff3}, since it only deals with lines and the addition of lines at the end does not influence in any way
+the lines at the beginning of the file. In our case, we have the whole 
+expression tree, and adding a line at the end of the file does not necessarily only trigger 
+changes on the leaves of the tree.
+
+I can see two possible solutions to this problem. One is to carefully think 
+about which nodes have this non-local influence and treat them in a special way. 
+I think that in our grammar this can only happen with \texttt{Seq}, so an easy 
+fix can be to treat it ad-hoc and prioritise balancing the number of 
+\texttt{Seq}s between source and destination file.
+
+Another idea might be to simply run \texttt{diff3} not on the original files, 
+but on a suitable annotated version of their ASTs. In this way we make the every 
+possible change on the tree-level directly observable by \texttt{diff3}. Clearly 
+this introduces the problem of how to flatten the AST and how to interpret the 
+results we get back from \texttt{diff3}, (this is a fallback to previous approaches to the diffing problem in 
+general, flattening and rebuilding is definately non-trivial)
 \begin{center}
  \begin{tabular} { ||c|c|| }
    \hline Visual Representation of Patches & 10 - 10 - 2017 \\

@@ -108,11 +108,11 @@ diffModUnsafe :: (IsRecEl u, IsRecEl v, MonadOracle o m)
         => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
 diffModUnsafe orc s1 s2 = case testEquality s1 s2 of
   Just Refl -> Alspn <$> diffS (toH diffAlmuO) orc s1 s2
-  Nothing ->
-    case unsafeCoerceEquality s1 s2 of
+  Nothing -> case unsafeCoerceEquality s1 s2 of
       Just Refl -> do
         -- traceM "UnsafeCoerce"
         Alspn <$> diffS (toH diffAlmuO) orc s1 s2
+    -- diffIns orc s1 s2 <|> diffDel orc s1 s2
 
 toH :: (IsRecEl u, MonadOracle o m)
     => (o -> Usingl u -> Usingl u -> HistoryM m (Almu u u))

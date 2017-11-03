@@ -36,7 +36,6 @@ parseSeq = do
   whiteSpace lexer
   p2 <- (try parseSeq <|> parseExpr)
   end <- getPosition
-  whiteSpace lexer
   return $ Seq p1 p2 (mkRange start end)
 
 parseTop = whiteSpace lexer *> (try parseSeq <|> parseExpr) <* whiteSpace lexer <* eof
@@ -141,7 +140,7 @@ parseParens = do
   end <- getPosition
   return $ Collection "Parens" contents (mkRange start end)
 
-parseSepExprList = try parseSepExprList1 <|> parseSingleton <|> parseEmptyList
+parseSepExprList = parseNonEmptyList <|> parseEmptyList
 
 parseEmptyList = do
   start <- getPosition
@@ -151,8 +150,11 @@ parseSingleton = do
   start <- getPosition
   expr <- parseExpr
   end <- getPosition
+  whiteSpace lexer
   return $ Singleton expr (mkRange start end)
---
+
+parseNonEmptyList = try parseSepExprList1 <|> parseSingleton
+
 parseSepExprList1 = do
   start <- getPosition
   x <- parseExpr
@@ -163,7 +165,7 @@ parseSepExprList1 = do
 
 parseSep = choice
   [ "Comma" <$ lexeme lexer (char ',')
-  , "NewLine" <$ lexeme lexer newline
+  , "NewLine" <$ lexeme lexer (many1 endOfLine)
   , "Space" <$ whiteSpace lexer
   ]
 
