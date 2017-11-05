@@ -145,15 +145,14 @@ instance ToJSON Expr where
     "text" .= object [
       "name" .= ("Seq" :: Text) ]
     , "children" .= Array ((toJSON e1) `V.cons` (V.singleton (toJSON e2))) ]
+  toJSON (Empty _) = object [
+    "text" .= object [
+      "name" .= ("Empty" :: Text) ] ]
 
 instance ToJSON SepExprList where
   toJSON (Nil _) =  object [
     "text" .= object [
       "name" .= ("Nil" :: Text) ] ]
-  toJSON (Singleton expr _) = object [
-    "text" .= object [
-        "name" .= ("Singleton" :: Text) ]
-    , "children" .= toJSONArray (toJSON expr) ]
   toJSON (Cons expr sep sel _) = object [
     "text" .= object [
         "name" .= ("Cons" :: Text)

@@ -1,0 +1,6 @@
+Seq Collection "Parens" Cons Collection "Parens" Cons Collection "Parens" Cons Term TaggedString "Var" "keep" "NewLine" 
+Cons Term TaggedString "Var" "del" "NewLine" 
+
+Cons Term TaggedString "Var" "wadda" "NewLine" 
+Cons Term TaggedString "Var" "keep" "Empty" Nil "Empty" Nil "Empty" Nil 
+Empty

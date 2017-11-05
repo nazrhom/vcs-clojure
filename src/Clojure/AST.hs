@@ -7,7 +7,6 @@ import GHC.Generics
 
 data SepExprList =
    Nil LineRange
- | Singleton Expr LineRange
  | Cons Expr Sep SepExprList LineRange
  deriving (Show, Generic)
 
@@ -20,6 +19,7 @@ data Expr = Special FormTy Expr LineRange
           | Term Term LineRange
           | Comment String LineRange
           | Seq Expr Expr LineRange
+          | Empty LineRange
           deriving (Show, Generic)
 
 extractRangeExpr :: Expr -> LineRange
@@ -29,10 +29,10 @@ extractRangeExpr (Collection _ _ r) = r
 extractRangeExpr (Term _ r) = r
 extractRangeExpr (Comment _ r) = r
 extractRangeExpr (Seq _ _ r) = r
+extractRangeExpr (Empty r) = r
 
 extractRangeSepExprList :: SepExprList -> LineRange
 extractRangeSepExprList (Nil r) = r
-extractRangeSepExprList (Singleton _ r) = r
 extractRangeSepExprList (Cons _ _ _ r) = r
 
 extractRangeTerm :: Term -> LineRange
@@ -66,11 +66,11 @@ instance Eq Expr where
   (Term t1 _) == (Term t2 _) = t1 == t2
   (Comment c1 _) == (Comment c2 _) = c1 == c2
   (Seq e1 e2 _) == (Seq e3 e4 _) = e1 == e3 && e2 == e4
+  (Empty _) == (Empty _) = True
   _ == _ = False
 
 instance Eq SepExprList where
   (Nil _) == (Nil _) = True
-  (Singleton e1 _) == (Singleton e2 _) = e1 == e2
   (Cons e1 s1 r1 _) == (Cons e2 s2 r2 _) = e1 == e2 && s1 == s2 && r1 == r2
   _ == _ = False
 

@@ -28,6 +28,7 @@ library
                      , Util.DiffParser
                      , Util.UnixDiff
                      , Util.ToJSON
+                     , Util.Treeview
                      , Oracle.Oracle
                      , Oracle.DiffOracle
                      , Oracle.NoOracle

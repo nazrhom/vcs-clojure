@@ -5,15 +5,10 @@
     "children": [
         {
             "text": {
-                "value": "Collection",
+                "value": "Seq",
                 "name": "Scns"
             },
             "children": [
-                {
-                    "text": {
-                        "value": "\"Parens\""
-                    }
-                },
                 {
                     "text": {
                         "name": "Alspn"
@@ -21,10 +16,15 @@
                     "children": [
                         {
                             "text": {
-                                "value": "Cons",
+                                "value": "Collection",
                                 "name": "Scns"
                             },
                             "children": [
+                                {
+                                    "text": {
+                                        "value": "\"Parens\""
+                                    }
+                                },
                                 {
                                     "text": {
                                         "name": "Alspn"
@@ -32,13 +32,25 @@
                                     "children": [
                                         {
                                             "text": {
-                                                "value": "Collection",
+                                                "value": "Cons",
                                                 "name": "Scns"
                                             },
                                             "children": [
                                                 {
                                                     "text": {
-                                                        "value": "\"Parens\""
+                                                        "name": "Alspn"
+                                                    },
+                                                    "children": [
+                                                        {
+                                                            "text": {
+                                                                "name": "Scp"
+                                                            }
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "text": {
+                                                        "value": "\"Space\""
                                                     }
                                                 },
                                                 {
@@ -71,46 +83,13 @@
                                                                 },
                                                                 {
                                                                     "text": {
-                                                                        "value": "C1ConsProof",
-                                                                        "name": "Alins"
+                                                                        "name": "Alspn"
                                                                     },
                                                                     "children": [
                                                                         {
                                                                             "text": {
-                                                                                "name": "There"
-                                                                            },
-                                                                            "children": [
-                                                                                {
-                                                                                    "text": {
-                                                                                        "name": "Term"
-                                                                                    },
-                                                                                    "children": [
-                                                                                        {
-                                                                                            "text": {
-                                                                                                "value": "\"ins\"",
-                                                                                                "name": "TaggedString",
-                                                                                                "type": "\"Var\""
-                                                                                            }
-                                                                                        }
-                                                                                    ]
-                                                                                }
-                                                                            ]
-                                                                        },
-                                                                        {
-                                                                            "text": {
-                                                                                "name": "There"
-                                                                            },
-                                                                            "children": [
-                                                                                {
-                                                                                    "text": {
-                                                                                        "values": "\"Space\""
-                                                                                    }
-                                                                                }
-                                                                            ]
-                                                                        },
-                                                                        {
-                                                                            "text": {
-                                                                                "name": "Here"
+                                                                                "value": "Cons",
+                                                                                "name": "Scns"
                                                                             },
                                                                             "children": [
                                                                                 {
@@ -120,53 +99,37 @@
                                                                                     "children": [
                                                                                         {
                                                                                             "text": {
-                                                                                                "to": "Nil",
-                                                                                                "from": "Cons",
-                                                                                                "name": "Schg"
+                                                                                                "name": "Scp"
+                                                                                            }
+                                                                                        }
+                                                                                    ]
+                                                                                },
+                                                                                {
+                                                                                    "text": {
+                                                                                        "value": "\"Space\""
+                                                                                    }
+                                                                                },
+                                                                                {
+                                                                                    "text": {
+                                                                                        "value": "C1ConsProof",
+                                                                                        "name": "Aldel"
+                                                                                    },
+                                                                                    "children": [
+                                                                                        {
+                                                                                            "text": {
+                                                                                                "name": "There"
                                                                                             },
                                                                                             "children": [
                                                                                                 {
                                                                                                     "text": {
-                                                                                                        "name": "Adel"
-                                                                                                    },
-                                                                                                    "children": [
-                                                                                                        {
-                                                                                                            "text": {
-                                                                                                                "name": "Term"
-                                                                                                            },
-                                                                                                            "children": [
-                                                                                                                {
-                                                                                                                    "text": {
-                                                                                                                        "value": "\"del\"",
-                                                                                                                        "name": "TaggedString",
-                                                                                                                        "type": "\"Var\""
-                                                                                                                    }
-                                                                                                                }
-                                                                                                            ]
-                                                                                                        }
-                                                                                                    ]
-                                                                                                },
-                                                                                                {
-                                                                                                    "text": {
-                                                                                                        "name": "Adel"
-                                                                                                    },
-                                                                                                    "children": [
-                                                                                                        {
-                                                                                                            "text": {
-                                                                                                                "values": "\"NewLine\""
-                                                                                                            }
-                                                                                                        }
-                                                                                                    ]
-                                                                                                },
-                                                                                                {
-                                                                                                    "text": {
-                                                                                                        "name": "Adel"
+                                                                                                        "name": "Collection",
+                                                                                                        "type": "\"Parens\""
                                                                                                     },
                                                                                                     "children": [
                                                                                                         {
                                                                                                             "text": {
                                                                                                                 "name": "Cons",
-                                                                                                                "type": "\"NewLine\""
+                                                                                                                "type": "\"Space\""
                                                                                                             },
                                                                                                             "children": [
                                                                                                                 {
@@ -176,7 +139,7 @@
                                                                                                                     "children": [
                                                                                                                         {
                                                                                                                             "text": {
-                                                                                                                                "value": "\"wadda\"",
+                                                                                                                                "value": "\"trash1\"",
                                                                                                                                 "name": "TaggedString",
                                                                                                                                 "type": "\"Var\""
                                                                                                                             }
@@ -196,7 +159,7 @@
                                                                                                                             "children": [
                                                                                                                                 {
                                                                                                                                     "text": {
-                                                                                                                                        "value": "\"keep\"",
+                                                                                                                                        "value": "\"trash\"",
                                                                                                                                         "name": "TaggedString",
                                                                                                                                         "type": "\"Var\""
                                                                                                                                     }
@@ -205,8 +168,350 @@
                                                                                                                         },
                                                                                                                         {
                                                                                                                             "text": {
-                                                                                                                                "name": "Nil"
-                                                                                                                            }
+                                                                                                                                "name": "Cons",
+                                                                                                                                "type": "\"Empty\""
+                                                                                                                            },
+                                                                                                                            "children": [
+                                                                                                                                {
+                                                                                                                                    "text": {
+                                                                                                                                        "name": "Term"
+                                                                                                                                    },
+                                                                                                                                    "children": [
+                                                                                                                                        {
+                                                                                                                                            "text": {
+                                                                                                                                                "value": "\"trash\"",
+                                                                                                                                                "name": "TaggedString",
+                                                                                                                                                "type": "\"Var\""
+                                                                                                                                            }
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "text": {
+                                                                                                                                        "name": "Nil"
+                                                                                                                                    }
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        }
+                                                                                                                    ]
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ]
+                                                                                                }
+                                                                                            ]
+                                                                                        },
+                                                                                        {
+                                                                                            "text": {
+                                                                                                "name": "There"
+                                                                                            },
+                                                                                            "children": [
+                                                                                                {
+                                                                                                    "text": {
+                                                                                                        "values": "\"NewLine\""
+                                                                                                    }
+                                                                                                }
+                                                                                            ]
+                                                                                        },
+                                                                                        {
+                                                                                            "text": {
+                                                                                                "name": "Here"
+                                                                                            },
+                                                                                            "children": [
+                                                                                                {
+                                                                                                    "text": {
+                                                                                                        "name": "Alspn"
+                                                                                                    },
+                                                                                                    "children": [
+                                                                                                        {
+                                                                                                            "text": {
+                                                                                                                "value": "Cons",
+                                                                                                                "name": "Scns"
+                                                                                                            },
+                                                                                                            "children": [
+                                                                                                                {
+                                                                                                                    "text": {
+                                                                                                                        "name": "Alspn"
+                                                                                                                    },
+                                                                                                                    "children": [
+                                                                                                                        {
+                                                                                                                            "text": {
+                                                                                                                                "value": "Collection",
+                                                                                                                                "name": "Scns"
+                                                                                                                            },
+                                                                                                                            "children": [
+                                                                                                                                {
+                                                                                                                                    "text": {
+                                                                                                                                        "value": "\"Parens\""
+                                                                                                                                    }
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "text": {
+                                                                                                                                        "name": "Alspn"
+                                                                                                                                    },
+                                                                                                                                    "children": [
+                                                                                                                                        {
+                                                                                                                                            "text": {
+                                                                                                                                                "value": "Cons",
+                                                                                                                                                "name": "Scns"
+                                                                                                                                            },
+                                                                                                                                            "children": [
+                                                                                                                                                {
+                                                                                                                                                    "text": {
+                                                                                                                                                        "name": "Alspn"
+                                                                                                                                                    },
+                                                                                                                                                    "children": [
+                                                                                                                                                        {
+                                                                                                                                                            "text": {
+                                                                                                                                                                "name": "Scp"
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                    ]
+                                                                                                                                                },
+                                                                                                                                                {
+                                                                                                                                                    "text": {
+                                                                                                                                                        "value": "\"Space\""
+                                                                                                                                                    }
+                                                                                                                                                },
+                                                                                                                                                {
+                                                                                                                                                    "text": {
+                                                                                                                                                        "name": "Alspn"
+                                                                                                                                                    },
+                                                                                                                                                    "children": [
+                                                                                                                                                        {
+                                                                                                                                                            "text": {
+                                                                                                                                                                "value": "Cons",
+                                                                                                                                                                "name": "Scns"
+                                                                                                                                                            },
+                                                                                                                                                            "children": [
+                                                                                                                                                                {
+                                                                                                                                                                    "text": {
+                                                                                                                                                                        "name": "Alspn"
+                                                                                                                                                                    },
+                                                                                                                                                                    "children": [
+                                                                                                                                                                        {
+                                                                                                                                                                            "text": {
+                                                                                                                                                                                "name": "Scp"
+                                                                                                                                                                            }
+                                                                                                                                                                        }
+                                                                                                                                                                    ]
+                                                                                                                                                                },
+                                                                                                                                                                {
+                                                                                                                                                                    "text": {
+                                                                                                                                                                        "value": "\"Space\""
+                                                                                                                                                                    }
+                                                                                                                                                                },
+                                                                                                                                                                {
+                                                                                                                                                                    "text": {
+                                                                                                                                                                        "name": "Alspn"
+                                                                                                                                                                    },
+                                                                                                                                                                    "children": [
+                                                                                                                                                                        {
+                                                                                                                                                                            "text": {
+                                                                                                                                                                                "value": "Cons",
+                                                                                                                                                                                "name": "Scns"
+                                                                                                                                                                            },
+                                                                                                                                                                            "children": [
+                                                                                                                                                                                {
+                                                                                                                                                                                    "text": {
+                                                                                                                                                                                        "name": "Alspn"
+                                                                                                                                                                                    },
+                                                                                                                                                                                    "children": [
+                                                                                                                                                                                        {
+                                                                                                                                                                                            "text": {
+                                                                                                                                                                                                "name": "Scp"
+                                                                                                                                                                                            }
+                                                                                                                                                                                        }
+                                                                                                                                                                                    ]
+                                                                                                                                                                                },
+                                                                                                                                                                                {
+                                                                                                                                                                                    "text": {
+                                                                                                                                                                                        "dst": "\"Space\"",
+                                                                                                                                                                                        "src": "\"Empty\""
+                                                                                                                                                                                    }
+                                                                                                                                                                                },
+                                                                                                                                                                                {
+                                                                                                                                                                                    "text": {
+                                                                                                                                                                                        "name": "Alspn"
+                                                                                                                                                                                    },
+                                                                                                                                                                                    "children": [
+                                                                                                                                                                                        {
+                                                                                                                                                                                            "text": {
+                                                                                                                                                                                                "to": "Cons",
+                                                                                                                                                                                                "from": "Nil",
+                                                                                                                                                                                                "name": "Schg"
+                                                                                                                                                                                            },
+                                                                                                                                                                                            "children": [
+                                                                                                                                                                                                {
+                                                                                                                                                                                                    "text": {
+                                                                                                                                                                                                        "name": "Ains"
+                                                                                                                                                                                                    },
+                                                                                                                                                                                                    "children": [
+                                                                                                                                                                                                        {
+                                                                                                                                                                                                            "text": {
+                                                                                                                                                                                                                "name": "Term"
+                                                                                                                                                                                                            },
+                                                                                                                                                                                                            "children": [
+                                                                                                                                                                                                                {
+                                                                                                                                                                                                                    "text": {
+                                                                                                                                                                                                                        "value": "\"new\"",
+                                                                                                                                                                                                                        "name": "TaggedString",
+                                                                                                                                                                                                                        "type": "\"Var\""
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                            ]
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                    ]
+                                                                                                                                                                                                },
+                                                                                                                                                                                                {
+                                                                                                                                                                                                    "text": {
+                                                                                                                                                                                                        "name": "Ains"
+                                                                                                                                                                                                    },
+                                                                                                                                                                                                    "children": [
+                                                                                                                                                                                                        {
+                                                                                                                                                                                                            "text": {
+                                                                                                                                                                                                                "values": "\"Empty\""
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                    ]
+                                                                                                                                                                                                },
+                                                                                                                                                                                                {
+                                                                                                                                                                                                    "text": {
+                                                                                                                                                                                                        "name": "Ains"
+                                                                                                                                                                                                    },
+                                                                                                                                                                                                    "children": [
+                                                                                                                                                                                                        {
+                                                                                                                                                                                                            "text": {
+                                                                                                                                                                                                                "name": "Nil"
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                    ]
+                                                                                                                                                                                                }
+                                                                                                                                                                                            ]
+                                                                                                                                                                                        }
+                                                                                                                                                                                    ]
+                                                                                                                                                                                }
+                                                                                                                                                                            ]
+                                                                                                                                                                        }
+                                                                                                                                                                    ]
+                                                                                                                                                                }
+                                                                                                                                                            ]
+                                                                                                                                                        }
+                                                                                                                                                    ]
+                                                                                                                                                }
+                                                                                                                                            ]
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        }
+                                                                                                                    ]
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "text": {
+                                                                                                                        "value": "\"NewLine\""
+                                                                                                                    }
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "text": {
+                                                                                                                        "value": "C1ConsProof",
+                                                                                                                        "name": "Aldel"
+                                                                                                                    },
+                                                                                                                    "children": [
+                                                                                                                        {
+                                                                                                                            "text": {
+                                                                                                                                "name": "There"
+                                                                                                                            },
+                                                                                                                            "children": [
+                                                                                                                                {
+                                                                                                                                    "text": {
+                                                                                                                                        "name": "Collection",
+                                                                                                                                        "type": "\"Parens\""
+                                                                                                                                    },
+                                                                                                                                    "children": [
+                                                                                                                                        {
+                                                                                                                                            "text": {
+                                                                                                                                                "name": "Cons",
+                                                                                                                                                "type": "\"Space\""
+                                                                                                                                            },
+                                                                                                                                            "children": [
+                                                                                                                                                {
+                                                                                                                                                    "text": {
+                                                                                                                                                        "name": "Term"
+                                                                                                                                                    },
+                                                                                                                                                    "children": [
+                                                                                                                                                        {
+                                                                                                                                                            "text": {
+                                                                                                                                                                "value": "\"trash3\"",
+                                                                                                                                                                "name": "TaggedString",
+                                                                                                                                                                "type": "\"Var\""
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                    ]
+                                                                                                                                                },
+                                                                                                                                                {
+                                                                                                                                                    "text": {
+                                                                                                                                                        "name": "Cons",
+                                                                                                                                                        "type": "\"Empty\""
+                                                                                                                                                    },
+                                                                                                                                                    "children": [
+                                                                                                                                                        {
+                                                                                                                                                            "text": {
+                                                                                                                                                                "name": "Term"
+                                                                                                                                                            },
+                                                                                                                                                            "children": [
+                                                                                                                                                                {
+                                                                                                                                                                    "text": {
+                                                                                                                                                                        "value": "\"trash\"",
+                                                                                                                                                                        "name": "TaggedString",
+                                                                                                                                                                        "type": "\"Var\""
+                                                                                                                                                                    }
+                                                                                                                                                                }
+                                                                                                                                                            ]
+                                                                                                                                                        },
+                                                                                                                                                        {
+                                                                                                                                                            "text": {
+                                                                                                                                                                "name": "Nil"
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                    ]
+                                                                                                                                                }
+                                                                                                                                            ]
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "text": {
+                                                                                                                                "name": "There"
+                                                                                                                            },
+                                                                                                                            "children": [
+                                                                                                                                {
+                                                                                                                                    "text": {
+                                                                                                                                        "values": "\"NewLine\""
+                                                                                                                                    }
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "text": {
+                                                                                                                                "name": "Here"
+                                                                                                                            },
+                                                                                                                            "children": [
+                                                                                                                                {
+                                                                                                                                    "text": {
+                                                                                                                                        "name": "Alspn"
+                                                                                                                                    },
+                                                                                                                                    "children": [
+                                                                                                                                        {
+                                                                                                                                            "text": {
+                                                                                                                                                "name": "Scp"
+                                                                                                                                            }
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                }
+                                                                                                                            ]
                                                                                                                         }
                                                                                                                     ]
                                                                                                                 }
@@ -229,117 +534,20 @@
                                             ]
                                         }
                                     ]
-                                },
-                                {
-                                    "text": {
-                                        "dst": "\"NewLine\"",
-                                        "src": "\"Space\""
-                                    }
-                                },
-                                {
-                                    "text": {
-                                        "value": "C1ConsProof",
-                                        "name": "Alins"
-                                    },
-                                    "children": [
-                                        {
-                                            "text": {
-                                                "name": "There"
-                                            },
-                                            "children": [
-                                                {
-                                                    "text": {
-                                                        "name": "Collection",
-                                                        "type": "\"Parens\""
-                                                    },
-                                                    "children": [
-                                                        {
-                                                            "text": {
-                                                                "name": "Cons",
-                                                                "type": "\"NewLine\""
-                                                            },
-                                                            "children": [
-                                                                {
-                                                                    "text": {
-                                                                        "name": "Term"
-                                                                    },
-                                                                    "children": [
-                                                                        {
-                                                                            "text": {
-                                                                                "value": "\"new\"",
-                                                                                "name": "TaggedString",
-                                                                                "type": "\"Var\""
-                                                                            }
-                                                                        }
-                                                                    ]
-                                                                },
-                                                                {
-                                                                    "text": {
-                                                                        "name": "Cons",
-                                                                        "type": "\"Space\""
-                                                                    },
-                                                                    "children": [
-                                                                        {
-                                                                            "text": {
-                                                                                "name": "Term"
-                                                                            },
-                                                                            "children": [
-                                                                                {
-                                                                                    "text": {
-                                                                                        "value": "\"keep\"",
-                                                                                        "name": "TaggedString",
-                                                                                        "type": "\"Var\""
-                                                                                    }
-                                                                                }
-                                                                            ]
-                                                                        },
-                                                                        {
-                                                                            "text": {
-                                                                                "name": "Nil"
-                                                                            }
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            ]
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "text": {
-                                                "name": "There"
-                                            },
-                                            "children": [
-                                                {
-                                                    "text": {
-                                                        "values": "\"Space\""
-                                                    }
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "text": {
-                                                "name": "Here"
-                                            },
-                                            "children": [
-                                                {
-                                                    "text": {
-                                                        "name": "Alspn"
-                                                    },
-                                                    "children": [
-                                                        {
-                                                            "text": {
-                                                                "name": "Scp"
-                                                            }
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    ]
                                 }
                             ]
+                        }
+                    ]
+                },
+                {
+                    "text": {
+                        "name": "Alspn"
+                    },
+                    "children": [
+                        {
+                            "text": {
+                                "name": "Scp"
+                            }
                         }
                     ]
                 }

@@ -74,10 +74,10 @@ costExpr (Collection cty sel _) = 1 + costSepExprist sel
 costExpr (Term t _) = costTerm t
 costExpr (Comment s _) = 1
 costExpr (Seq e1 e2 _) = costExpr e1 + costExpr e2
+costExpr (Empty _) = 0
 
 costSepExprist :: SepExprList -> Int
 costSepExprist (Nil _) = 0
-costSepExprist (Singleton e _) = costExpr e
 costSepExprist (Cons e sep sel _) = 1 + costExpr e + costSepExprist sel
 
 costTerm :: Term -> Int

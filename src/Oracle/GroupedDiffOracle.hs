@@ -83,7 +83,7 @@ shouldMod u lr = uRange `isContainedIn` lr
 -- || any (flip isContainedIn lr) children
   where
     uRange = fromJust $ extractRange u
-    children = extractChildRanges u
+    -- children = extractChildRanges u
 
 extractChildRanges :: Usingl u -> [LineRange]
 extractChildRanges (UString u) = []
@@ -98,10 +98,10 @@ extractChildExprRange (Collection _ sel _) = [ extractRangeSepExprList sel ]
 extractChildExprRange (Term t _) = [ extractRangeTerm t ]
 extractChildExprRange (Comment s _) = []
 extractChildExprRange (Seq e1 e2 _) = [extractRangeExpr e1, extractRangeExpr e2]
+extractChildExprRange (Empty _) = []
 
 extractChildSepExprListRange :: SepExprList -> [LineRange]
 extractChildSepExprListRange (Nil _) = []
-extractChildSepExprListRange (Singleton e _) = [ extractRangeExpr e ]
 extractChildSepExprListRange (Cons e _ sel _) = [ extractRangeExpr e, extractRangeSepExprList sel ]
 
 -- s2 s1 e2 e1

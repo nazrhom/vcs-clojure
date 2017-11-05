@@ -17,7 +17,7 @@ module Clojure.Parser
     , LineRange(..)
     ) where
 
-import Text.Parsec
+import Text.Parsec hiding (Empty)
 import Text.Parsec.Token hiding (braces, parens, brackets, identifier, operator)
 import Text.Parsec.Language
 import Data.Char hiding (Space)
@@ -34,11 +34,11 @@ parseSeq = do
   start <- getPosition
   p1 <- parseExpr
   whiteSpace lexer
-  p2 <- (try parseSeq <|> parseExpr)
+  p2 <- (try parseSeq <|> parseEmptyProgram)
   end <- getPosition
   return $ Seq p1 p2 (mkRange start end)
 
-parseTop = whiteSpace lexer *> (try parseSeq <|> parseExpr) <* whiteSpace lexer <* eof
+parseTop = whiteSpace lexer *> (try parseSeq <|> parseEmptyProgram) <* whiteSpace lexer <* eof
 
 parseAsExprList = whiteSpace lexer *> (many parseExpr) <* whiteSpace lexer <* eof
 
@@ -49,6 +49,10 @@ parseExpr = choice
   , parseComment
   , parseTerm
   ]
+
+parseEmptyProgram = do
+  pos <- getPosition
+  return $ Empty (mkRange pos pos)
 
 parseTerm = do
     start <- getPosition
@@ -116,8 +120,6 @@ parseComment = do
   end <- getPosition
   return $ Comment comment (mkRange start end)
 
-
-
 parens p = between (symbol lexer "(") (string ")") p
 braces p = between (symbol lexer "{") (string "}") p
 brackets p = between (symbol lexer "[") (string "]") p
@@ -140,20 +142,11 @@ parseParens = do
   end <- getPosition
   return $ Collection "Parens" contents (mkRange start end)
 
-parseSepExprList = parseNonEmptyList <|> parseEmptyList
+parseSepExprList = parseSepExprList1 <|> parseEmptyList
 
 parseEmptyList = do
   start <- getPosition
   return $ Nil (mkRange start start)
-
-parseSingleton = do
-  start <- getPosition
-  expr <- parseExpr
-  end <- getPosition
-  whiteSpace lexer
-  return $ Singleton expr (mkRange start end)
-
-parseNonEmptyList = try parseSepExprList1 <|> parseSingleton
 
 parseSepExprList1 = do
   start <- getPosition
@@ -166,7 +159,8 @@ parseSepExprList1 = do
 parseSep = choice
   [ "Comma" <$ lexeme lexer (char ',')
   , "NewLine" <$ lexeme lexer (many1 endOfLine)
-  , "Space" <$ whiteSpace lexer
+  , "Space" <$ lexeme lexer (many1 (space <|> tab))
+  , "Empty" <$ lookAhead (anyChar)
   ]
 
 parseString = do

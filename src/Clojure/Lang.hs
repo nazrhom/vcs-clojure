@@ -40,7 +40,6 @@ data Usingl :: U -> * where
 
 data Constr :: * where
   C1Nil  :: Constr
-  C1Singleton  :: Constr
   C1Cons :: Constr
 
   C3Special  :: Constr
@@ -49,13 +48,13 @@ data Constr :: * where
   C3Term  :: Constr
   C3Comment :: Constr
   C3Seq      :: Constr
+  C3Empty    :: Constr
 
   C6TaggedString :: Constr
   deriving Show
 
 data ConstrFor :: U -> Constr -> * where
   C1NilProof :: ConstrFor KSepExprList C1Nil
-  C1SingletonProof :: ConstrFor KSepExprList C1Singleton
   C1ConsProof :: ConstrFor KSepExprList C1Cons
 
   C3SpecialProof :: ConstrFor KExpr C3Special
@@ -64,6 +63,7 @@ data ConstrFor :: U -> Constr -> * where
   C3TermProof :: ConstrFor KExpr C3Term
   C3CommentProof :: ConstrFor KExpr C3Comment
   C3SeqProof :: ConstrFor KExpr C3Seq
+  C3EmptyProof :: ConstrFor KExpr C3Empty
 
   C6TaggedStringProof :: ConstrFor KTerm C6TaggedString
 
@@ -71,7 +71,6 @@ deriving instance Show (ConstrFor u c)
 
 showConstr :: ConstrFor u c -> String
 showConstr C1NilProof = "Nil"
-showConstr C1SingletonProof = "Singleton"
 showConstr C1ConsProof = "Cons"
 showConstr C3SpecialProof = "Special"
 showConstr C3DispatchProof = "Dispatch"
@@ -79,11 +78,11 @@ showConstr C3CollectionProof = "Collection"
 showConstr C3TermProof = "Term"
 showConstr C3CommentProof = "Comment"
 showConstr C3SeqProof = "Seq"
+showConstr C3EmptyProof = "Empty"
 showConstr C6TaggedStringProof = "TaggedString"
 
 type family TypeOf (c :: Constr) :: [U] where
   TypeOf C1Nil = '[]
-  TypeOf C1Singleton = '[KExpr]
   TypeOf C1Cons = '[KExpr, KString, KSepExprList]
 
   TypeOf C3Special = '[KString, KExpr]
@@ -92,6 +91,7 @@ type family TypeOf (c :: Constr) :: [U] where
   TypeOf C3Term = '[KTerm]
   TypeOf C3Comment = '[KString]
   TypeOf C3Seq = '[KExpr, KExpr]
+  TypeOf C3Empty = '[]
 
   TypeOf C6TaggedString = '[KString, KString]
 
@@ -106,7 +106,6 @@ instance {-# OVERLAPPABLE #-} (TypeError (Text "Not a recursive guy: " :<>: Show
 -- Library stuff
 inj :: ConstrFor r c -> All Usingl (TypeOf c) -> Usingl r
 inj C1NilProof An = USepExprList (Nil emptyRange)
-inj C1SingletonProof (e `Ac` An) = USepExprList (Singleton (eval e) emptyRange)
 inj C1ConsProof (e `Ac` sep `Ac` sl `Ac` An) = USepExprList (Cons (eval e) (eval sep) (eval sl) emptyRange)
 
 inj C3SpecialProof (fty `Ac` e `Ac` An) = UExpr (Special (eval fty) (eval e) emptyRange)
@@ -115,6 +114,7 @@ inj C3CollectionProof (ct `Ac` sl `Ac` An) = UExpr (Collection (eval ct) (eval s
 inj C3TermProof (t `Ac` An) = UExpr (Term (eval t) emptyRange)
 inj C3CommentProof (c `Ac` An) = UExpr (Comment (eval c) emptyRange)
 inj C3SeqProof (p `Ac` q `Ac` An) = UExpr (Seq (eval p) (eval q) emptyRange)
+inj C3EmptyProof An = UExpr (Empty emptyRange)
 
 inj C6TaggedStringProof (t `Ac` s `Ac` An) = UTerm (TaggedString (eval t) (eval s) emptyRange)
 
@@ -141,10 +141,8 @@ instance TestEquality (ConstrFor u) where
     Just (Refl, Refl) -> Just Refl
     Nothing -> Nothing
 
-
 testEquality' :: ConstrFor a b -> ConstrFor c d -> Maybe ((a :~: c), (b :~: d))
 testEquality' C1NilProof C1NilProof = Just (Refl, Refl)
-testEquality' C1SingletonProof C1SingletonProof = Just (Refl, Refl)
 testEquality' C1ConsProof C1ConsProof = Just (Refl, Refl)
 
 testEquality' C3SpecialProof C3SpecialProof = Just (Refl, Refl)
@@ -153,6 +151,7 @@ testEquality' C3CollectionProof C3CollectionProof = Just (Refl, Refl)
 testEquality' C3TermProof C3TermProof = Just (Refl, Refl)
 testEquality' C3CommentProof C3CommentProof = Just (Refl, Refl)
 testEquality' C3SeqProof C3SeqProof = Just (Refl, Refl)
+testEquality' C3EmptyProof C3EmptyProof = Just (Refl, Refl)
 
 testEquality' C6TaggedStringProof C6TaggedStringProof = Just (Refl, Refl)
 
@@ -184,7 +183,6 @@ view (UTerm term) = viewTerm term
 
 viewSepExprList :: SepExprList -> View KSepExprList
 viewSepExprList (Nil _) = Tag C1NilProof An
-viewSepExprList (Singleton e _) = Tag C1SingletonProof (UExpr e .@. An)
 viewSepExprList (Cons e s sl _) = Tag C1ConsProof (UExpr e .@. UString s .@. USepExprList sl .@. An)
 
 viewExpr :: Expr -> View KExpr
@@ -194,6 +192,7 @@ viewExpr (Collection ct sl _) = Tag C3CollectionProof (UString ct .@. USepExprLi
 viewExpr (Term t _) = Tag C3TermProof (UTerm t .@. An)
 viewExpr (Comment c _) = Tag C3CommentProof (UString c .@. An)
 viewExpr (Seq p q _)  = Tag C3SeqProof (UExpr p .@. UExpr q .@. An)
+viewExpr (Empty _)  = Tag C3EmptyProof An
 
 
 viewTerm :: Term -> View KTerm
@@ -218,9 +217,7 @@ class Sing a where
 
 instance Sing SepExprList where
   toSing (Nil r) = USepExprList (Nil r)
-  toSing (Singleton e r) = USepExprList (Singleton e r)
   toSing (Cons e s sl r) = USepExprList (Cons e s sl r)
-
 
 instance Sing Expr where
   toSing (Special fty e r) = UExpr (Special fty e r)
@@ -229,14 +226,14 @@ instance Sing Expr where
   toSing (Term t r) = UExpr (Term t r)
   toSing (Comment c r) = UExpr (Comment c r)
   toSing (Seq p q r) = UExpr (Seq p q r)
-
+  toSing (Empty r) = UExpr (Empty r)
 
 instance Sing Term where
   toSing (TaggedString t s r) = UTerm (TaggedString t s r)
 
-
 instance Sing String where
   toSing s = UString s
+
 
 instance Show (Usingl u) where
   show (UString u) = show u
