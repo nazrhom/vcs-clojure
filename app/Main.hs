@@ -44,17 +44,20 @@ main = do
   -- putStrLn $ show src
   -- putStrLn $ show dst
   let diff3 = preprocessGrouped s d
-  -- let diff3_plain = preprocess s d
+  let diff3_plain = preprocess s d
+  let copyMaps = buildCopyOracle diff3_plain
   --
   -- let sT = toTree src
   -- let dT = toTree dst
   -- writeFile ((srcFile opts) ++ "_view") sT
   -- writeFile ((dstFile opts) ++ "_view") dT
   -- let diff3 = preprocessGrouped sT dT
+  -- let diff3_man = [ OMod (Range 2 4) (Range 2 4)]
   putStrLn $ show $ diff3
+  putStrLn $ show $ copyMaps
   -- putStrLn $ show $ diff3_plain
 
-  let oracle = NoIllegalCopy <°> ((GroupedDiffOracle $ diff3) <°> (NoDupBranches))
+  let oracle = (GroupedDiffOracle $ (diff3, copyMaps)) <°>  (NoDupBranches)
   let almus = computePatches oracle src dst
   -- mapM (\p -> do
   --   putStrLn ("Cost: " ++ show (costAlmu p) ++ "\n" ++ show p ++ "\n")) almus

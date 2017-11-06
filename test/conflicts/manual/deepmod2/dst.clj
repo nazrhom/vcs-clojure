@@ -1,5 +1,4 @@
 ((keep
-  ins)
+  ins))((
 
-(new
-  keep))
+keep))

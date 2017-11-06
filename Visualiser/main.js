@@ -63,74 +63,13 @@ const nodes = {
                           "children": [
                             {
                               "text": {
-                                "name": "Scp"
-                              },
-                              "connectors": {
-                                "style": {
-                                  "stroke": "black",
-                                  "stroke-width": "2"
-                                }
-                              }
-                            }
-                          ],
-                          "connectors": {
-                            "style": {
-                              "stroke": "black",
-                              "stroke-width": "2"
-                            }
-                          },
-                          "collapsed": true
-                        },
-                        {
-                          "text": {
-                            "value": "\"Space\""
-                          },
-                          "connectors": {
-                            "style": {
-                              "stroke": "black",
-                              "stroke-width": "2"
-                            }
-                          }
-                        },
-                        {
-                          "text": {
-                            "name": "Alspn"
-                          },
-                          "children": [
-                            {
-                              "text": {
-                                "value": "Cons",
+                                "value": "Collection",
                                 "name": "Scns"
                               },
                               "children": [
                                 {
                                   "text": {
-                                    "name": "Alspn"
-                                  },
-                                  "children": [
-                                    {
-                                      "text": {
-                                        "name": "Scp"
-                                      },
-                                      "connectors": {
-                                        "style": {
-                                          "stroke": "black",
-                                          "stroke-width": "2"
-                                        }
-                                      }
-                                    }
-                                  ],
-                                  "connectors": {
-                                    "style": {
-                                      "stroke": "black",
-                                      "stroke-width": "2"
-                                    }
-                                  },
-                                  "collapsed": true
-                                },
-                                {
-                                  "text": {
-                                    "value": "\"NewLine\""
+                                    "value": "\"Parens\""
                                   },
                                   "connectors": {
                                     "style": {
@@ -157,46 +96,21 @@ const nodes = {
                                           "children": [
                                             {
                                               "text": {
-                                                "name": "Scp"
-                                              },
-                                              "connectors": {
-                                                "style": {
-                                                  "stroke": "black",
-                                                  "stroke-width": "2"
-                                                }
-                                              }
-                                            }
-                                          ],
-                                          "connectors": {
-                                            "style": {
-                                              "stroke": "black",
-                                              "stroke-width": "2"
-                                            }
-                                          },
-                                          "collapsed": true
-                                        },
-                                        {
-                                          "text": {
-                                            "value": "\"Space\""
-                                          },
-                                          "connectors": {
-                                            "style": {
-                                              "stroke": "black",
-                                              "stroke-width": "2"
-                                            }
-                                          }
-                                        },
-                                        {
-                                          "text": {
-                                            "name": "Alspn"
-                                          },
-                                          "children": [
-                                            {
-                                              "text": {
-                                                "value": "Cons",
+                                                "value": "Collection",
                                                 "name": "Scns"
                                               },
                                               "children": [
+                                                {
+                                                  "text": {
+                                                    "value": "\"Parens\""
+                                                  },
+                                                  "connectors": {
+                                                    "style": {
+                                                      "stroke": "black",
+                                                      "stroke-width": "2"
+                                                    }
+                                                  }
+                                                },
                                                 {
                                                   "text": {
                                                     "name": "Alspn"
@@ -204,469 +118,19 @@ const nodes = {
                                                   "children": [
                                                     {
                                                       "text": {
-                                                        "value": "Collection",
+                                                        "value": "Cons",
                                                         "name": "Scns"
                                                       },
                                                       "children": [
                                                         {
                                                           "text": {
-                                                            "value": "\"Parens\""
-                                                          },
-                                                          "connectors": {
-                                                            "style": {
-                                                              "stroke": "black",
-                                                              "stroke-width": "2"
-                                                            }
-                                                          }
-                                                        },
-                                                        {
-                                                          "text": {
-                                                            "value": "C1ConsProof",
-                                                            "name": "Alins"
+                                                            "name": "Alspn"
                                                           },
                                                           "children": [
                                                             {
                                                               "text": {
-                                                                "name": "There"
+                                                                "name": "Scp"
                                                               },
-                                                              "children": [
-                                                                {
-                                                                  "text": {
-                                                                    "name": "Term"
-                                                                  },
-                                                                  "children": [
-                                                                    {
-                                                                      "text": {
-                                                                        "value": "\"keep2\"",
-                                                                        "name": "TaggedString",
-                                                                        "type": "\"Var\""
-                                                                      },
-                                                                      "connectors": {
-                                                                        "style": {
-                                                                          "stroke": "green",
-                                                                          "stroke-width": "2"
-                                                                        }
-                                                                      }
-                                                                    }
-                                                                  ],
-                                                                  "connectors": {
-                                                                    "style": {
-                                                                      "stroke": "green",
-                                                                      "stroke-width": "2"
-                                                                    }
-                                                                  },
-                                                                  "collapsed": true
-                                                                }
-                                                              ],
-                                                              "connectors": {
-                                                                "style": {
-                                                                  "stroke": "green",
-                                                                  "stroke-width": "2"
-                                                                }
-                                                              },
-                                                              "collapsed": true
-                                                            },
-                                                            {
-                                                              "text": {
-                                                                "name": "There"
-                                                              },
-                                                              "children": [
-                                                                {
-                                                                  "text": {
-                                                                    "values": "\"Space\""
-                                                                  },
-                                                                  "connectors": {
-                                                                    "style": {
-                                                                      "stroke": "green",
-                                                                      "stroke-width": "2"
-                                                                    }
-                                                                  }
-                                                                }
-                                                              ],
-                                                              "connectors": {
-                                                                "style": {
-                                                                  "stroke": "green",
-                                                                  "stroke-width": "2"
-                                                                }
-                                                              },
-                                                              "collapsed": true
-                                                            },
-                                                            {
-                                                              "text": {
-                                                                "name": "Here"
-                                                              },
-                                                              "children": [
-                                                                {
-                                                                  "text": {
-                                                                    "name": "Alspn"
-                                                                  },
-                                                                  "children": [
-                                                                    {
-                                                                      "text": {
-                                                                        "value": "Cons",
-                                                                        "name": "Scns"
-                                                                      },
-                                                                      "children": [
-                                                                        {
-                                                                          "text": {
-                                                                            "name": "Alspn"
-                                                                          },
-                                                                          "children": [
-                                                                            {
-                                                                              "text": {
-                                                                                "value": "Term",
-                                                                                "name": "Scns"
-                                                                              },
-                                                                              "children": [
-                                                                                {
-                                                                                  "text": {
-                                                                                    "name": "Alspn"
-                                                                                  },
-                                                                                  "children": [
-                                                                                    {
-                                                                                      "text": {
-                                                                                        "value": "TaggedString",
-                                                                                        "name": "Scns"
-                                                                                      },
-                                                                                      "children": [
-                                                                                        {
-                                                                                          "text": {
-                                                                                            "value": "\"Var\""
-                                                                                          },
-                                                                                          "connectors": {
-                                                                                            "style": {
-                                                                                              "stroke": "black",
-                                                                                              "stroke-width": "2"
-                                                                                            }
-                                                                                          }
-                                                                                        },
-                                                                                        {
-                                                                                          "text": {
-                                                                                            "dst": "\"keep\"",
-                                                                                            "src": "\"trash1\""
-                                                                                          },
-                                                                                          "connectors": {
-                                                                                            "style": {
-                                                                                              "stroke": "black",
-                                                                                              "stroke-width": "2"
-                                                                                            }
-                                                                                          }
-                                                                                        }
-                                                                                      ],
-                                                                                      "connectors": {
-                                                                                        "style": {
-                                                                                          "stroke": "black",
-                                                                                          "stroke-width": "2"
-                                                                                        }
-                                                                                      }
-                                                                                    }
-                                                                                  ],
-                                                                                  "connectors": {
-                                                                                    "style": {
-                                                                                      "stroke": "black",
-                                                                                      "stroke-width": "2"
-                                                                                    }
-                                                                                  }
-                                                                                }
-                                                                              ],
-                                                                              "connectors": {
-                                                                                "style": {
-                                                                                  "stroke": "black",
-                                                                                  "stroke-width": "2"
-                                                                                }
-                                                                              }
-                                                                            }
-                                                                          ],
-                                                                          "connectors": {
-                                                                            "style": {
-                                                                              "stroke": "black",
-                                                                              "stroke-width": "2"
-                                                                            }
-                                                                          }
-                                                                        },
-                                                                        {
-                                                                          "text": {
-                                                                            "value": "\"Space\""
-                                                                          },
-                                                                          "connectors": {
-                                                                            "style": {
-                                                                              "stroke": "black",
-                                                                              "stroke-width": "2"
-                                                                            }
-                                                                          }
-                                                                        },
-                                                                        {
-                                                                          "text": {
-                                                                            "name": "Alspn"
-                                                                          },
-                                                                          "children": [
-                                                                            {
-                                                                              "text": {
-                                                                                "value": "Cons",
-                                                                                "name": "Scns"
-                                                                              },
-                                                                              "children": [
-                                                                                {
-                                                                                  "text": {
-                                                                                    "name": "Alspn"
-                                                                                  },
-                                                                                  "children": [
-                                                                                    {
-                                                                                      "text": {
-                                                                                        "value": "Term",
-                                                                                        "name": "Scns"
-                                                                                      },
-                                                                                      "children": [
-                                                                                        {
-                                                                                          "text": {
-                                                                                            "name": "Alspn"
-                                                                                          },
-                                                                                          "children": [
-                                                                                            {
-                                                                                              "text": {
-                                                                                                "value": "TaggedString",
-                                                                                                "name": "Scns"
-                                                                                              },
-                                                                                              "children": [
-                                                                                                {
-                                                                                                  "text": {
-                                                                                                    "value": "\"Var\""
-                                                                                                  },
-                                                                                                  "connectors": {
-                                                                                                    "style": {
-                                                                                                      "stroke": "black",
-                                                                                                      "stroke-width": "2"
-                                                                                                    }
-                                                                                                  }
-                                                                                                },
-                                                                                                {
-                                                                                                  "text": {
-                                                                                                    "dst": "\"keep\"",
-                                                                                                    "src": "\"trash\""
-                                                                                                  },
-                                                                                                  "connectors": {
-                                                                                                    "style": {
-                                                                                                      "stroke": "black",
-                                                                                                      "stroke-width": "2"
-                                                                                                    }
-                                                                                                  }
-                                                                                                }
-                                                                                              ],
-                                                                                              "connectors": {
-                                                                                                "style": {
-                                                                                                  "stroke": "black",
-                                                                                                  "stroke-width": "2"
-                                                                                                }
-                                                                                              }
-                                                                                            }
-                                                                                          ],
-                                                                                          "connectors": {
-                                                                                            "style": {
-                                                                                              "stroke": "black",
-                                                                                              "stroke-width": "2"
-                                                                                            }
-                                                                                          }
-                                                                                        }
-                                                                                      ],
-                                                                                      "connectors": {
-                                                                                        "style": {
-                                                                                          "stroke": "black",
-                                                                                          "stroke-width": "2"
-                                                                                        }
-                                                                                      }
-                                                                                    }
-                                                                                  ],
-                                                                                  "connectors": {
-                                                                                    "style": {
-                                                                                      "stroke": "black",
-                                                                                      "stroke-width": "2"
-                                                                                    }
-                                                                                  }
-                                                                                },
-                                                                                {
-                                                                                  "text": {
-                                                                                    "value": "\"Space\""
-                                                                                  },
-                                                                                  "connectors": {
-                                                                                    "style": {
-                                                                                      "stroke": "black",
-                                                                                      "stroke-width": "2"
-                                                                                    }
-                                                                                  }
-                                                                                },
-                                                                                {
-                                                                                  "text": {
-                                                                                    "name": "Alspn"
-                                                                                  },
-                                                                                  "children": [
-                                                                                    {
-                                                                                      "text": {
-                                                                                        "value": "Cons",
-                                                                                        "name": "Scns"
-                                                                                      },
-                                                                                      "children": [
-                                                                                        {
-                                                                                          "text": {
-                                                                                            "name": "Alspn"
-                                                                                          },
-                                                                                          "children": [
-                                                                                            {
-                                                                                              "text": {
-                                                                                                "value": "Term",
-                                                                                                "name": "Scns"
-                                                                                              },
-                                                                                              "children": [
-                                                                                                {
-                                                                                                  "text": {
-                                                                                                    "name": "Alspn"
-                                                                                                  },
-                                                                                                  "children": [
-                                                                                                    {
-                                                                                                      "text": {
-                                                                                                        "value": "TaggedString",
-                                                                                                        "name": "Scns"
-                                                                                                      },
-                                                                                                      "children": [
-                                                                                                        {
-                                                                                                          "text": {
-                                                                                                            "value": "\"Var\""
-                                                                                                          },
-                                                                                                          "connectors": {
-                                                                                                            "style": {
-                                                                                                              "stroke": "black",
-                                                                                                              "stroke-width": "2"
-                                                                                                            }
-                                                                                                          }
-                                                                                                        },
-                                                                                                        {
-                                                                                                          "text": {
-                                                                                                            "dst": "\"new\"",
-                                                                                                            "src": "\"trash\""
-                                                                                                          },
-                                                                                                          "connectors": {
-                                                                                                            "style": {
-                                                                                                              "stroke": "black",
-                                                                                                              "stroke-width": "2"
-                                                                                                            }
-                                                                                                          }
-                                                                                                        }
-                                                                                                      ],
-                                                                                                      "connectors": {
-                                                                                                        "style": {
-                                                                                                          "stroke": "black",
-                                                                                                          "stroke-width": "2"
-                                                                                                        }
-                                                                                                      }
-                                                                                                    }
-                                                                                                  ],
-                                                                                                  "connectors": {
-                                                                                                    "style": {
-                                                                                                      "stroke": "black",
-                                                                                                      "stroke-width": "2"
-                                                                                                    }
-                                                                                                  }
-                                                                                                }
-                                                                                              ],
-                                                                                              "connectors": {
-                                                                                                "style": {
-                                                                                                  "stroke": "black",
-                                                                                                  "stroke-width": "2"
-                                                                                                }
-                                                                                              }
-                                                                                            }
-                                                                                          ],
-                                                                                          "connectors": {
-                                                                                            "style": {
-                                                                                              "stroke": "black",
-                                                                                              "stroke-width": "2"
-                                                                                            }
-                                                                                          }
-                                                                                        },
-                                                                                        {
-                                                                                          "text": {
-                                                                                            "value": "\"Empty\""
-                                                                                          },
-                                                                                          "connectors": {
-                                                                                            "style": {
-                                                                                              "stroke": "black",
-                                                                                              "stroke-width": "2"
-                                                                                            }
-                                                                                          }
-                                                                                        },
-                                                                                        {
-                                                                                          "text": {
-                                                                                            "name": "Alspn"
-                                                                                          },
-                                                                                          "children": [
-                                                                                            {
-                                                                                              "text": {
-                                                                                                "name": "Scp"
-                                                                                              },
-                                                                                              "connectors": {
-                                                                                                "style": {
-                                                                                                  "stroke": "black",
-                                                                                                  "stroke-width": "2"
-                                                                                                }
-                                                                                              }
-                                                                                            }
-                                                                                          ],
-                                                                                          "connectors": {
-                                                                                            "style": {
-                                                                                              "stroke": "black",
-                                                                                              "stroke-width": "2"
-                                                                                            }
-                                                                                          },
-                                                                                          "collapsed": true
-                                                                                        }
-                                                                                      ],
-                                                                                      "connectors": {
-                                                                                        "style": {
-                                                                                          "stroke": "black",
-                                                                                          "stroke-width": "2"
-                                                                                        }
-                                                                                      }
-                                                                                    }
-                                                                                  ],
-                                                                                  "connectors": {
-                                                                                    "style": {
-                                                                                      "stroke": "black",
-                                                                                      "stroke-width": "2"
-                                                                                    }
-                                                                                  }
-                                                                                }
-                                                                              ],
-                                                                              "connectors": {
-                                                                                "style": {
-                                                                                  "stroke": "black",
-                                                                                  "stroke-width": "2"
-                                                                                }
-                                                                              }
-                                                                            }
-                                                                          ],
-                                                                          "connectors": {
-                                                                            "style": {
-                                                                              "stroke": "black",
-                                                                              "stroke-width": "2"
-                                                                            }
-                                                                          }
-                                                                        }
-                                                                      ],
-                                                                      "connectors": {
-                                                                        "style": {
-                                                                          "stroke": "black",
-                                                                          "stroke-width": "2"
-                                                                        }
-                                                                      }
-                                                                    }
-                                                                  ],
-                                                                  "connectors": {
-                                                                    "style": {
-                                                                      "stroke": "black",
-                                                                      "stroke-width": "2"
-                                                                    }
-                                                                  }
-                                                                }
-                                                              ],
                                                               "connectors": {
                                                                 "style": {
                                                                   "stroke": "black",
@@ -677,244 +141,23 @@ const nodes = {
                                                           ],
                                                           "connectors": {
                                                             "style": {
-                                                              "stroke": "green",
-                                                              "stroke-width": "2"
-                                                            }
-                                                          },
-                                                          "HTMLclass": "ins-node"
-                                                        }
-                                                      ],
-                                                      "connectors": {
-                                                        "style": {
-                                                          "stroke": "black",
-                                                          "stroke-width": "2"
-                                                        }
-                                                      }
-                                                    }
-                                                  ],
-                                                  "connectors": {
-                                                    "style": {
-                                                      "stroke": "black",
-                                                      "stroke-width": "2"
-                                                    }
-                                                  }
-                                                },
-                                                {
-                                                  "text": {
-                                                    "value": "\"NewLine\""
-                                                  },
-                                                  "connectors": {
-                                                    "style": {
-                                                      "stroke": "black",
-                                                      "stroke-width": "2"
-                                                    }
-                                                  }
-                                                },
-                                                {
-                                                  "text": {
-                                                    "value": "C1ConsProof",
-                                                    "name": "Aldel"
-                                                  },
-                                                  "children": [
-                                                    {
-                                                      "text": {
-                                                        "name": "There"
-                                                      },
-                                                      "children": [
-                                                        {
-                                                          "text": {
-                                                            "name": "Collection",
-                                                            "type": "\"Parens\""
-                                                          },
-                                                          "children": [
-                                                            {
-                                                              "text": {
-                                                                "name": "Cons",
-                                                                "type": "\"Space\""
-                                                              },
-                                                              "children": [
-                                                                {
-                                                                  "text": {
-                                                                    "name": "Term"
-                                                                  },
-                                                                  "children": [
-                                                                    {
-                                                                      "text": {
-                                                                        "value": "\"keep2\"",
-                                                                        "name": "TaggedString",
-                                                                        "type": "\"Var\""
-                                                                      },
-                                                                      "connectors": {
-                                                                        "style": {
-                                                                          "stroke": "red",
-                                                                          "stroke-width": "2"
-                                                                        }
-                                                                      }
-                                                                    }
-                                                                  ],
-                                                                  "connectors": {
-                                                                    "style": {
-                                                                      "stroke": "red",
-                                                                      "stroke-width": "2"
-                                                                    }
-                                                                  },
-                                                                  "collapsed": true
-                                                                },
-                                                                {
-                                                                  "text": {
-                                                                    "name": "Cons",
-                                                                    "type": "\"Space\""
-                                                                  },
-                                                                  "children": [
-                                                                    {
-                                                                      "text": {
-                                                                        "name": "Term"
-                                                                      },
-                                                                      "children": [
-                                                                        {
-                                                                          "text": {
-                                                                            "value": "\"keep\"",
-                                                                            "name": "TaggedString",
-                                                                            "type": "\"Var\""
-                                                                          },
-                                                                          "connectors": {
-                                                                            "style": {
-                                                                              "stroke": "red",
-                                                                              "stroke-width": "2"
-                                                                            }
-                                                                          }
-                                                                        }
-                                                                      ],
-                                                                      "connectors": {
-                                                                        "style": {
-                                                                          "stroke": "red",
-                                                                          "stroke-width": "2"
-                                                                        }
-                                                                      },
-                                                                      "collapsed": true
-                                                                    },
-                                                                    {
-                                                                      "text": {
-                                                                        "name": "Cons",
-                                                                        "type": "\"Empty\""
-                                                                      },
-                                                                      "children": [
-                                                                        {
-                                                                          "text": {
-                                                                            "name": "Term"
-                                                                          },
-                                                                          "children": [
-                                                                            {
-                                                                              "text": {
-                                                                                "value": "\"keep\"",
-                                                                                "name": "TaggedString",
-                                                                                "type": "\"Var\""
-                                                                              },
-                                                                              "connectors": {
-                                                                                "style": {
-                                                                                  "stroke": "red",
-                                                                                  "stroke-width": "2"
-                                                                                }
-                                                                              }
-                                                                            }
-                                                                          ],
-                                                                          "connectors": {
-                                                                            "style": {
-                                                                              "stroke": "red",
-                                                                              "stroke-width": "2"
-                                                                            }
-                                                                          },
-                                                                          "collapsed": true
-                                                                        },
-                                                                        {
-                                                                          "text": {
-                                                                            "name": "Nil"
-                                                                          },
-                                                                          "connectors": {
-                                                                            "style": {
-                                                                              "stroke": "red",
-                                                                              "stroke-width": "2"
-                                                                            }
-                                                                          }
-                                                                        }
-                                                                      ],
-                                                                      "connectors": {
-                                                                        "style": {
-                                                                          "stroke": "red",
-                                                                          "stroke-width": "2"
-                                                                        }
-                                                                      },
-                                                                      "collapsed": false,
-                                                                      "pseudo": true
-                                                                    }
-                                                                  ],
-                                                                  "connectors": {
-                                                                    "style": {
-                                                                      "stroke": "red",
-                                                                      "stroke-width": "2"
-                                                                    }
-                                                                  },
-                                                                  "collapsed": false,
-                                                                  "pseudo": true
-                                                                }
-                                                              ],
-                                                              "connectors": {
-                                                                "style": {
-                                                                  "stroke": "red",
-                                                                  "stroke-width": "2"
-                                                                }
-                                                              },
-                                                              "collapsed": false,
-                                                              "pseudo": true
-                                                            }
-                                                          ],
-                                                          "connectors": {
-                                                            "style": {
-                                                              "stroke": "red",
+                                                              "stroke": "black",
                                                               "stroke-width": "2"
                                                             }
                                                           },
                                                           "collapsed": true
-                                                        }
-                                                      ],
-                                                      "connectors": {
-                                                        "style": {
-                                                          "stroke": "red",
-                                                          "stroke-width": "2"
-                                                        }
-                                                      },
-                                                      "collapsed": true
-                                                    },
-                                                    {
-                                                      "text": {
-                                                        "name": "There"
-                                                      },
-                                                      "children": [
+                                                        },
                                                         {
                                                           "text": {
-                                                            "values": "\"NewLine\""
+                                                            "value": "\"NewLine\""
                                                           },
                                                           "connectors": {
                                                             "style": {
-                                                              "stroke": "red",
+                                                              "stroke": "black",
                                                               "stroke-width": "2"
                                                             }
                                                           }
-                                                        }
-                                                      ],
-                                                      "connectors": {
-                                                        "style": {
-                                                          "stroke": "red",
-                                                          "stroke-width": "2"
-                                                        }
-                                                      },
-                                                      "collapsed": true
-                                                    },
-                                                    {
-                                                      "text": {
-                                                        "name": "Here"
-                                                      },
-                                                      "children": [
+                                                        },
                                                         {
                                                           "text": {
                                                             "value": "C1ConsProof",
@@ -928,106 +171,21 @@ const nodes = {
                                                               "children": [
                                                                 {
                                                                   "text": {
-                                                                    "name": "Collection",
-                                                                    "type": "\"Parens\""
+                                                                    "name": "Term"
                                                                   },
                                                                   "children": [
                                                                     {
                                                                       "text": {
-                                                                        "name": "Cons",
-                                                                        "type": "\"Space\""
+                                                                        "value": "\"del\"",
+                                                                        "name": "TaggedString",
+                                                                        "type": "\"Var\""
                                                                       },
-                                                                      "children": [
-                                                                        {
-                                                                          "text": {
-                                                                            "name": "Term"
-                                                                          },
-                                                                          "children": [
-                                                                            {
-                                                                              "text": {
-                                                                                "value": "\"trash3\"",
-                                                                                "name": "TaggedString",
-                                                                                "type": "\"Var\""
-                                                                              },
-                                                                              "connectors": {
-                                                                                "style": {
-                                                                                  "stroke": "red",
-                                                                                  "stroke-width": "2"
-                                                                                }
-                                                                              }
-                                                                            }
-                                                                          ],
-                                                                          "connectors": {
-                                                                            "style": {
-                                                                              "stroke": "red",
-                                                                              "stroke-width": "2"
-                                                                            }
-                                                                          },
-                                                                          "collapsed": true
-                                                                        },
-                                                                        {
-                                                                          "text": {
-                                                                            "name": "Cons",
-                                                                            "type": "\"Empty\""
-                                                                          },
-                                                                          "children": [
-                                                                            {
-                                                                              "text": {
-                                                                                "name": "Term"
-                                                                              },
-                                                                              "children": [
-                                                                                {
-                                                                                  "text": {
-                                                                                    "value": "\"trash\"",
-                                                                                    "name": "TaggedString",
-                                                                                    "type": "\"Var\""
-                                                                                  },
-                                                                                  "connectors": {
-                                                                                    "style": {
-                                                                                      "stroke": "red",
-                                                                                      "stroke-width": "2"
-                                                                                    }
-                                                                                  }
-                                                                                }
-                                                                              ],
-                                                                              "connectors": {
-                                                                                "style": {
-                                                                                  "stroke": "red",
-                                                                                  "stroke-width": "2"
-                                                                                }
-                                                                              },
-                                                                              "collapsed": true
-                                                                            },
-                                                                            {
-                                                                              "text": {
-                                                                                "name": "Nil"
-                                                                              },
-                                                                              "connectors": {
-                                                                                "style": {
-                                                                                  "stroke": "red",
-                                                                                  "stroke-width": "2"
-                                                                                }
-                                                                              }
-                                                                            }
-                                                                          ],
-                                                                          "connectors": {
-                                                                            "style": {
-                                                                              "stroke": "red",
-                                                                              "stroke-width": "2"
-                                                                            }
-                                                                          },
-                                                                          "collapsed": false,
-                                                                          "pseudo": true
-                                                                        }
-                                                                      ],
                                                                       "connectors": {
                                                                         "style": {
                                                                           "stroke": "red",
                                                                           "stroke-width": "2"
                                                                         }
-                                                                      },
-                                                                      "collapsed": false,
-                                                                      "pseudo": true
+                                                                      }
                                                                     }
                                                                   ],
                                                                   "connectors": {
@@ -1084,8 +242,124 @@ const nodes = {
                                                                   "children": [
                                                                     {
                                                                       "text": {
-                                                                        "name": "Scp"
+                                                                        "value": "Cons",
+                                                                        "name": "Scns"
                                                                       },
+                                                                      "children": [
+                                                                        {
+                                                                          "text": {
+                                                                            "name": "Alspn"
+                                                                          },
+                                                                          "children": [
+                                                                            {
+                                                                              "text": {
+                                                                                "value": "Term",
+                                                                                "name": "Scns"
+                                                                              },
+                                                                              "children": [
+                                                                                {
+                                                                                  "text": {
+                                                                                    "name": "Alspn"
+                                                                                  },
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "text": {
+                                                                                        "value": "TaggedString",
+                                                                                        "name": "Scns"
+                                                                                      },
+                                                                                      "children": [
+                                                                                        {
+                                                                                          "text": {
+                                                                                            "value": "\"Var\""
+                                                                                          },
+                                                                                          "connectors": {
+                                                                                            "style": {
+                                                                                              "stroke": "black",
+                                                                                              "stroke-width": "2"
+                                                                                            }
+                                                                                          }
+                                                                                        },
+                                                                                        {
+                                                                                          "text": {
+                                                                                            "dst": "\"ins\"",
+                                                                                            "src": "\"keep\""
+                                                                                          },
+                                                                                          "connectors": {
+                                                                                            "style": {
+                                                                                              "stroke": "black",
+                                                                                              "stroke-width": "2"
+                                                                                            }
+                                                                                          }
+                                                                                        }
+                                                                                      ],
+                                                                                      "connectors": {
+                                                                                        "style": {
+                                                                                          "stroke": "black",
+                                                                                          "stroke-width": "2"
+                                                                                        }
+                                                                                      }
+                                                                                    }
+                                                                                  ],
+                                                                                  "connectors": {
+                                                                                    "style": {
+                                                                                      "stroke": "black",
+                                                                                      "stroke-width": "2"
+                                                                                    }
+                                                                                  }
+                                                                                }
+                                                                              ],
+                                                                              "connectors": {
+                                                                                "style": {
+                                                                                  "stroke": "black",
+                                                                                  "stroke-width": "2"
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          ],
+                                                                          "connectors": {
+                                                                            "style": {
+                                                                              "stroke": "black",
+                                                                              "stroke-width": "2"
+                                                                            }
+                                                                          }
+                                                                        },
+                                                                        {
+                                                                          "text": {
+                                                                            "value": "\"Empty\""
+                                                                          },
+                                                                          "connectors": {
+                                                                            "style": {
+                                                                              "stroke": "black",
+                                                                              "stroke-width": "2"
+                                                                            }
+                                                                          }
+                                                                        },
+                                                                        {
+                                                                          "text": {
+                                                                            "name": "Alspn"
+                                                                          },
+                                                                          "children": [
+                                                                            {
+                                                                              "text": {
+                                                                                "name": "Scp"
+                                                                              },
+                                                                              "connectors": {
+                                                                                "style": {
+                                                                                  "stroke": "black",
+                                                                                  "stroke-width": "2"
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          ],
+                                                                          "connectors": {
+                                                                            "style": {
+                                                                              "stroke": "black",
+                                                                              "stroke-width": "2"
+                                                                            }
+                                                                          },
+                                                                          "collapsed": true
+                                                                        }
+                                                                      ],
                                                                       "connectors": {
                                                                         "style": {
                                                                           "stroke": "black",
@@ -1099,8 +373,7 @@ const nodes = {
                                                                       "stroke": "black",
                                                                       "stroke-width": "2"
                                                                     }
-                                                                  },
-                                                                  "collapsed": true
+                                                                  }
                                                                 }
                                                               ],
                                                               "connectors": {
@@ -1108,8 +381,7 @@ const nodes = {
                                                                   "stroke": "black",
                                                                   "stroke-width": "2"
                                                                 }
-                                                              },
-                                                              "collapsed": true
+                                                              }
                                                             }
                                                           ],
                                                           "connectors": {
@@ -1131,11 +403,10 @@ const nodes = {
                                                   ],
                                                   "connectors": {
                                                     "style": {
-                                                      "stroke": "red",
+                                                      "stroke": "black",
                                                       "stroke-width": "2"
                                                     }
-                                                  },
-                                                  "HTMLclass": "del-node"
+                                                  }
                                                 }
                                               ],
                                               "connectors": {
@@ -1152,6 +423,42 @@ const nodes = {
                                               "stroke-width": "2"
                                             }
                                           }
+                                        },
+                                        {
+                                          "text": {
+                                            "value": "\"Empty\""
+                                          },
+                                          "connectors": {
+                                            "style": {
+                                              "stroke": "black",
+                                              "stroke-width": "2"
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "text": {
+                                            "name": "Alspn"
+                                          },
+                                          "children": [
+                                            {
+                                              "text": {
+                                                "name": "Scp"
+                                              },
+                                              "connectors": {
+                                                "style": {
+                                                  "stroke": "black",
+                                                  "stroke-width": "2"
+                                                }
+                                              }
+                                            }
+                                          ],
+                                          "connectors": {
+                                            "style": {
+                                              "stroke": "black",
+                                              "stroke-width": "2"
+                                            }
+                                          },
+                                          "collapsed": true
                                         }
                                       ],
                                       "connectors": {
@@ -1168,6 +475,220 @@ const nodes = {
                                       "stroke-width": "2"
                                     }
                                   }
+                                }
+                              ],
+                              "connectors": {
+                                "style": {
+                                  "stroke": "black",
+                                  "stroke-width": "2"
+                                }
+                              }
+                            }
+                          ],
+                          "connectors": {
+                            "style": {
+                              "stroke": "black",
+                              "stroke-width": "2"
+                            }
+                          }
+                        },
+                        {
+                          "text": {
+                            "value": "\"Empty\""
+                          },
+                          "connectors": {
+                            "style": {
+                              "stroke": "black",
+                              "stroke-width": "2"
+                            }
+                          }
+                        },
+                        {
+                          "text": {
+                            "name": "Alspn"
+                          },
+                          "children": [
+                            {
+                              "text": {
+                                "to": "Cons",
+                                "from": "Nil",
+                                "name": "Schg"
+                              },
+                              "children": [
+                                {
+                                  "text": {
+                                    "name": "Ains"
+                                  },
+                                  "children": [
+                                    {
+                                      "text": {
+                                        "name": "Collection",
+                                        "type": "\"Parens\""
+                                      },
+                                      "children": [
+                                        {
+                                          "text": {
+                                            "name": "Cons",
+                                            "type": "\"Empty\""
+                                          },
+                                          "children": [
+                                            {
+                                              "text": {
+                                                "name": "Collection",
+                                                "type": "\"Parens\""
+                                              },
+                                              "children": [
+                                                {
+                                                  "text": {
+                                                    "name": "Cons",
+                                                    "type": "\"Empty\""
+                                                  },
+                                                  "children": [
+                                                    {
+                                                      "text": {
+                                                        "name": "Term"
+                                                      },
+                                                      "children": [
+                                                        {
+                                                          "text": {
+                                                            "value": "\"keep\"",
+                                                            "name": "TaggedString",
+                                                            "type": "\"Var\""
+                                                          },
+                                                          "connectors": {
+                                                            "style": {
+                                                              "stroke": "green",
+                                                              "stroke-width": "2"
+                                                            }
+                                                          }
+                                                        }
+                                                      ],
+                                                      "connectors": {
+                                                        "style": {
+                                                          "stroke": "green",
+                                                          "stroke-width": "2"
+                                                        }
+                                                      },
+                                                      "collapsed": true
+                                                    },
+                                                    {
+                                                      "text": {
+                                                        "name": "Nil"
+                                                      },
+                                                      "connectors": {
+                                                        "style": {
+                                                          "stroke": "green",
+                                                          "stroke-width": "2"
+                                                        }
+                                                      }
+                                                    }
+                                                  ],
+                                                  "connectors": {
+                                                    "style": {
+                                                      "stroke": "green",
+                                                      "stroke-width": "2"
+                                                    }
+                                                  },
+                                                  "collapsed": false,
+                                                  "pseudo": true
+                                                }
+                                              ],
+                                              "connectors": {
+                                                "style": {
+                                                  "stroke": "green",
+                                                  "stroke-width": "2"
+                                                }
+                                              },
+                                              "collapsed": true
+                                            },
+                                            {
+                                              "text": {
+                                                "name": "Nil"
+                                              },
+                                              "connectors": {
+                                                "style": {
+                                                  "stroke": "green",
+                                                  "stroke-width": "2"
+                                                }
+                                              }
+                                            }
+                                          ],
+                                          "connectors": {
+                                            "style": {
+                                              "stroke": "green",
+                                              "stroke-width": "2"
+                                            }
+                                          },
+                                          "collapsed": false,
+                                          "pseudo": true
+                                        }
+                                      ],
+                                      "connectors": {
+                                        "style": {
+                                          "stroke": "green",
+                                          "stroke-width": "2"
+                                        }
+                                      },
+                                      "collapsed": true
+                                    }
+                                  ],
+                                  "connectors": {
+                                    "style": {
+                                      "stroke": "green",
+                                      "stroke-width": "2"
+                                    }
+                                  },
+                                  "HTMLclass": "ins-node"
+                                },
+                                {
+                                  "text": {
+                                    "name": "Ains"
+                                  },
+                                  "children": [
+                                    {
+                                      "text": {
+                                        "values": "\"Empty\""
+                                      },
+                                      "connectors": {
+                                        "style": {
+                                          "stroke": "green",
+                                          "stroke-width": "2"
+                                        }
+                                      }
+                                    }
+                                  ],
+                                  "connectors": {
+                                    "style": {
+                                      "stroke": "green",
+                                      "stroke-width": "2"
+                                    }
+                                  },
+                                  "HTMLclass": "ins-node"
+                                },
+                                {
+                                  "text": {
+                                    "name": "Ains"
+                                  },
+                                  "children": [
+                                    {
+                                      "text": {
+                                        "name": "Nil"
+                                      },
+                                      "connectors": {
+                                        "style": {
+                                          "stroke": "green",
+                                          "stroke-width": "2"
+                                        }
+                                      }
+                                    }
+                                  ],
+                                  "connectors": {
+                                    "style": {
+                                      "stroke": "green",
+                                      "stroke-width": "2"
+                                    }
+                                  },
+                                  "HTMLclass": "ins-node"
                                 }
                               ],
                               "connectors": {
@@ -1258,6 +779,5 @@ const nodes = {
     }
   }
 }
-
 cb = () => 0
 tree = new Treant( {chart: config, nodeStructure: nodes}, cb, $ )

@@ -13,24 +13,28 @@ import Data.Maybe
 import Debug.Trace
 
 import Control.Monad.Reader
+import Data.IntMap as M
+import Data.Set as S
 
 import Oracle.Internal
 import Clojure.Lang
 import Clojure.AST
 import Util.UnixDiff
 
-data GroupedDiffOracle = GroupedDiffOracle [GroupDiffAction]
+type CopyMap = M.IntMap Int
+type CopyMaps = (CopyMap, CopyMap)
+data GroupedDiffOracle = GroupedDiffOracle ([GroupDiffAction], CopyMaps)
 
 askOracle :: GroupedDiffOracle -> Usingl u -> Usingl v -> [Path]
-askOracle (GroupedDiffOracle o) src dst = case (extractRange src, extractRange dst) of
+askOracle (GroupedDiffOracle (diffActions, copyMaps)) src dst = case (extractRange src, extractRange dst) of
       (Nothing, Nothing)         -> [ M ]
       (Just sRange, Nothing)     -> [ ]
       (Nothing, Just dRange)     -> [ ]
-      (Just sRange, Just dRange) -> giveAdvice o src dst
+      (Just sRange, Just dRange) -> giveAdvice diffActions src dst
+
         -- traceM ("src[" ++ show sRange ++ "]: " ++ show s)
         -- traceM ("dst[" ++ show dRange ++ "]: " ++ show d)
         -- traceM ("ans: " ++ show ans)
-
 
 giveAdvice :: [GroupDiffAction] -> Usingl u -> Usingl v -> [Path]
 giveAdvice [] src dst = [ M ]
@@ -76,6 +80,9 @@ inSync (Range s1 _) (Range s2 _) = s1 == s2
 
 isContainedIn :: LineRange -> LineRange -> Bool
 isContainedIn (Range s1 e1) (Range s2 e2) = s2 <= s1 && s1 <= e2
+
+isStrictlyContainedIn :: LineRange -> LineRange -> Bool
+isStrictlyContainedIn (Range s1 e1) (Range s2 e2) = s2 <= s1 && e1 <= e2
 -- && s1 <= e2-- && e1 <= e2
 
 shouldMod :: Usingl u -> LineRange -> Bool
@@ -83,7 +90,52 @@ shouldMod u lr = uRange `isContainedIn` lr
 -- || any (flip isContainedIn lr) children
   where
     uRange = fromJust $ extractRange u
-    -- children = extractChildRanges u
+    children = extractChildRanges u
+
+copySetExpr :: CopyMap -> Expr -> S.Set Int
+copySetExpr copyMap e = collectAll copyMap eRange
+  where
+    eRange = extractRangeExpr e
+
+copySetSEL :: CopyMap -> SepExprList -> S.Set Int
+copySetSEL copyMap e = collectAll copyMap eRange
+  where
+    eRange = extractRangeSepExprList e
+
+collectAll :: CopyMap -> LineRange -> S.Set Int
+collectAll cpM (Range s e) = go cpM s
+  where
+    go m i | i <= e = mbTakeLine m i `S.union` go m (i+1)
+    go m i | otherwise = S.empty
+
+    mbTakeLine m i = if isJust (M.lookup i m)
+      then S.singleton i
+      else S.empty
+
+lookupSet :: S.Set Int -> CopyMap -> S.Set Int
+lookupSet s cp = S.map (fromJust . flip M.lookup cp) s
+
+intersects :: Ord a => S.Set a -> S.Set a -> Bool
+intersects a b = S.null (a `S.intersection` b)
+
+deOptimize :: CopyMaps -> Usingl u -> Usingl v -> Bool
+deOptimize (srcMap, dstMap) (UExpr (Seq a b _)) (UExpr (Seq c d _)) = (copyTargetA `intersects` copySetC && copyTargetA `intersects` copySetD) || (copyTargetB `intersects` copySetC && copyTargetB `intersects` copySetD)
+  where
+    copySetA = copySetExpr srcMap a
+    copySetB = copySetExpr srcMap b
+    copyTargetA = lookupSet copySetA srcMap
+    copyTargetB = lookupSet copySetB srcMap
+    copySetC = copySetExpr dstMap c
+    copySetD = copySetExpr dstMap d
+deOptimize (srcMap, dstMap) (USepExprList (Cons a _ b _)) (USepExprList (Cons c _ d _)) = (copyTargetA `intersects` copySetC && copyTargetA `intersects` copySetD) || (copyTargetB `intersects` copySetC && copyTargetB `intersects` copySetD)
+  where
+    copySetA = copySetExpr srcMap a
+    copySetB = copySetSEL srcMap b
+    copyTargetA = lookupSet copySetA srcMap
+    copyTargetB = lookupSet copySetB srcMap
+    copySetC = copySetExpr dstMap c
+    copySetD = copySetSEL dstMap d
+deOptimize _ _ _ = False
 
 extractChildRanges :: Usingl u -> [LineRange]
 extractChildRanges (UString u) = []
@@ -104,16 +156,19 @@ extractChildSepExprListRange :: SepExprList -> [LineRange]
 extractChildSepExprListRange (Nil _) = []
 extractChildSepExprListRange (Cons e _ sel _) = [ extractRangeExpr e, extractRangeSepExprList sel ]
 
--- s2 s1 e2 e1
 instance (Monad m) => OracleF GroupedDiffOracle m where
-  callF o s d = do
+  callF o@(GroupedDiffOracle (diffActions, copyMaps)) s d = do
+    let guard = deOptimize copyMaps s d
     let sRange = extractRange s
     let dRange = extractRange d
-    -- traceM ("src[" ++ show sRange ++ "]: " ++ show s)
-    -- traceM ("dst[" ++ show dRange ++ "]: " ++ show d)
-    let ans = askOracle o s d
-    -- traceM ("ans: " ++ show ans)
-    return ans
+    if guard then do
+      traceM "Guard is true"
+      -- traceM ("src[" ++ show sRange ++ "]: " ++ show s)
+      -- traceM ("dst[" ++ show dRange ++ "]: " ++ show d)
+      return []
+    else do
+      let ans = askOracle o s d
+      return ans
 
 
 

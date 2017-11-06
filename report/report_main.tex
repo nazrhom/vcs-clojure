@@ -1257,6 +1257,70 @@ the lines at the beginning of the file. In our case, we have the whole
 expression tree, and adding a line at the end of the file does not necessarily only trigger 
 changes on the leaves of the tree.
 
+Another problem, perhaps even more troubling is that \texttt{diff3} can mark 
+some parts as copies even though these copies are illegal for our algorithm.
+Immagine a case where we have this pair of source and destination files
+
+\begin{lstlisting}[language=haskell]
+((keep
+  del
+
+keep))
+\end{lstlisting}
+
+\begin{lstlisting}[language=haskell]
+((keep
+  ins)(
+
+keep))
+\end{lstlisting}
+
+In this case, according to \texttt{diff3} we are supposed to copy lines 1,3,4 
+and modify on 2. The problem is that in the source file, we have a Cons node 
+that contains all the copy lines in one of its children. In the destination 
+however, some of these lines are copied to the left child of a Cons, and others 
+to the right. What happens is that \texttt{diff3} can copy nodes across adjacent sub-trees, 
+but our algorithm does not, we have to pick one of the two sub-trees and attempt 
+the copies only into that.
+What happens is that we are transforming a Cons a Nil into a Cons c d, and to do 
+so we only have the option of inserting d in the place of Nil. However, 
+according to \texttt{diff3}, our 'a' copies something to 'd' aswell. In practice 
+this means that when we are at the step where we have to calculate the patch between 
+a and c, we are left with inconsistent information, in particular we marked some nodes as copies when we
+actually want to delete them.
+
+To solve this problem we must find a way of detecting when a situation like the 
+one described above arises. We can formulate the problem as follows:
+given the following source and destination nodes
+
+\begin{lstlisting}[language=haskell]
+src = Seq a b
+dst = Seq c d
+\end{lstlisting}
+
+Let $CopyPairs(P)$ be the set of pairs (s,r) that are marked as copies by 
+\texttt{diff3} in the program $P$,
+Let $CopySet(e)$ be the function that extracts all the lines marked as copies 
+contained in an expression $e$.
+Then, if we can find an $s \in CopySet(a)$ such that $r \in CopySet(c)$, where $(s,r) \in 
+CopyPairs(P)$ and we can find $s' \in CopySet(a)$ such that $r' \in CopySet(d)$, where $(s',r') \in 
+CopyPairs(P)$ then we know we are in a conflicting situation.
+To solve the conflict we can simply remove some pairs from the set $CopyPairs(P)$ (marking them as OMods instead)
+untill the condition is satisfied. 
+
+Questions
+
+ - can we do it globally?
+         How do we pair up nodes?
+ - can we do it only on branch?
+         Detect situation before askOracle, if ever true mark some 
+         internal state as deopt and ignore copy information from diff3
+ - how many cases can this happen in
+          All nodes that have a pair of subtrees? What about Seq -> Cons
+
+
+
+\subsection{Considerations}
 I can see two possible solutions to this problem. One is to carefully think 
 about which nodes have this non-local influence and treat them in a special way. 
 I think that in our grammar this can only happen with \texttt{Seq}, so an easy 
@@ -1264,7 +1328,7 @@ fix can be to treat it ad-hoc and prioritise balancing the number of
 \texttt{Seq}s between source and destination file.
 
 Another idea might be to simply run \texttt{diff3} not on the original files, 
-but on a suitable annotated version of their ASTs. In this way we make the every 
+but on a suitable annotated version of their ASTs. In this way we make  every 
 possible change on the tree-level directly observable by \texttt{diff3}. Clearly 
 this introduces the problem of how to flatten the AST and how to interpret the 
 results we get back from \texttt{diff3}, (this is a fallback to previous approaches to the diffing problem in 

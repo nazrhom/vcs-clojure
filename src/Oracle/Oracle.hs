@@ -3,7 +3,8 @@ module Oracle.Oracle
   , module Oracle.NoOracle
   , module Oracle.NoDupBranches
   , module Oracle.DiffOracle
-  , module Oracle.CostOracle
+  , module Oracle.NoIllegalCopy
+  , module Oracle.CopyOracle
   , module Oracle.GroupedDiffOracle
   ) where
 
@@ -11,5 +12,6 @@ import Oracle.Internal
 import Oracle.NoOracle
 import Oracle.NoDupBranches
 import Oracle.DiffOracle
-import Oracle.CostOracle
+import Oracle.NoIllegalCopy
+import Oracle.CopyOracle
 import Oracle.GroupedDiffOracle

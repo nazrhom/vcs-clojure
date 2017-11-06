@@ -1,5 +1,4 @@
 ((keep
   del
 
-wadda
-  keep))
+keep))

@@ -4,7 +4,7 @@ import Clojure.AST
 import Control.Monad.State
 
 type CurrentLine = Int
-type LineMonad = State CurrentLine
+type LineState = State CurrentLine
 
 toTree :: Expr -> String
 toTree e = evalState (toTreeExpr e) 1
@@ -15,14 +15,14 @@ newLinesToStartOfRange cl (Range s e) = s - cl
 insertNewLines :: Int -> String
 insertNewLines i = replicate i '\n'
 
-updateLineCounter :: LineRange -> LineMonad Int
+updateLineCounter :: LineRange -> LineState Int
 updateLineCounter lr = do
   cl <- get
   let advance = newLinesToStartOfRange cl lr
   put (cl + advance)
   return advance
 
-toTreeExpr :: Expr -> LineMonad String
+toTreeExpr :: Expr -> LineState String
 toTreeExpr (Special fty e lr) = do
   curr <- updateLineCounter lr
   e1 <- toTreeExpr e
@@ -51,7 +51,7 @@ toTreeExpr (Empty lr) = do
   curr <- updateLineCounter lr
   return $ insertNewLines curr ++ "Empty"
 
-toTreeSel :: SepExprList -> LineMonad String
+toTreeSel :: SepExprList -> LineState String
 toTreeSel (Nil lr) = do
   curr <- updateLineCounter lr
   return $ insertNewLines curr ++ "Nil"
@@ -61,7 +61,7 @@ toTreeSel (Cons e sep sel lr) = do
   selS <- toTreeSel sel
   return $ insertNewLines curr ++ "Cons " ++ eS ++ " " ++ show sep ++ " " ++ selS
 
-toTreeTerm :: Term -> LineMonad String
+toTreeTerm :: Term -> LineState String
 toTreeTerm (TaggedString tag str lr) = do
   curr <- updateLineCounter lr
   return $ insertNewLines curr ++ "TaggedString " ++ show tag ++ " " ++ show str

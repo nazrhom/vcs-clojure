@@ -2,9 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE GADTs #-}
 
-module Oracle.CostOracle where
-
-import Control.Monad.State
+module Oracle.NoIllegalCopy where
 
 import Oracle.Internal
 

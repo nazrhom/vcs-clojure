@@ -7,10 +7,15 @@ import qualified Data.Algorithm.DiffOutput as O
 
 import Clojure.AST
 
-instance Functor Diff where
-  fmap f (First a) = First $ f a
-  fmap f (Second a) = Second $ f a
-  fmap f (Both a1 a2) = Both (f a1) (f a2)
+data GroupDiffAction = OMod LineRange LineRange
+                     | OIns LineRange Int
+                     | ODel LineRange Int
+  deriving (Show)
+
+data DiffAction = Copy (Int, Int)
+                | Ins Int
+                | Del Int
+  deriving Eq
 
 preprocess :: String -> String -> [DiffAction]
 preprocess s1 s2 = map processDiff (diff s1 s2)
@@ -22,9 +27,6 @@ diff s1 s2 = getDiffBy eqIgnoringLines (withLineN s1) (withLineN s2)
 
 groupedDiff f1 f2 = O.diffToLineRanges $ getGroupedDiff (lines f1) (lines f2)
 
-data DiffAction = Mod (Int, Int) | Ins Int | Del Int
-  deriving Eq
-
 withLineN :: String -> [(String, Int)]
 withLineN s = zip (lines s) [1..]
 
@@ -34,13 +36,9 @@ ppPDiff :: [DiffAction] -> String
 ppPDiff = foldl (\d a -> d ++ "\n" ++ show a) ""
 
 processDiff :: Diff (String, Int) -> DiffAction
-processDiff (Both (_, i1) (_, i2)) = (Mod (i1, i2))
+processDiff (Both (_, i1) (_, i2)) = (Copy (i1, i2))
 processDiff (First (_, i))  = (Del i)
 processDiff (Second (_, i)) = (Ins i)
-
-data GroupDiffAction = OMod LineRange LineRange
-                     | OIns LineRange Int
-                     | ODel LineRange Int deriving (Show)
 
 processGroupedDiff :: O.DiffOperation O.LineRange -> GroupDiffAction
 processGroupedDiff (O.Change srcR dstR) = OMod (extractLineRange srcR) (extractLineRange dstR)
@@ -53,6 +51,6 @@ extractLineRange lr = Range start end
     (start, end) = O.lrNumbers lr
 
 instance Show DiffAction where
-  show (Mod (i1, i2)) = show i1 ++ " % " ++ show i2
+  show (Copy (i1, i2)) = show i1 ++ " % " ++ show i2
   show (Ins i) = show i ++ "+"
   show (Del i) = show i ++ "-"

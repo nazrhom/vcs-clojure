@@ -30,7 +30,7 @@ buildOracle :: [DiffAction] -> DelInsMap
 buildOracle [] = (M.empty, M.empty)
 buildOracle (first:rest) = (process first) `unionDelInsMap` (buildOracle rest)
   where
-    process (Mod (i1, i2)) = (M.empty, M.empty)
+    process (Copy (i1, i2)) = (M.empty, M.empty)
     process (Ins i) = (M.empty, M.singleton i I)
     process (Del i) = (M.singleton i D, M.empty)
 
