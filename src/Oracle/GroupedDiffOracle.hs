@@ -112,36 +112,44 @@ collectAll cpM (Range s e) = go cpM s
       then S.singleton i
       else S.empty
 
+extractSingleLines :: [LineRange] -> S.Set Int
+extractSingleLines [] = S.empty
+extractSingleLines ((Range s e):lrs) | s == e = S.singleton s `S.union` extractSingleLines lrs
+                                   | otherwise = extractSingleLines lrs
+
 lookupSet :: S.Set Int -> CopyMap -> S.Set Int
 lookupSet s cp = S.map (fromJust . flip M.lookup cp) s
 
 intersects :: Ord a => S.Set a -> S.Set a -> Bool
-intersects a b = S.null (a `S.intersection` b)
+intersects a b = not (S.null (a `S.intersection` b))
 
+checkOverlap target a b = target `intersects` (a `S.difference` overlapping) && target `intersects` (b `S.difference` overlapping)
+  where
+    overlapping  = a `S.intersection` b
 deOptimize :: CopyMaps -> Usingl u -> Usingl v -> Bool
-deOptimize (srcMap, dstMap) (UExpr (Seq a b _)) (UExpr (Seq c d _)) = (copyTargetA `intersects` copySetC && copyTargetA `intersects` copySetD) || (copyTargetB `intersects` copySetC && copyTargetB `intersects` copySetD)
+deOptimize (srcMap, dstMap) s@(UExpr (Seq a b lrs)) t@(UExpr (Seq c d lrt)) = inSync lrs lrt && (checkOverlap copyTargetA copySetC copySetD || checkOverlap copyTargetC copySetA copySetB)
   where
     copySetA = copySetExpr srcMap a
     copySetB = copySetExpr srcMap b
     copyTargetA = lookupSet copySetA srcMap
-    copyTargetB = lookupSet copySetB srcMap
     copySetC = copySetExpr dstMap c
     copySetD = copySetExpr dstMap d
-deOptimize (srcMap, dstMap) (USepExprList (Cons a _ b _)) (USepExprList (Cons c _ d _)) = (copyTargetA `intersects` copySetC && copyTargetA `intersects` copySetD) || (copyTargetB `intersects` copySetC && copyTargetB `intersects` copySetD)
+    copyTargetC = lookupSet copySetC dstMap
+deOptimize (srcMap, dstMap) s@(USepExprList (Cons a _ b lrs)) t@(USepExprList (Cons c _ d lrt)) = inSync lrs lrt && (checkOverlap copyTargetA copySetC copySetD || checkOverlap copyTargetC copySetA copySetB)
   where
     copySetA = copySetExpr srcMap a
     copySetB = copySetSEL srcMap b
     copyTargetA = lookupSet copySetA srcMap
-    copyTargetB = lookupSet copySetB srcMap
     copySetC = copySetExpr dstMap c
     copySetD = copySetSEL dstMap d
+    copyTargetC = lookupSet copySetC dstMap
 deOptimize _ _ _ = False
 
 extractChildRanges :: Usingl u -> [LineRange]
 extractChildRanges (UString u) = []
 extractChildRanges (UExpr u)   = extractChildExprRange u
 extractChildRanges (USepExprList u) = extractChildSepExprListRange u
-extractChildRanges (UTerm u) = []
+extractChildRanges (UTerm u) = [ extractRangeTerm u]
 
 extractChildExprRange :: Expr -> [LineRange]
 extractChildExprRange (Special _ e _) = [ extractRangeExpr e ]
@@ -162,10 +170,10 @@ instance (Monad m) => OracleF GroupedDiffOracle m where
     let sRange = extractRange s
     let dRange = extractRange d
     if guard then do
-      traceM "Guard is true"
+      -- traceM "Guard is true"
       -- traceM ("src[" ++ show sRange ++ "]: " ++ show s)
       -- traceM ("dst[" ++ show dRange ++ "]: " ++ show d)
-      return []
+      return [S]
     else do
       let ans = askOracle o s d
       return ans
@@ -182,4 +190,15 @@ instance (Monad m) => OracleP GroupedDiffOracle m where
   callP _ (_ `Ac` _) An         = do
     -- traceM "D"
     return [ D ]
-  callP o (s `Ac` _) (d `Ac` _) = return $ askOracle o s d
+  callP o@(GroupedDiffOracle (diffActions, copyMaps)) (s `Ac` _) (d `Ac` _) =  do
+    let guard = deOptimize copyMaps s d
+    let sRange = extractRange s
+    let dRange = extractRange d
+    if guard then do
+      -- traceM "Guard is true"
+      -- traceM ("src[" ++ show sRange ++ "]: " ++ show s)
+      -- traceM ("dst[" ++ show dRange ++ "]: " ++ show d)
+      return [S]
+    else do
+      let ans = askOracle o s d
+      return ans

@@ -1257,6 +1257,56 @@ the lines at the beginning of the file. In our case, we have the whole
 expression tree, and adding a line at the end of the file does not necessarily only trigger 
 changes on the leaves of the tree.
 
+\subsubsection{Possible Solutions}
+I can see two possible solutions to this problem. One is to carefully think 
+about which nodes have this non-local influence and treat them in a special way. 
+For example, the problem presented in the previous snippet arises from the fact 
+that on the top-level the parser is designed to parse either an \texttt{Expr} or 
+a \texttt{Seq} of expressions. 
+
+This means that whenever we change a single expression to a sequence of 
+multiple ones by adding one at the end, we will record the insertion, but will 
+also mark the first line as a copy. This means it will be ``to late'', when we 
+get to the inseted line, and we already decided to copy a node which leaves us 
+no slot to insert the new expression.
+This problem can be fixed in different ways: one solution is to design the AST in a 
+way that this problem can not arise. If we modeled the top-level of a program, 
+so that the top level is always a \texttt{Seq} and we add an \texttt{Empty} 
+constructor to \texttt{Expr}, then an example like the previous one would not be 
+problematic anymore. Infact, when we get to line 2, we don't have to change the 
+previous constructor anymore, as the source will conveniently contain an 
+\texttt{Empty} expression slot in which we can insert our new expression.
+This solution has the problem of being very ad-hoc. We have to modify the parser 
+and add support for the new constructors in our generic module. 
+
+A better solution would be to design oracles that can deal with the problematic cases. 
+Sticking to the example presented earlier, we could define a simple oracle which 
+ignores everything, except the case when it gets as input a single expression 
+from the source and a sequence of multiple in the destination. In that case, as 
+we know that no matter what the other oracles say, we must insert a \texttt{Seq} 
+node on the top-level, we can directly return \texttt{I} and skip the other 
+oracles. 
+
+This solution is better than the previous one, as it is less invasive. It is 
+still troublesome however that the correctness of the oracle depends on an 
+oracle being present before it. Also, if we want to add support for other 
+languages in the future we will have to carefully reimplement the ad-hoc oracles 
+for the new languages. To solve these last lingering issues, we can adopt a 
+different stratedy. Ultimately the problem lies in the fact that there are two 
+distinct actors at play: one one hand we have the AST, on the other the actual lines of 
+code, which can be thought of as a pretty-print of the AST. We are using the line based solution 
+over the pretty-print of the AST to derive a solution on the AST. Our problems 
+come from the fact that changes to the pretty-printed AST don't always map 1-1 
+to changes on the AST. If we could somehow run the line based diff on the AST 
+directly there would be no discrepancies. To do so, we can simply print the AST 
+to file, and since every constructor is annotated with a line range (which implicitly tell us on which line does the constructor appear)
+we have a way to organise the AST in lines in a way that respects the 
+information we would obtain by running the diff on the pretty-print of the AST ( This has to made clearer: what 
+I mean is that every change recorded in diff3(pp(AST)) also appears in diff3(AST) 
+)
+
+\subsection{Further Shortcomings}
+
 Another problem, perhaps even more troubling is that \texttt{diff3} can mark 
 some parts as copies even though these copies are illegal for our algorithm.
 Immagine a case where we have this pair of source and destination files
@@ -1289,6 +1339,8 @@ this means that when we are at the step where we have to calculate the patch bet
 a and c, we are left with inconsistent information, in particular we marked some nodes as copies when we
 actually want to delete them.
 
+\subsubsection{Possible Solutions}
+
 To solve this problem we must find a way of detecting when a situation like the 
 one described above arises. We can formulate the problem as follows:
 given the following source and destination nodes
@@ -1299,14 +1351,27 @@ dst = Seq c d
 \end{lstlisting}
 
 Let $CopyPairs(P)$ be the set of pairs (s,r) that are marked as copies by 
-\texttt{diff3} in the program $P$,
+\texttt{diff3} in the program $P$.
 Let $CopySet(e)$ be the function that extracts all the lines marked as copies 
-contained in an expression $e$.
+contained in an expression $e$ (A line is marked as copy if it appears on the left in one of the pairs resulting from $CopyPairs(P)$).
 Then, if we can find an $s \in CopySet(a)$ such that $r \in CopySet(c)$, where $(s,r) \in 
 CopyPairs(P)$ and we can find $s' \in CopySet(a)$ such that $r' \in CopySet(d)$, where $(s',r') \in 
-CopyPairs(P)$ then we know we are in a conflicting situation.
+CopyPairs(P)$ then we know we are in a conflicting situation. 
+This condition deal with the case where we had to insert a sub-tree which 
+contains some expression marked as copies, to deal with the deletion as well, we 
+must also check that the converse condition does not hold going from $c$ to $a$ 
+and $b$
 To solve the conflict we can simply remove some pairs from the set $CopyPairs(P)$ (marking them as OMods instead)
 untill the condition is satisfied. 
+
+A pratical solution would be to extend the oracles to add support for a \texttt{De-optimise} 
+operation. The oracle should be able to perform some computation on each branch 
+and decide if it should keep operating on subsequent computations that follow from that branch. 
+Supporting this interface might be also very useful if we plan to write a human-interaction oracle, where we could have 
+it work on the top levels of the tree (e.g. user matches top level expressions) 
+and then turn off as the program takes care of the of the deeper levels. 
+(Alternative designs: maybe we can remove global state from oracle and thread state through 
+computation? in this way we can modify the [DiffAction] in place and avoid having to deoptimise completely)
 
 Questions
 
@@ -1320,19 +1385,6 @@ Questions
 
 
 
-\subsection{Considerations}
-I can see two possible solutions to this problem. One is to carefully think 
-about which nodes have this non-local influence and treat them in a special way. 
-I think that in our grammar this can only happen with \texttt{Seq}, so an easy 
-fix can be to treat it ad-hoc and prioritise balancing the number of 
-\texttt{Seq}s between source and destination file.
-
-Another idea might be to simply run \texttt{diff3} not on the original files, 
-but on a suitable annotated version of their ASTs. In this way we make  every 
-possible change on the tree-level directly observable by \texttt{diff3}. Clearly 
-this introduces the problem of how to flatten the AST and how to interpret the 
-results we get back from \texttt{diff3}, (this is a fallback to previous approaches to the diffing problem in 
-general, flattening and rebuilding is definately non-trivial)
 \begin{center}
  \begin{tabular} { ||c|c|| }
    \hline Visual Representation of Patches & 10 - 10 - 2017 \\

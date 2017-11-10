@@ -89,11 +89,13 @@ spine x y | otherwise = case (view x, view y) of
 --
 -- The phase records the LAST decision took by the algo (either an insertion,
 -- modification ordeletion)
+mkEnv :: [Path] -> History
+mkEnv p = History { path = p, deOpt = False }
 
 align :: (MonadOracle o m)
       => o -> All Usingl p1 -> All Usingl p2
       -> m (Al TrivialA p1 p2)
-align orc p1 p2 = runReaderT (alignO orc p1 p2) [I,M,D]
+align orc p1 p2 = runReaderT (alignO orc p1 p2) (mkEnv [I,M,D])
 
 alignO :: (MonadOracle o m)
        => o -> All Usingl p1 -> All Usingl p2
@@ -119,21 +121,41 @@ followPath :: (MonadOracle o m)
            => Path -> o -> All Usingl p1 -> All Usingl p2
            -> HistoryM m (Al TrivialA p1 p2)
 followPath _ orc An An         = pure A0 -- XXX: Should never be called!
-followPath I orc p1 (a `Ac` p) = Ains a <$> local (I:) (alignO orc p1 p)
-followPath D orc (a `Ac` p) p2 = Adel a <$> local (D:) (alignO orc p p2)
-followPath M orc (a1 `Ac` p1) (a2 `Ac` p2)
-  = case testEquality a1 a2 of
-      Just Refl -> Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
-      Nothing -> empty
+followPath I orc x y = alignIns orc x y
+followPath D orc x y = alignDel orc x y
+followPath M orc x y = alignMod orc x y
 followPath FM orc (a1 `Ac` p1) (a2 `Ac` p2)
   = case testEquality a1 a2 of
-      Just Refl -> Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
+      Just Refl -> Amod (Contract (a1 , a2)) <$> local (liftPath (M:)) (alignO orc p1 p2)
       Nothing -> case unsafeCoerceEquality a1 a2 of
           Just Refl -> do
-            Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
-      -- (Ains a2 <$> local (I:) (alignO orc (a1 `Ac` p1) p2)) <|> (Adel a1 <$> local (D:) (alignO orc p1 (a2 `Ac` p2)))
-      
-followPath S orc _ _ = empty
+            Amod (Contract (a1 , a2)) <$> local (liftPath (M:)) (alignO orc p1 p2)
+followPath S orc x y = alignAll NoDupBranches x y
+
+liftPath :: ([Path] -> [Path]) -> History -> History
+liftPath f h = History { path = f (path h), deOpt = deOpt h }
+
+alignIns :: (MonadOracle o m)
+           => o -> All Usingl p1 -> All Usingl p2
+           -> HistoryM m (Al TrivialA p1 p2)
+alignIns orc p1 (a `Ac` p) = Ains a <$> local (liftPath (I:)) (alignO orc p1 p)
+
+alignDel :: (MonadOracle o m)
+           => o -> All Usingl p1 -> All Usingl p2
+           -> HistoryM m (Al TrivialA p1 p2)
+alignDel orc (a `Ac` p) p2 = Adel a <$> local (liftPath (D:)) (alignO orc p p2)
+
+alignMod :: (MonadOracle o m)
+           => o -> All Usingl p1 -> All Usingl p2
+           -> HistoryM m (Al TrivialA p1 p2)
+alignMod orc (a1 `Ac` p1) (a2 `Ac` p2) = case testEquality a1 a2 of
+    Just Refl -> Amod (Contract (a1 , a2)) <$> local (liftPath (M:)) (alignO orc p1 p2)
+    Nothing -> empty
+
+alignAll :: (MonadOracle o m)
+           => o -> All Usingl p1 -> All Usingl p2
+           -> HistoryM m (Al TrivialA p1 p2)
+alignAll orc x y = alignIns orc x y <|> alignDel orc x y <|> alignMod orc x y
 -- Library stuff
 newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
 

@@ -235,9 +235,9 @@ instance Sing String where
   toSing s = UString s
 
 
-instance Show (Usingl u) where
-  show (UString u) = show u
-  show (USepExprList u) = show $ ppSepExprList u
-  show (UExpr u) = show $ ppExpr u
-  show (UTerm u) = show $ ppTerm u
--- deriving instance Show (Usingl u)
+-- instance Show (Usingl u) where
+--   show (UString u) = show u
+--   show (USepExprList u) = show $ ppSepExprList u
+--   show (UExpr u) = show $ ppExpr u
+--   show (UTerm u) = show $ ppTerm u
+deriving instance Show (Usingl u)

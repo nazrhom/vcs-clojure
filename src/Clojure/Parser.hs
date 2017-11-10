@@ -25,7 +25,7 @@ import Data.Char hiding (Space)
 import Clojure.AST
 
 lexer = makeTokenParser javaStyle
-  { identStart = alphaNum <|> oneOf "_':*-&\\,"
+  { identStart = alphaNum <|> oneOf "_':*-&\\,."
   , identLetter = alphaNum <|> oneOf ":_.,'-/^?!><*#\"\\" <|> satisfy isSymbol
   }
 
@@ -183,7 +183,7 @@ parseVar = do
   return $ TaggedString "Var" vstring (mkRange start end)
 
 identifier = do
-  c <- alphaNum <|> oneOf "_':*-&\\,"
+  c <- alphaNum <|> oneOf "_':*-&\\,."
   cs <- many (alphaNum <|> oneOf ":_.,'-/^?!><*#\"\\" <|> satisfy isSymbol)
   return (c:cs)
 
