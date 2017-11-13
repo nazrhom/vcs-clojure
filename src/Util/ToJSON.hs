@@ -7,6 +7,7 @@ module Util.ToJSON where
 
 import VCS.Multirec
 import Clojure.Lang
+import Clojure.PrettyPrint
 import Clojure.AST
 
 import Data.Aeson
@@ -27,12 +28,12 @@ instance ToJSON (Spine (At AlmuH) (Al (At AlmuH)) u) where
   toJSON Scp = object [ "text" .= object [ "name" .= ("Scp" :: Text) ] ]
   toJSON (Scns c p) = object [
       "text" .= object [ "name" .= ("Scns" :: Text)
-                       , "value" .= showConstr c ]
+                       , "value" .= show (ppConstr c) ]
     , "children" .= toJSON p ]
   toJSON (Schg i j p) = object [
       "text" .= object [ "name" .= ("Schg" :: Text)
-                       , "from" .= showConstr i
-                       , "to" .= showConstr j ]
+                       , "from" .= show (ppConstr i)
+                       , "to" .= show (ppConstr j) ]
     , "children" .= toJSON p ]
 
 instance ToJSON (Almu u v) where
@@ -107,7 +108,7 @@ instance ToJSON (AlmuH u) where
 instance ToJSON (AtmuPos u v) where
 instance ToJSON (AtmuNeg u v) where
 instance ToJSON (ConstrFor u v) where
-  toJSON c = object [ "text" .= object [ "value" .= showConstr c ]]
+  toJSON c = object [ "text" .= object [ "value" .= show (ppConstr c) ]]
 instance ToJSON (Contract Usingl l) where
   toJSON c = if old == new
              then object [ "text" .= object [

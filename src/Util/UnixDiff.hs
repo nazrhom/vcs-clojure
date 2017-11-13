@@ -23,8 +23,10 @@ preprocess s1 s2 = map processDiff (diff s1 s2)
 preprocessGrouped :: String -> String -> [GroupDiffAction]
 preprocessGrouped s1 s2 = map processGroupedDiff (groupedDiff s1 s2)
 
+diff :: String -> String -> [Diff (String, Int)]
 diff s1 s2 = getDiffBy eqIgnoringLines (withLineN s1) (withLineN s2)
 
+groupedDiff :: String -> String -> [O.DiffOperation O.LineRange]
 groupedDiff f1 f2 = O.diffToLineRanges $ getGroupedDiff (lines f1) (lines f2)
 
 withLineN :: String -> [(String, Int)]

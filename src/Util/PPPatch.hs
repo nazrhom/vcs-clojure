@@ -7,8 +7,8 @@ module Util.PPPatch where
 
 import VCS.Multirec
 import Clojure.Lang
+import Clojure.PrettyPrint
 import Data.Type.Equality hiding (apply)
-import Debug.Trace
 
 showPatchEffect :: (IsRecEl u, IsRecEl v) => Almu u v -> Usingl u -> String
 showPatchEffect (Alspn s) e =
@@ -17,11 +17,11 @@ showPatchEffect (Alspn s) e =
     (showAlEffect (showAtEffect showAlmuHEffect))
     e
     s
-showPatchEffect (Alins c ctx) e = "{+" ++ showConstr c ++ showCtxPosE ctx e
+showPatchEffect (Alins c ctx) e = "{+" ++ show (ppConstr c) ++ showCtxPosE ctx e
 showPatchEffect (Aldel c ctx) e = case view e of
   (Tag c' d) -> case testEquality' c c' of
     Nothing -> "error"
-    Just (Refl, Refl) -> "{-" ++ showConstr c ++ showCtxNegE ctx d
+    Just (Refl, Refl) -> "{-" ++ show (ppConstr c) ++ showCtxNegE ctx d
 
 
 showCtxPosE :: IsRecEl u => Ctx (AtmuPos u) l -> Usingl u -> String
@@ -39,7 +39,7 @@ showSpineEffect showAtE showAlE e Scp = show e
 showSpineEffect showAtE showAlE e (Scns i p) = case view e of
   (Tag c d) -> case testEquality c i of
     Nothing -> undefined
-    Just Refl -> showConstr c ++ showAll showAtE d p
+    Just Refl -> show (ppConstr c) ++ showAll showAtE d p
       where
         showAll :: (forall u . Usingl u -> at u -> String)
                   -> All Usingl l -> All (at :: U -> *) l -> String
@@ -48,7 +48,7 @@ showSpineEffect showAtE showAlE e (Scns i p) = case view e of
 showSpineEffect showAtE showAlE e (Schg i j p) = case view e of
   (Tag c d) -> case testEquality c i of
     Just Refl ->
-      "(" ++ showConstr i ++ " -> " ++ showConstr j ++ ")" ++ showAlE d p
+      "(" ++ show (ppConstr i) ++ " -> " ++ show (ppConstr j) ++ ")" ++ showAlE d p
     Nothing -> undefined
 
 showAlEffect :: (forall u . Usingl u -> at u -> String)

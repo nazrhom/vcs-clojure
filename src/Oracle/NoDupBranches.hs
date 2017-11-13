@@ -22,7 +22,7 @@ instance (Monad m) => OracleP NoDupBranches m where
   callP _ An         An         = return []
   callP _ An         (_ `Ac` _) = return [I]
   callP _ (_ `Ac` _) An         = return [D]
-  callP _ (s `Ac` _) (d `Ac` _) = ask >>= return . nextPaths . path
+  callP _ (s `Ac` _) (d `Ac` _) = ask >>= return . nextPaths
 
 instance (Monad m) => OracleF NoDupBranches m where
-  callF _ s d = ask >>= return . nextPaths . path
+  callF _ s d = ask >>= return . nextPaths

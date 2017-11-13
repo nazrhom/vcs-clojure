@@ -1,12 +1,17 @@
+{-# LANGUAGE GADTs #-}
+
 module Clojure.PrettyPrint
     ( ppTop
     , ppLines
     , ppExpr
     , ppTerm
     , ppSepExprList
+    , ppUsingl
+    , ppConstr
     ) where
 
 import Text.PrettyPrint.Leijen
+import Clojure.Lang
 import Clojure.AST
 
 ppTop :: Expr -> String
@@ -66,3 +71,21 @@ ppSepPair xs sep = hsep $ punctuate sep (go xs)
    go :: [Expr] -> [Doc]
    go (k:v:rest) = (ppExpr k <+> ppExpr v):(go rest)
    go [] = []
+
+ppUsingl :: Usingl u -> Doc
+ppUsingl (UString u) = text u
+ppUsingl (USepExprList u) = ppSepExprList u
+ppUsingl (UExpr u) = ppExpr u
+ppUsingl (UTerm u) = ppTerm u
+
+ppConstr :: ConstrFor u c -> Doc
+ppConstr C1NilProof = text "Nil"
+ppConstr C1ConsProof = text "Cons"
+ppConstr C3SpecialProof = text "Special"
+ppConstr C3DispatchProof = text "Dispatch"
+ppConstr C3CollectionProof = text "Collection"
+ppConstr C3TermProof = text "Term"
+ppConstr C3CommentProof = text "Comment"
+ppConstr C3SeqProof = text "Seq"
+ppConstr C3EmptyProof = text "Empty"
+ppConstr C6TaggedStringProof = text "TaggedString"

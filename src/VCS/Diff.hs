@@ -79,7 +79,7 @@ diffDelCtx orc (y `Ac` ay) x
 
 diffAlmu :: (IsRecEl u, IsRecEl v, MonadOracle o m)
          => o -> Usingl u -> Usingl v -> m (Almu u v)
-diffAlmu orc x y = runReaderT (diffAlmuO orc x y) (mkEnv [I,M,D])
+diffAlmu orc x y = runReaderT (diffAlmuO orc x y) [I,M,D]
 
 diffAlmuO :: (IsRecEl u, IsRecEl v, MonadOracle o m)
           => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
@@ -121,17 +121,17 @@ diffModUnsafe orc s1 s2 = case testEquality s1 s2 of
 toH :: (IsRecEl u, MonadOracle o m)
     => (o -> Usingl u -> Usingl u -> HistoryM m (Almu u u))
     -> o -> Usingl u -> Usingl u -> HistoryM m (AlmuH u)
-toH f o x y = AlmuH <$> local (liftPath (M:)) (f o x y)
+toH f o x y = AlmuH <$> local (M:) (f o x y)
 
 diffIns :: (IsRecEl u, IsRecEl v, MonadOracle o m)
         => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
 diffIns orc x s = case view s of
-  (Tag c p) -> Alins c <$> local (liftPath (I:)) (diffInsCtx orc x p)
+  (Tag c p) -> Alins c <$> local (I:) (diffInsCtx orc x p)
 
 diffDel :: (IsRecEl u, IsRecEl v, MonadOracle o m)
         => o -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
 diffDel orc s x = case (view s) of
-  (Tag c p) -> Aldel c <$> local (liftPath (D:)) (diffDelCtx orc p x)
+  (Tag c p) -> Aldel c <$> local (D:) (diffDelCtx orc p x)
 
 --- Utility
 uncurryPair :: (All Usingl s -> All Usingl d -> res)

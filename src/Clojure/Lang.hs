@@ -8,13 +8,13 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 module Clojure.Lang where
 
 import Data.Type.Equality hiding (apply)
 import GHC.TypeLits (ErrorMessage(..), TypeError)
 import Clojure.AST
-import Clojure.PrettyPrint
-
+import Data.Proxy
 
 -- UNIVERSE
 data All (p :: k -> *) :: [k] -> * where
@@ -37,6 +37,8 @@ data Usingl :: U -> * where
   USepExprList :: SepExprList -> Usingl KSepExprList
   UExpr :: Expr -> Usingl KExpr
   UTerm :: Term -> Usingl KTerm
+
+deriving instance Show (Usingl u)
 
 data Constr :: * where
   C1Nil  :: Constr
@@ -68,18 +70,6 @@ data ConstrFor :: U -> Constr -> * where
   C6TaggedStringProof :: ConstrFor KTerm C6TaggedString
 
 deriving instance Show (ConstrFor u c)
-
-showConstr :: ConstrFor u c -> String
-showConstr C1NilProof = "Nil"
-showConstr C1ConsProof = "Cons"
-showConstr C3SpecialProof = "Special"
-showConstr C3DispatchProof = "Dispatch"
-showConstr C3CollectionProof = "Collection"
-showConstr C3TermProof = "Term"
-showConstr C3CommentProof = "Comment"
-showConstr C3SeqProof = "Seq"
-showConstr C3EmptyProof = "Empty"
-showConstr C6TaggedStringProof = "TaggedString"
 
 type family TypeOf (c :: Constr) :: [U] where
   TypeOf C1Nil = '[]
@@ -124,18 +114,6 @@ extractRange (USepExprList sl) = Just (extractRangeSepExprList sl)
 extractRange (UTerm t) = Just (extractRangeTerm t)
 extractRange (UString s) = Nothing
 
-type family El (u :: U) where
-  El KString = String
-  El KSepExprList = SepExprList
-  El KExpr = Expr
-  El KTerm = Term
-
-eval :: Usingl u -> El u
-eval (UString u) = u
-eval (USepExprList u) = u
-eval (UExpr u) = u
-eval (UTerm u) = u
-
 instance TestEquality (ConstrFor u) where
   testEquality a b = case testEquality' a b of
     Just (Refl, Refl) -> Just Refl
@@ -157,8 +135,6 @@ testEquality' C6TaggedStringProof C6TaggedStringProof = Just (Refl, Refl)
 
 testEquality' _ _ = Nothing
 
-
-
 instance TestEquality Usingl where
   testEquality (UString _) (UString _) = Just Refl
   testEquality (USepExprList _) (USepExprList _) = Just Refl
@@ -172,6 +148,8 @@ instance Eq (Usingl a) where
   (UExpr a) == (UExpr b) = a == b
   (UTerm a) == (UTerm b) = a == b
   _ == _ = True
+
+----------- View ----------------
 
 data View u where
  Tag :: ConstrFor u c -> All Usingl (TypeOf c) -> View u
@@ -194,10 +172,8 @@ viewExpr (Comment c _) = Tag C3CommentProof (UString c .@. An)
 viewExpr (Seq p q _)  = Tag C3SeqProof (UExpr p .@. UExpr q .@. An)
 viewExpr (Empty _)  = Tag C3EmptyProof An
 
-
 viewTerm :: Term -> View KTerm
 viewTerm (TaggedString t s _) = Tag C6TaggedStringProof (UString t .@. UString s .@. An)
-
 
 onRecursiveGuy :: ((IsRecEl v) => Usingl v -> a) -> (Usingl v -> a) -> Usingl v -> a
 onRecursiveGuy rec nonrec at@(UString _) = nonrec at
@@ -206,18 +182,26 @@ onRecursiveGuy rec nonrec at@(UExpr _) = rec at
 onRecursiveGuy rec nonrec at@(UTerm _) = rec at
 
 -- Utility
-type family Le (k :: *) :: U where
-  Le SepExprList = KSepExprList
-  Le Expr = KExpr
-  Le Term = KTerm
-  Le String = KString
+type family ToSing (k :: *) :: U where
+  ToSing SepExprList = KSepExprList
+  ToSing Expr = KExpr
+  ToSing Term = KTerm
+  ToSing String = KString
+
+type family FromSing (u :: U) where
+  FromSing KSepExprList = SepExprList
+  FromSing KExpr = Expr
+  FromSing KTerm = Term
+  FromSing KString = String
 
 class Sing a where
-  toSing :: a -> Usingl (Le a)
+  toSing :: a -> Usingl (ToSing a)
+  fromSing :: Usingl (ToSing a) -> a
 
 instance Sing SepExprList where
   toSing (Nil r) = USepExprList (Nil r)
   toSing (Cons e s sl r) = USepExprList (Cons e s sl r)
+  fromSing = eval
 
 instance Sing Expr where
   toSing (Special fty e r) = UExpr (Special fty e r)
@@ -227,17 +211,19 @@ instance Sing Expr where
   toSing (Comment c r) = UExpr (Comment c r)
   toSing (Seq p q r) = UExpr (Seq p q r)
   toSing (Empty r) = UExpr (Empty r)
+  fromSing = eval
 
 instance Sing Term where
   toSing (TaggedString t s r) = UTerm (TaggedString t s r)
+  fromSing = eval
 
 instance Sing String where
   toSing s = UString s
+  fromSing = eval
 
+eval :: Usingl u -> FromSing u
+eval (UString u) = u
+eval (USepExprList u) = u
+eval (UExpr u) = u
+eval (UTerm u) = u
 
--- instance Show (Usingl u) where
---   show (UString u) = show u
---   show (USepExprList u) = show $ ppSepExprList u
---   show (UExpr u) = show $ ppExpr u
---   show (UTerm u) = show $ ppTerm u
-deriving instance Show (Usingl u)

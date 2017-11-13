@@ -5,6 +5,7 @@
 
 module Oracle.GroupedDiffOracle
   ( GroupedDiffOracle(..)
+  , solveConflicts
   )
   where
 
@@ -13,8 +14,8 @@ import Data.Maybe
 import Debug.Trace
 
 import Control.Monad.Reader
-import Data.IntMap as M
-import Data.Set as S
+import qualified Data.IntMap as M
+import qualified Data.Set as S
 
 import Oracle.Internal
 import Clojure.Lang
@@ -24,6 +25,9 @@ import Util.UnixDiff
 type CopyMap = M.IntMap Int
 type CopyMaps = (CopyMap, CopyMap)
 data GroupedDiffOracle = GroupedDiffOracle ([GroupDiffAction], CopyMaps)
+
+-- solveConflicts :: GroupedDiffOracle -> Expr -> Expr -> GroupedDiffOracle
+solveConflicts (GroupedDiffOracle (diffActions, copyMaps)) src dst = checkCopyMaps copyMaps src dst
 
 askOracle :: GroupedDiffOracle -> Usingl u -> Usingl v -> [Path]
 askOracle (GroupedDiffOracle (diffActions, copyMaps)) src dst = case (extractRange src, extractRange dst) of
@@ -115,7 +119,7 @@ collectAll cpM (Range s e) = go cpM s
 extractSingleLines :: [LineRange] -> S.Set Int
 extractSingleLines [] = S.empty
 extractSingleLines ((Range s e):lrs) | s == e = S.singleton s `S.union` extractSingleLines lrs
-                                   | otherwise = extractSingleLines lrs
+                                     | otherwise = extractSingleLines lrs
 
 lookupSet :: S.Set Int -> CopyMap -> S.Set Int
 lookupSet s cp = S.map (fromJust . flip M.lookup cp) s
@@ -123,11 +127,21 @@ lookupSet s cp = S.map (fromJust . flip M.lookup cp) s
 intersects :: Ord a => S.Set a -> S.Set a -> Bool
 intersects a b = not (S.null (a `S.intersection` b))
 
-checkOverlap target a b = target `intersects` (a `S.difference` overlapping) && target `intersects` (b `S.difference` overlapping)
+intersectsNonOverlapping :: Ord a => S.Set a -> S.Set a -> S.Set a -> Bool
+intersectsNonOverlapping target a b = target `intersects` (a `S.difference` overlapping) && target `intersects` (b `S.difference` overlapping)
   where
     overlapping  = a `S.intersection` b
+
+collide :: M.IntMap Int -> LineRange -> LineRange -> Bool
+collide m src tgt = case M.lookup (takeStart src) m of
+  Just i  -> i == (takeStart tgt)
+  Nothing -> False
+
 deOptimize :: CopyMaps -> Usingl u -> Usingl v -> Bool
-deOptimize (srcMap, dstMap) s@(UExpr (Seq a b lrs)) t@(UExpr (Seq c d lrt)) = inSync lrs lrt && (checkOverlap copyTargetA copySetC copySetD || checkOverlap copyTargetC copySetA copySetB)
+deOptimize (srcMap, dstMap) s@(UExpr (Seq a b lrs)) t@(UExpr (Seq c d lrt)) =
+    collide srcMap lrs lrt &&
+    (intersectsNonOverlapping copyTargetA copySetC copySetD ||
+    intersectsNonOverlapping copyTargetC copySetA copySetB)
   where
     copySetA = copySetExpr srcMap a
     copySetB = copySetExpr srcMap b
@@ -135,7 +149,10 @@ deOptimize (srcMap, dstMap) s@(UExpr (Seq a b lrs)) t@(UExpr (Seq c d lrt)) = in
     copySetC = copySetExpr dstMap c
     copySetD = copySetExpr dstMap d
     copyTargetC = lookupSet copySetC dstMap
-deOptimize (srcMap, dstMap) s@(USepExprList (Cons a _ b lrs)) t@(USepExprList (Cons c _ d lrt)) = inSync lrs lrt && (checkOverlap copyTargetA copySetC copySetD || checkOverlap copyTargetC copySetA copySetB)
+deOptimize (srcMap, dstMap) s@(USepExprList (Cons a _ b lrs)) t@(USepExprList (Cons c _ d lrt)) =
+  collide srcMap lrs lrt &&
+  (intersectsNonOverlapping copyTargetA copySetC copySetD ||
+  intersectsNonOverlapping copyTargetC copySetA copySetB)
   where
     copySetA = copySetExpr srcMap a
     copySetB = copySetSEL srcMap b
@@ -144,6 +161,48 @@ deOptimize (srcMap, dstMap) s@(USepExprList (Cons a _ b lrs)) t@(USepExprList (C
     copySetD = copySetSEL dstMap d
     copyTargetC = lookupSet copySetC dstMap
 deOptimize _ _ _ = False
+
+deOptimizeExpr :: CopyMaps -> Expr -> Expr -> Bool
+deOptimizeExpr (srcMap, dstMap) (Seq a b lrs) (Seq c d lrt) =
+    collide srcMap lrs lrt &&
+    (intersectsNonOverlapping copyTargetA copySetC copySetD ||
+    intersectsNonOverlapping copyTargetC copySetA copySetB)
+  where
+    copySetA = copySetExpr srcMap a
+    copySetB = copySetExpr srcMap b
+    copyTargetA = lookupSet copySetA srcMap
+    copySetC = copySetExpr dstMap c
+    copySetD = copySetExpr dstMap d
+    copyTargetC = lookupSet copySetC dstMap
+deOptimizeExpr (srcMap, dstMap) (Collection _ (Cons a _ b lrs) _) (Collection _ (Cons c _ d lrt) _) =
+  collide srcMap lrs lrt &&
+  (intersectsNonOverlapping copyTargetA copySetC copySetD ||
+  intersectsNonOverlapping copyTargetC copySetA copySetB)
+  where
+    copySetA = copySetExpr srcMap a
+    copySetB = copySetSEL srcMap b
+    copyTargetA = lookupSet copySetA srcMap
+    copySetC = copySetExpr dstMap c
+    copySetD = copySetSEL dstMap d
+    copyTargetC = lookupSet copySetC dstMap
+deOptimizeExpr _ _ _ = False
+
+checkCopyMaps :: CopyMaps -> Expr -> Expr -> [((Int, Int), Bool)]
+checkCopyMaps cp@(srcMap, dstMap) src dst = fmap simplify (
+  mapM (\(s,t) -> do
+    src <- collectSubTrees src s
+    dst <- collectSubTrees dst t
+    return ((s,t), (deOptimizeExpr cp (wrap src) (wrap dst)))
+  ) (M.toList srcMap) )
+  where
+    simplify :: [((Int, Int), Bool)] -> ((Int, Int), Bool)
+    simplify xs = foldr g ((0,0), False) xs
+      where
+        g a b = if not (snd a) then a else b
+
+wrap :: SubTree -> Expr
+wrap (Exp e) = e
+wrap (Sel sel) = (Collection undefined sel undefined)
 
 extractChildRanges :: Usingl u -> [LineRange]
 extractChildRanges (UString u) = []
@@ -170,15 +229,13 @@ instance (Monad m) => OracleF GroupedDiffOracle m where
     let sRange = extractRange s
     let dRange = extractRange d
     if guard then do
-      -- traceM "Guard is true"
-      -- traceM ("src[" ++ show sRange ++ "]: " ++ show s)
-      -- traceM ("dst[" ++ show dRange ++ "]: " ++ show d)
+      traceM "Guard is true"
+      traceM ("src[" ++ show sRange ++ "]: " ++ show s)
+      traceM ("dst[" ++ show dRange ++ "]: " ++ show d)
       return [S]
     else do
       let ans = askOracle o s d
       return ans
-
-
 
 instance (Monad m) => OracleP GroupedDiffOracle m where
   callP _ An         An         = do

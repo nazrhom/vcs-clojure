@@ -1334,7 +1334,7 @@ but our algorithm does not, we have to pick one of the two sub-trees and attempt
 the copies only into that.
 What happens is that we are transforming a Cons a Nil into a Cons c d, and to do 
 so we only have the option of inserting d in the place of Nil. However, 
-according to \texttt{diff3}, our 'a' copies something to 'd' aswell. In practice 
+according to \texttt{diff3}, our 'a' copies something to 'd' as well. In practice 
 this means that when we are at the step where we have to calculate the patch between 
 a and c, we are left with inconsistent information, in particular we marked some nodes as copies when we
 actually want to delete them.
@@ -1350,38 +1350,73 @@ src = Seq a b
 dst = Seq c d
 \end{lstlisting}
 
-Let $CopyPairs(P)$ be the set of pairs (s,r) that are marked as copies by 
+\begin{itemize}
+  \item Let $CopyPairs(P)$ be the set of pairs (s,t) that are marked as copies by 
 \texttt{diff3} in the program $P$.
-Let $CopySet(e)$ be the function that extracts all the lines marked as copies 
+
+\item Let $CopySet(e)$ be the function that extracts all the lines marked as copies 
 contained in an expression $e$ (A line is marked as copy if it appears on the left in one of the pairs resulting from $CopyPairs(P)$).
-Then, if we can find an $s \in CopySet(a)$ such that $r \in CopySet(c)$, where $(s,r) \in 
-CopyPairs(P)$ and we can find $s' \in CopySet(a)$ such that $r' \in CopySet(d)$, where $(s',r') \in 
+\end{itemize}
+
+Then, if we can find an $s \in CopySet(a)$ such that $t \in CopySet(c)$, where $(s,t) \in 
+CopyPairs(P)$ and we can find $s' \in CopySet(a)$ such that $t' \in CopySet(d)$, where $(s',t') \in 
 CopyPairs(P)$ then we know we are in a conflicting situation. 
-This condition deal with the case where we had to insert a sub-tree which 
-contains some expression marked as copies, to deal with the deletion as well, we 
+This condition deals with the case where we had to insert a sub-tree which 
+contains at least one expression marked as copy, to deal with the deletion as well, we 
 must also check that the converse condition does not hold going from $c$ to $a$ 
-and $b$
+and $b$.
 To solve the conflict we can simply remove some pairs from the set $CopyPairs(P)$ (marking them as OMods instead)
 untill the condition is satisfied. 
+\\\\
 
-A pratical solution would be to extend the oracles to add support for a \texttt{De-optimise} 
+The only part that is missing is about which criteria can be used to pair up the 
+nodes we must check. One way to formulate the problem is the following: we run 
+into this issue whenever we have a pair of candidate nodes that are marked as copy on 
+their outer level (resulting in an \texttt{Scns} in our case), but would then later attempt to copy across 
+subtrees.  The crucial observation is that the candidate nodes to check will 
+always be marked to be starting on a line that \texttt{diff3} will have marked 
+as copies (this is exactly the issue, diff3 can issue a copy there and move across sub-trees later, our algorithm can 
+not).
+
+One solution could be to extend the oracles to add support for a \texttt{De-optimise} 
 operation. The oracle should be able to perform some computation on each branch 
 and decide if it should keep operating on subsequent computations that follow from that branch. 
 Supporting this interface might be also very useful if we plan to write a human-interaction oracle, where we could have 
 it work on the top levels of the tree (e.g. user matches top level expressions) 
 and then turn off as the program takes care of the of the deeper levels. 
-(Alternative designs: maybe we can remove global state from oracle and thread state through 
-computation? in this way we can modify the [DiffAction] in place and avoid having to deoptimise completely)
 
-Questions
+Another solution, could be to try and solve the problem on the \texttt{[DiffAction]} directly, via some preprocessing.
+This criteria identified to match nodes suggests an enumeration strategy that we 
+could use to break any eventual conflicts in the \texttt{[DiffAction]}. 
 
- - can we do it globally?
-         How do we pair up nodes?
- - can we do it only on branch?
-         Detect situation before askOracle, if ever true mark some 
-         internal state as deopt and ignore copy information from diff3
- - how many cases can this happen in
-          All nodes that have a pair of subtrees? What about Seq -> Cons
+Given,
+\begin{itemize}
+  \item CopySet(P) := [(s,t)]
+  \item CollectST(P,s) := [Sub-trees that start on line s]
+\end{itemize}
+then, for each pair $(s,t) \in CopySet(P)$ we can perform the following steps:
+\begin{lstlisting}[language=haskell]
+  src <- CollectST(P,s)
+  dst <- CollectST(P,t)
+  check src dst
+\end{lstlisting}
+
+Where \texttt{check} is the predicate to check expressions we defined earlier. 
+At this point, if check fails, we have a pair \texttt{(s,t)} of lines which 
+\texttt{diff3} identified as copies but our algorithm can not. As mentioned in the previous 
+paragraph, once identified the critical pairs of line, we can recode the whole 
+subtrees they span as modifications and fix the potential conflict.
+
+
+%Questions
+%
+% - can we do it globally?
+%         How do we pair up nodes?
+% - can we do it only on branch?
+%         Detect situation before askOracle, if ever true mark some 
+%         internal state as deopt and ignore copy information from diff3
+% - how many cases can this happen in
+%          All nodes that have a pair of subtrees? What about Seq -> Cons
 
 
 

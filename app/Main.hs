@@ -88,6 +88,17 @@ main = do
   -- putStrLn $ "Corresponding to \n" ++ show best
   -- putStrLn $ show $ applyAlmu (head almus) (toSing src)
 
+checkConflict :: String -> String -> IO ()
+checkConflict srcFile dstFile = do
+  s <- readFile srcFile
+  d <- readFile dstFile
+  src <- parseFile "" srcFile
+  dst <- parseFile "" dstFile
+  let cp = buildCopyOracle (preprocess s d)
+  let diff3 = preprocessGrouped s d
+  let o = GroupedDiffOracle (diff3, cp)
+  putStrLn $ show $ solveConflicts o src dst
+
 
 printPatchesWithCost :: [Almu u v] -> IO ()
 printPatchesWithCost almus = mapM_ printPatchWithCost almus
@@ -135,11 +146,11 @@ choose (x:xs) = choose' x (costAlmu x) xs
 choose []     = error "boom"
 
 computePatches :: (MonadOracle o m) =>
-      o -> Expr -> Expr -> m (Almu (Le Expr) (Le Expr))
+      o -> Expr -> Expr -> m (Almu (ToSing Expr) (ToSing Expr))
 computePatches o x y = diffAlmu o (toSing x) (toSing y)
 
 computePatch :: (MonadOracle o []) =>
-      o -> Expr -> Expr -> Almu (Le Expr) (Le Expr)
+      o -> Expr -> Expr -> Almu (ToSing Expr) (ToSing Expr)
 computePatch o x y
   = let almus = computePatches o x y
      in choose almus
@@ -149,9 +160,9 @@ getFiles = do
   let src  = "test/conflicts/manual/head-safehead-disj/head.clj"
       dst1 = "test/conflicts/manual/head-safehead-disj/safehead-1.clj"
       dst2 = "test/conflicts/manual/head-safehead-disj/safehead-2.clj"
-  fs  <- parseAndRead src
-  fd1 <- parseAndRead dst1
-  fd2 <- parseAndRead dst2
+  fs  <- readAndParse src
+  fd1 <- readAndParse dst1
+  fd2 <- readAndParse dst2
   return (fs , fd1 , fd2)
 
 -- test :: IO ()
@@ -170,8 +181,8 @@ getFiles = do
 --   putStrLn $ "disjoint? " ++ show disj
 --   putStrLn $ "check:" ++ show (applyAlmu p1 (fromJust (applyAlmu p2 (toSing o))) == applyAlmu p2 (fromJust (applyAlmu p1 (toSing o))))
 
-parseAndRead :: String -> IO Expr
-parseAndRead fname
+readAndParse :: String -> IO Expr
+readAndParse fname
   = readFile fname >>= parseFile ""
 
 parseFile :: String -> String -> IO Expr

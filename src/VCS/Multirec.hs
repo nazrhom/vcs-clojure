@@ -89,13 +89,10 @@ spine x y | otherwise = case (view x, view y) of
 --
 -- The phase records the LAST decision took by the algo (either an insertion,
 -- modification ordeletion)
-mkEnv :: [Path] -> History
-mkEnv p = History { path = p, deOpt = False }
-
 align :: (MonadOracle o m)
       => o -> All Usingl p1 -> All Usingl p2
       -> m (Al TrivialA p1 p2)
-align orc p1 p2 = runReaderT (alignO orc p1 p2) (mkEnv [I,M,D])
+align orc p1 p2 = runReaderT (alignO orc p1 p2) [I,M,D]
 
 alignO :: (MonadOracle o m)
        => o -> All Usingl p1 -> All Usingl p2
@@ -126,30 +123,30 @@ followPath D orc x y = alignDel orc x y
 followPath M orc x y = alignMod orc x y
 followPath FM orc (a1 `Ac` p1) (a2 `Ac` p2)
   = case testEquality a1 a2 of
-      Just Refl -> Amod (Contract (a1 , a2)) <$> local (liftPath (M:)) (alignO orc p1 p2)
+      Just Refl -> Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
       Nothing -> case unsafeCoerceEquality a1 a2 of
           Just Refl -> do
-            Amod (Contract (a1 , a2)) <$> local (liftPath (M:)) (alignO orc p1 p2)
+            Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
 followPath S orc x y = alignAll NoDupBranches x y
-
-liftPath :: ([Path] -> [Path]) -> History -> History
-liftPath f h = History { path = f (path h), deOpt = deOpt h }
+--
+-- liftPath :: ([Path] -> [Path]) -> History -> History
+-- liftPath f h = History { path = f (path h), deOpt = deOpt h }
 
 alignIns :: (MonadOracle o m)
            => o -> All Usingl p1 -> All Usingl p2
            -> HistoryM m (Al TrivialA p1 p2)
-alignIns orc p1 (a `Ac` p) = Ains a <$> local (liftPath (I:)) (alignO orc p1 p)
+alignIns orc p1 (a `Ac` p) = Ains a <$> local (I:) (alignO orc p1 p)
 
 alignDel :: (MonadOracle o m)
            => o -> All Usingl p1 -> All Usingl p2
            -> HistoryM m (Al TrivialA p1 p2)
-alignDel orc (a `Ac` p) p2 = Adel a <$> local (liftPath (D:)) (alignO orc p p2)
+alignDel orc (a `Ac` p) p2 = Adel a <$> local (D:) (alignO orc p p2)
 
 alignMod :: (MonadOracle o m)
            => o -> All Usingl p1 -> All Usingl p2
            -> HistoryM m (Al TrivialA p1 p2)
 alignMod orc (a1 `Ac` p1) (a2 `Ac` p2) = case testEquality a1 a2 of
-    Just Refl -> Amod (Contract (a1 , a2)) <$> local (liftPath (M:)) (alignO orc p1 p2)
+    Just Refl -> Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
     Nothing -> empty
 
 alignAll :: (MonadOracle o m)
@@ -163,6 +160,9 @@ type TrivialA = Contract Usingl
 data TrivialP :: [U] -> [U] -> * where
  Pair :: All Usingl l -> All Usingl r -> TrivialP l r
   deriving (Generic)
+-- 
+-- mkEnv :: [Path] -> History
+-- mkEnv p = History { path = p, deOpt = False }
 
 mapAll :: (forall a . p a -> q a) -> All p l -> All q l
 mapAll f An = An
@@ -210,24 +210,14 @@ unsafeCoerceEquality :: Usingl a -> Usingl b -> Maybe (a :~: b)
 unsafeCoerceEquality a b = unsafeCoerce $ Just Refl
 -- Show instances
 deriving instance Show (Almu u v)
-  -- show = showAlmu
 deriving instance Show (Al (At AlmuH) p1 p2)
-  -- show = showAl
 deriving instance Show (At AlmuH u)
-  -- show = showAt
 deriving instance Show (Spine (At AlmuH) (Al (At AlmuH)) u)
-  -- show = showSpine
 deriving instance Show (All Usingl l)
-  -- show An = ""
-  -- show (a `Ac` as) = show a ++ " " ++ show as
 deriving instance Show (All (At AlmuH) l)
-  -- show = showAll
 deriving instance Show (Ctx (AtmuPos u) p)
-  -- show = showCtxP
 deriving instance Show (Ctx (AtmuNeg u) p)
-  -- show = showCtxN
 deriving instance Show (f x) => Show (Contract f x)
--- show c = show $ unContract c
 
 -- Eq instances
 instance Eq (Almu u v) where

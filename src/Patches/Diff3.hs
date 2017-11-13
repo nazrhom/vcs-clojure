@@ -32,7 +32,7 @@ trash2Line = UExpr (Collection "Parens"
             "Space"
             nil)) emptyRange)
 
-lvl1 :: (Almu (Le Expr) (Le Expr))
+lvl1 :: (Almu (ToSing Expr) (ToSing Expr))
 lvl1 = Alspn
       (Scns C3CollectionProof
         (keep (UString "Parens") .@.

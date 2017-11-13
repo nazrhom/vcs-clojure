@@ -25,10 +25,13 @@ data Path
 -- * The history is the list of all issued instructions.
 --   XXX: DO NOT CONFUSE WITH THE LIST OF POSSIBLE PATHS
 --        TO PURSUE
-data History = History {
-    path :: [Path]
-  , deOpt :: Bool
-  } deriving (Show)
+type History = [Path]
+
+
+  -- History {
+  --   path :: [Path]
+  -- , deOpt :: Bool
+  -- } deriving (Show)
 
 -- * The Oracle will have access to it's previously issued history
 --   ON THE CURRENT BRANCH.
