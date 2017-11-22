@@ -1,123 +1,286 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GADTs #-}
 
-module Oracle.DiffOracle
-  ( DiffOracle(..)
-  , buildOracle
-  )
-  where
+module Oracle.DiffOracle where
 
-import qualified Data.IntMap as M
 import Data.Maybe
-import Data.List
-
+import Data.Tuple (swap)
 import Debug.Trace
+
+import Control.Monad.Reader
+import qualified Data.IntMap as M
+import qualified Data.Set as S
 
 import Oracle.Internal
 import Clojure.Lang
 import Clojure.AST
 import Util.UnixDiff
 
-type DiffOp = Path
+type CopyMap = M.IntMap Int
+type CopyMaps = (CopyMap, CopyMap)
+type MbMoveConflict = ConflictResult (S.Set (Int, Int))
+type DelInsMap = (M.IntMap Path, M.IntMap Path)
 data DiffOracle = DiffOracle DelInsMap
-type DelInsMap = (M.IntMap DiffOp, M.IntMap DiffOp)
+  deriving (Show)
+
+buildDiffOracle :: String -> String -> Expr -> Expr -> DiffOracle
+buildDiffOracle s d src dst = DiffOracle diffActions
+  where
+    cp = buildCopyMaps (preprocess s d)
+    delinsMap = buildDelInsMap (preprocessGrouped s d)
+    diffActions = solveConflicts delinsMap cp src dst
+
+buildCopyMaps :: [DiffAction] -> (M.IntMap Int, M.IntMap Int)
+buildCopyMaps as = (insMap, reverseMap insMap)
+  where
+    insMap = buildCopyMap as
+    reverseMap = M.fromList . map swap . M.toList
+
+    buildCopyMap [] = (M.empty)
+    buildCopyMap (first:rest) = (process first) `M.union` (buildCopyMap rest)
+      where
+        process (Copy (i1, i2)) = M.singleton i1 i2
+        process _ = M.empty
+
+solveConflicts :: DelInsMap -> CopyMaps -> Expr -> Expr -> DelInsMap
+solveConflicts diffActions copyMaps src dst = foldl invalidate diffActions conflicts
+  where
+    conflicts = checkCopyMaps copyMaps src dst
+
+invalidate :: DelInsMap -> [MbMoveConflict] -> DelInsMap
+invalidate diffActions []                 = diffActions
+invalidate diffActions (NoConflict:rest)  = invalidate diffActions rest
+invalidate diffActions ((ConflictAt pairs):rest) = invalidate (S.foldl invalidatePair diffActions pairs) rest
+
+invalidatePair :: DelInsMap -> (Int, Int) -> DelInsMap
+invalidatePair (srcMap, dstMap) (i,j) = (M.insert i M srcMap, M.insert j M dstMap)
+
+askOracle :: DiffOracle -> Usingl u -> Usingl v -> [Path]
+askOracle (DiffOracle diffActions) src dst = case (extractRange src, extractRange dst) of
+      (Nothing, Nothing)         -> [ M ]
+      (Just sRange, Nothing)     -> [ ]
+      (Nothing, Just dRange)     -> [ ]
+      (Just sRange, Just dRange) -> giveAdvice' diffActions src dst
 
 unionDelInsMap :: DelInsMap -> DelInsMap -> DelInsMap
 unionDelInsMap (s1, d1) (s2, d2) = (M.union s1 s2, M.union d1 d2)
 
-buildOracle :: [DiffAction] -> DelInsMap
-buildOracle [] = (M.empty, M.empty)
-buildOracle (first:rest) = (process first) `unionDelInsMap` (buildOracle rest)
+buildDelInsMap :: [GroupDiffAction] -> DelInsMap
+buildDelInsMap []           = (M.empty, M.empty)
+buildDelInsMap (first:rest) = process first `unionDelInsMap` buildDelInsMap rest
   where
-    process (Copy (i1, i2)) = (M.empty, M.empty)
-    process (Ins i) = (M.empty, M.singleton i I)
-    process (Del i) = (M.singleton i D, M.empty)
+    process (OMod srcRange dstRange) = (insertRange srcRange M, insertRange dstRange M)
+    process (OIns dstRange _)        = (M.empty, insertRange dstRange I)
+    process (ODel srcRange _)        = (insertRange srcRange D, M.empty)
 
-askOracle :: DiffOracle -> LineRange -> LineRange -> [Path]
-askOracle (DiffOracle (delMap, insMap)) srcRange dstRange =
-  if containsRange delMap srcRange
-    && containsRange insMap dstRange
-    && inSync srcRange dstRange
-      then []
-  else if containsRange delMap srcRange
-       && not (inSync srcRange dstRange)
-        then [ D ]
-  else if containsRange insMap dstRange
-       && not (inSync srcRange dstRange)
-        then [ I ]
+insertRange :: LineRange -> Path -> M.IntMap Path
+insertRange (Range s e) o = go s M.empty
+  where
+    go i m | i <= e    = go (i+1) (M.insert i o m)
+           | otherwise = m
+
+giveAdvice :: [GroupDiffAction] -> Usingl u -> Usingl v -> [Path]
+giveAdvice [] src dst = [ M ]
+  where
+    dstRange = fromJust $ extractRange dst
+    srcRange = fromJust $ extractRange src
+giveAdvice ((OMod srcLr dstLr):os) src dst =
+  if src `inSync` srcLr && dst `inSync` dstLr then []
+  else if src `inSync` srcLr then
+    [ D ]
+  else if dst `inSync` dstLr then
+    [ I ]
+  else giveAdvice os src dst
+  where
+    dstRange = fromJust $ extractRange dst
+    srcRange = fromJust $ extractRange src
+
+giveAdvice ((OIns lr i):os) src dst =
+  if dst `inSync` lr
+  then [ I ]
+  else giveAdvice os src dst
+  where
+    dstRange = fromJust $ extractRange dst
+
+giveAdvice ((ODel lr i):os) src dst =
+  if src `inSync` lr
+  then [ D ]
+  else giveAdvice os src dst
+  where
+    srcRange = fromJust $ extractRange src
+
+giveAdvice' :: DelInsMap -> Usingl u -> Usingl v -> [Path]
+giveAdvice' (srcMap, dstMap) src dst =
+  if (isMod srcRange srcMap && isMod dstRange dstMap)
+    then []
+  else if (isDel srcRange srcMap || isMod srcRange srcMap)
+    then [ D ]
+  else if (isIns dstRange dstMap || isMod dstRange dstMap)
+    then [ I ]
   else [ M ]
-      -- dstSpan = findSpan insMap dstRange
-      -- srcSpan = findSpan delMap srcRange
-      -- dstOffset = calculateOffset (delMap, insMap) dstStart
-      -- srcOffset = calculateOffset (delMap, insMap) srcStart
-      -- dstSpan = (Range (dstStart + dstOffset) (dstEnd + dstOffset))
-      -- srcSpan = (Range (srcStart - srcOffset) (srcEnd - srcOffset))
-
-inSync :: LineRange -> LineRange -> Bool
-inSync (Range s1 _) (Range s2 _) = s1 == s2
-
-findSpan :: M.IntMap DiffOp -> LineRange -> LineRange
-findSpan m (Range start end) = go m start end
   where
-    go m s e | isJust (M.lookup s m) = go m (s-1) e
-    go m s e | isJust (M.lookup e m) = go m s (e + 1)
-    go m s e | otherwise = Range (s+1) (e-1)
+    srcRange = fromJust $ extractRange src
+    dstRange = fromJust $ extractRange dst
 
-calculateOffset :: DelInsMap -> Int -> Int
-calculateOffset (del, ins) i = process (M.elems splitIns ++ M.elems splitDel)
-  where
-    (splitIns, _) = M.split (i+1) ins
-    (splitDel, _) = M.split (i+1) del
-    process [] = 0
-    process (I:xs) = (- 1) + process xs
-    process (D:xs) = 1 + process xs
 
-intersectsRange :: M.IntMap DiffOp -> LineRange -> Bool
-intersectsRange m (Range start end) = go m start
-  where
-    go m i | i <= end =
-      if isJust (M.lookup i m)
-      then True
-      else go m (i+1)
-    go m i | otherwise = False
+isContainedIn :: LineRange -> LineRange -> Bool
+isContainedIn (Range s1 e1) (Range s2 e2) = s2 <= s1 && e1 <= e2
 
-containsRange :: M.IntMap DiffOp -> LineRange -> Bool
-containsRange m (Range start end) = go m start
+isMod :: LineRange -> M.IntMap Path -> Bool
+isMod lr m = case M.lookup (takeStart lr) m of
+  Just M -> True
+  _      -> False
+
+isIns :: LineRange -> M.IntMap Path -> Bool
+isIns lr m = case M.lookup (takeStart lr) m of
+  Just I -> True
+  _      -> False
+
+isDel :: LineRange -> M.IntMap Path -> Bool
+isDel lr m = case M.lookup (takeStart lr) m of
+  Just D -> True
+  _      -> False
+
+inSync :: Usingl u -> LineRange -> Bool
+inSync u lr = uRange `inSync'` lr
   where
-    go m i | i <= end =
-      if isJust (M.lookup i m)
-      then go m (i+1)
-      else False
-    go m i | otherwise = True
+    uRange = fromJust $ extractRange u
+    inSync' :: LineRange -> LineRange -> Bool
+    inSync' (Range s1 e1) (Range s2 e2) = s2 <= s1 && s1 <= e2
+
+copySetExpr :: CopyMap -> Expr -> S.Set Int
+copySetExpr copyMap e = collectAll copyMap eRange
+  where
+    eRange = extractRangeExpr e
+
+copySetSel :: CopyMap -> SepExprList -> S.Set Int
+copySetSel copyMap e = collectAll copyMap eRange
+  where
+    eRange = extractRangeSepExprList e
+
+collectAll :: CopyMap -> LineRange -> S.Set Int
+collectAll cpM (Range s e) = go cpM s
+  where
+    go m i | i <= e = mbTakeLine m i `S.union` go m (i+1)
+    go m i | otherwise = S.empty
+
+    mbTakeLine m i = if isJust (M.lookup i m)
+      then S.singleton i
+      else S.empty
+
+lookupSet :: S.Set Int -> CopyMap -> S.Set Int
+lookupSet s cp = S.map (fromJust . flip M.lookup cp) s
+
+lookupSetPairs :: S.Set Int -> CopyMap -> [(Int, Int)]
+lookupSetPairs s cp = S.toList $ S.map (\i -> (i, fromJust (M.lookup i cp))) s
+
+intersectsNonOverlapping :: Ord a => S.Set a -> S.Set a -> S.Set a -> S.Set a
+intersectsNonOverlapping target a b =
+    if check
+    then target `S.difference` overlapping
+    else S.empty
+
+  where
+    check = target `intersects` (a `S.difference` overlapping) && target `intersects` (b `S.difference` overlapping)
+    overlapping  = a `S.intersection` b
+    targetL = S.toList target
+
+intersects :: Ord a => S.Set a -> S.Set a -> Bool
+intersects a b = not (S.null (a `S.intersection` b))
+
+pickBigger :: CopyMaps -> S.Set Int -> S.Set Int -> S.Set (Int, Int)
+pickBigger (srcMap, dstMap) a b
+  | S.size a >= S.size b = S.fromList $ map swap (lookupSetPairs a dstMap)
+  | otherwise            = S.fromList $ lookupSetPairs b srcMap
+
+
+deOptimizeExpr :: CopyMaps -> Expr -> Expr -> MbMoveConflict
+deOptimizeExpr cp@(srcMap, dstMap) (Seq a b _) (Seq c d _) =
+    if (S.null overlapA && S.null overlapC)
+    then NoConflict
+    else ConflictAt (pickBigger cp overlapA overlapC)
+  where
+    copySetA = copySetExpr srcMap a
+    copySetB = copySetExpr srcMap b
+    copySetC = copySetExpr dstMap c
+    copySetD = copySetExpr dstMap d
+    copyTargetA = lookupSet copySetA srcMap
+    copyTargetC = lookupSet copySetC dstMap
+    overlapA = intersectsNonOverlapping copyTargetA copySetC copySetD
+    overlapC = intersectsNonOverlapping copyTargetC copySetA copySetB
+deOptimizeExpr cp@(srcMap, dstMap) (Collection _ (Cons a _ b _) _) (Collection _ (Cons c _ d _) _) =
+    if (S.null overlapA && S.null overlapC)
+    then NoConflict
+    else ConflictAt (pickBigger cp overlapA overlapC)
+  where
+    copySetA = copySetExpr srcMap a
+    copySetB = copySetSel srcMap b
+    copySetC = copySetExpr dstMap c
+    copySetD = copySetSel dstMap d
+    copyTargetA = lookupSet copySetA srcMap
+    copyTargetC = lookupSet copySetC dstMap
+    overlapA = intersectsNonOverlapping copyTargetA copySetC copySetD
+    overlapC = intersectsNonOverlapping copyTargetC copySetA copySetB
+deOptimizeExpr _ _ _  = NoConflict
+
+checkCopyMaps :: CopyMaps -> Expr -> Expr -> [[MbMoveConflict]]
+checkCopyMaps cp@(srcMap, dstMap) src dst = fmap (collectSrcDstLines cp src dst) (M.toList srcMap)
+
+collectSrcDstLines :: CopyMaps -> Expr -> Expr -> (Int, Int) -> [MbMoveConflict]
+collectSrcDstLines cp src dst (s,d) = map (\(src,dst) -> deOptimizeExpr cp (wrap src) (wrap dst)) conflifts
+  where
+    conflifts = zipEqLen srcConflicts dstConflicts
+    srcConflicts = collectSubTrees src s
+    dstConflicts = collectSubTrees dst d
+
+zipEqLen :: [a] -> [b] -> [(a,b)]
+zipEqLen (a:as) (b:bs) = (a,b):(zipEqLen as bs)
+zipEqLen []         [] = []
+zipEqLen []         bs = error "dst is longer"
+zipEqLen as         [] = error "src is longer"
+
+wrap :: SubTree -> Expr
+wrap (Exp e) = e
+wrap (Sel sel) = (Collection "Wrap" sel (extractRangeSepExprList sel))
+
 
 instance (Monad m) => OracleF DiffOracle m where
-  callF o s d = do
-    -- traceM ("src[" ++ show (fromJust $ extractRange s) ++ "]: " ++ show s)
-    -- traceM ("dst[" ++ show (fromJust $ extractRange d) ++ "]: " ++ show d)
-    let ans = askOracle o (fromJust $ extractRange s) (fromJust $ extractRange d)
-    -- traceM ("ans: " ++ show ans)
-    return ans
+  callF o@(DiffOracle diffActions) s d = return $ askOracle o s d
+    -- do
+    -- let guard = deOptimize copyMaps s d
+    -- let sRange = extractRange s
+    -- let dRange = extractRange d
+    -- if guard then do
+    --   traceM "Guard is true"
+    --   traceM ("src[" ++ show sRange ++ "]: " ++ show s)
+    --   traceM ("dst[" ++ show dRange ++ "]: " ++ show d)
+    --   return [S]
+    -- else do
+    --   let ans = askOracle o s d
+    --   return ans
 
 instance (Monad m) => OracleP DiffOracle m where
-  callP _ An         An         = return []
-  callP _ An         (_ `Ac` _) = return [ I ]
-  callP _ (_ `Ac` _) An         = return [ D ]
-  callP o (s `Ac` _) (d `Ac` _) = do
-    case (extractRange s, extractRange d) of
-      (Nothing, Nothing)         -> do
-        -- traceM "ans: M"
-        return [ M ]
-      (Just sRange, Nothing)     -> do
-        -- traceM "ans: D"
-        return [ D ]
-      (Nothing, Just dRange)     -> do
-        -- traceM "ans: I"
-        return [ I ]
-      (Just sRange, Just dRange) -> do
-        let ans = askOracle o sRange dRange
-        -- traceM ("ans: " ++ show ans)
-        return ans
-
-instance Show DiffOracle where
-  show (DiffOracle m) = show m
+  callP _ An         An         = do
+    -- traceM "empty"
+    return []
+  callP _ An         (_ `Ac` _) = do
+    -- traceM "I"
+    return [ I ]
+  callP _ (_ `Ac` _) An         = do
+    -- traceM "D"
+    return [ D ]
+  callP o@(DiffOracle diffActions) (s `Ac` _) (d `Ac` _) = return $ askOracle o s d
+  --  do
+  --   let guard = deOptimize copyMaps s d
+  --   let sRange = extractRange s
+  --   let dRange = extractRange d
+  --   if guard then do
+  --     -- traceM "Guard is true"
+  --     -- traceM ("src[" ++ show sRange ++ "]: " ++ show s)
+  --     -- traceM ("dst[" ++ show dRange ++ "]: " ++ show d)
+  --     return [S]
+  --   else do
+  --     let ans = askOracle o s d
+  --     return ans

@@ -2,6 +2,7 @@
 \documentclass[11pt]{article}
 
 \usepackage{ifpdf}
+\usepackage{xspace}
 \usepackage{listings}
 \lstset{
   frame=none,
@@ -40,7 +41,17 @@
 \author{Giovanni Garufi}
 \date{}
 
-\begin{document}
+\begin{document}  
+
+\newcommand{\diff}{\texttt{diff3}\xspace}
+\newcommand{\SOP}{SOP\xspace}
+\newcommand{\alins}{\texttt{Alins}\xspace}
+\newcommand{\aldel}{\texttt{Aldel}\xspace}
+\newcommand{\alspn}{\texttt{Alspn}\xspace}
+\newcommand{\scp}{\texttt{Scp}\xspace}
+\newcommand{\scns}{\texttt{Scns}\xspace}
+\newcommand{\schg}{\texttt{Schg}\xspace}
+
 \maketitle
 
 \section{Introduction}
@@ -51,10 +62,11 @@ with one another and to keep a structured log of the units of change.
 At the heart of most modern VCS is the unix diff utility. This tool computes a 
 line-by-line difference between two files of text, determining the smallest set 
 of insertions or deletions of lines that transform one file into the other. This sequence of transformation 
-produced by \texttt{diff3} is called an edit script. 
-Edit scripts are used when two collaborators have modified the same source file in independent 
+produced by \diff is called an edit script. 
+When two collaborators have modified the same source file in independent 
 ways and the VCS wants to reconcile the two independent changes into a single 
-one. This operation is clearly not always possible: if two collaborators have 
+one it will attempt to produce an single edit script that encompasses both changes, this is commonly referred to 
+as a merge. This operation is clearly not always possible: if two collaborators have 
 modified the same line the two resulting edit scripts will 
 ``overlap'', it is not clear which one of the two modifications should be 
 picked.  
@@ -72,9 +84,9 @@ finer grained control over the units of change. By attempting to extend the diff
 represents the parsed program we are able to focus on smaller units of change, this allows us to produce 
 more accurate patches. 
 
-The drawback of this approach is that it moves the problem from the ``flat'' 
-world of strings to the ``layered'' world of trees, and the problem of computing a patch between two elements suddenly
-becomes much more computationally expensive. 
+The drawback of this approach is that it moves the problem from the 
+world of strings to the world of trees, and the problem of computing a patch between two elements suddenly
+becomes computationally more expensive. 
 Approaches similar to this one have already been explored in previous literature
 \cite{semantics-VC}, \cite{structure-aware-VC} and \cite{vassena}. In these works, the problem of computing 
 the difference between two trees was always reduced to the problem of computing the difference of a flattened
@@ -95,9 +107,9 @@ types in order to guarantee structure preserving transformations.
 In the remainder of this proposal we will show a full Haskell implementation of the algorithm presented by Miraldo 
 et al. \cite{type-directed-diff}, which is presented in Agda in the original paper. 
 The algorithm is implemented generically and described with dependent types; in 
-order to perform experiments I ported the implementation to Haskell. Generic 
-programming and dependent types are both supported by Haskell, albeit in a less 
-streamlined way compared to Agda. Both these tools require some language 
+order to perform experiments I ported the implementation to Haskell. Haskell is scheduled to land full support 
+for dependent types in the next couple of years \cite{dependent-haskell}, in the meanwhile, they can only 
+be partially supported through some ad-hoc techniques. Both Generics and Dependent Types require some language 
 extensions and machinery which are non trivial in Haskell: for this reason some time is spent introducing the
 techniques and setting up the building blocks for the implementation. 
 
@@ -131,7 +143,7 @@ Haskell}\label{dependent-types-in-haskell}
 
 With time, Haskell's type system has kept evolving from its humble
 Hindley-Miller origins and through the use of different language extensions it has gained the ability 
-to express more complex types. In particular, many efforts have gone to add support for dependently
+to express more complex types. In particular, many efforts have gone to add partial support for dependently
 typed programming in the latest years.
 
 One major stepping stone in this direction is the DataKinds (\cite{datakinds}) extension which duplicates an ordinary data type, such as
@@ -265,8 +277,10 @@ Haskell.
 \section{Sum of Products}\label{SOP}
 
 
-The basic idea of the Sum of Products (SOP) approach is to define a generic representation of data types and 
-to define functions that act on this representation.
+The basic idea of the Sum of Products (SOP) approach is to define a ``normal form'' for all generic representations of data types and 
+to define functions that act on this form. It is, in some sense, similar to the Disjunctive Normal Form for propositional logic in the 
+sense that every proposition can be expressed in DNF and we can write theorems (functions) 
+which assume the expression is represented in DNF.
 The bulk idea is to view each type as a choice between a constructor and all the arguments that are passed to
 that constructor. It is useful to think about the two different levels: on the first level we 
 make a choice about which constructor to pick; this corresponds to a sum
@@ -282,7 +296,7 @@ In this case, the recursive argument can itself be encoded as an SOP
 and the same encoding can be used all the way down to the leaves. 
 
 
-Since every simple data type can be encoded as an SOP, we can write functions 
+Since every data type can be encoded as an SOP, we can write functions 
 that act on this representation and regard them as generics. For every data type 
 we can first convert it to the SOP representation and then pass it to 
 the desired function. Since the SOP representation is isomorphic to the original type, we can eventually reconstruct the 
@@ -290,7 +304,7 @@ desired term after we are done working with the representation. This encoding is
 presented by Loh et al. \cite{true-sop} and represents one of the numerous different ways to 
 approach generic programming in Haskell. 
 In the remainder of this section we will try to formalise the intuition presented 
-above by building the SOP representation of a simple data type. 
+above by building the SOP representation of a data type. 
 
 \vfill
 
@@ -423,18 +437,16 @@ typed trees. The inspiration comes from the diff utility present in
 Unix which is at the heart of the current methodologies employed by VCS
 to attempt to compute a patch between two different versions of the same
 file. The limitations of the diff algorithm, as it currently stands, is
-that it does not employ any structural information between the data it
-is trying to merge. Files are parsed on a line by line basis and, as
-the authors show, this is somewhat resilient to vertical changes in the
+that it does not employ any structural information about the data it is trying to calculate a patch on. 
+Files are parsed on a line by line basis and, as the authors show, this is somewhat resilient to vertical changes in the
 source code. On the other hand it completely breaks down when dealing with horizontal
 changes, which constitute a heavy chunk of the changes that are usually
 made to code.
 
 Suppose we have the following innocuous looking function in clojure:
 
-\begin{lstlisting}[language=lisp]
-(defn head
-  [l]
+\begin{lstlisting}[language=lisp,numbers=left]
+(defn head [l]
   (first l))
 \end{lstlisting}
 
@@ -442,17 +454,15 @@ Suppose we make two independent modifications, the first of which adds a default
 parameter to be returned in case the list is empty, and the second one that 
 changes the name of the function from \emph{head} to \emph{fst}.
 
-\begin{lstlisting}[language=lisp]
-(defn head
-  [l, d]
+\begin{lstlisting}[language=lisp,numbers=left]
+(defn head [l, d]
   (if (nil? l)
     (d)
     (first l)))
 \end{lstlisting}
 
-\begin{lstlisting}[language=lisp]
-(defn fst
-  [l]
+\begin{lstlisting}[language=lisp,numbers=left]
+(defn fst [l]
   (first l))
 \end{lstlisting}
 
@@ -467,7 +477,7 @@ things like indentation instead of being a fundamental property of the
 transformation. 
 
 The underlying idea to the approach presented in the article is to employ
-the generic SoP view presented in the preceding section to define a
+the generic SOP view presented in the preceding section to define a
 generic way to view datatypes. Once that is settled, we obtain a view of
 any well defined program as a structured tree of data, where each object
 we inspect can be represented as a choice of a certain constructor,
@@ -494,23 +504,23 @@ we want to characterise the patch that transforms it to
 p2 = Operation (Value 1) (Operation (Value 2))
 \end{lstlisting}
 
-The first structure we will employ is the \emph{spine}, this can be thought of some 
-sort of common skeleton between the two trees which captures the parts that do 
-not change under the transformation.
+The first structure we will employ is the \emph{spine}, this can be thought of as a common skeleton between 
+the two trees which captures the parts that do not change under the transformation.
 
 \subsection{Spine}\label{spine}
 
-Calculating a spine for two trees loosely corresponds to calculating the
-longest common prefix between two strings. Recall that the two trees
-\emph{x} and \emph{y} are viewed as SoP, in this sense calculating the
+We will define Spines to only between two elements of the same sum-type, and defer to later the discussion on how
+to perform transformation between elements of different sum-types. Calculating a spine for two elements of the same sum-type 
+loosely corresponds to calculating the longest common prefix between two strings. Recall that the two 
+elements \emph{x} and \emph{y} are viewed as SOP, in this sense calculating the
 spine between \emph{x} and \emph{y} corresponds to capturing the common
-coproduct structure between them. If we think of $x_{1}$ and $y_{1}$ as two nodes of a tree we will have three cases to
+coproduct structure between them. Let $x$ and $y$ be two such elements, we will have three cases to
 consider. 
 \begin{itemize}
-  \item $x_{1} = y_{1}$
-  \item $x_{1}$ and $y_{1}$ have the same constructor but not all the
-subtrees are equal  
-  \item $x_{1}$ and $y_{1}$ have different constructors
+  \item $x = y$
+  \item $x$ and $y$ have the same constructor on the sum level but differ in the 
+  arguments
+  \item $x$ and $y$ have different constructors
 \end{itemize}
 
 This gives rise
@@ -527,18 +537,18 @@ data Spine (at :: U -> *)(al :: [U] -> [U] -> *) :: U -> * where
 \end{lstlisting}
 
 If the two
-elements are the same, the spine is trivially a copy. If the top level
-constructors match, the spine consists of this information and a way to
+elements are the same, the spine is a copy. If the top level
+constructors match, the spine consists of this information and a function to
 transform the pairs of constructor fields. Lastly, if two constructors
-don't match, the spine must record this and also contain a way to
+don't match, the spine must record this and also contain a function to
 transform the list of source fields into the list of destination fields.
 \\\\
 The \texttt{Scp} constructor corresponds to the first case, in which we need
 to record no additional information other than the fact that the two
 elements are equal. 
-Before looking at the other two constructors, let's focus our attention for a moment to the three arguments that a spine takes:
+Before looking at the other two constructors, let us focus our attention for a moment to the three arguments that a spine takes:
 the third parameter of the spine (the \texttt{U}) represents the
-underlying type for which we are trying to compute the transformation.
+underlying type for which we are trying to compute a patch, the sum-type to which $x$ and $y$ both belong.
 The other two, \texttt{al} and \texttt{at} are respectively a
 function between products that describes what to do with the different
 constructor fields and a function between atoms which describes what to
@@ -604,9 +614,8 @@ motivates the following definition of alignments.
 
 \subsection{Alignment}\label{alignment}
 
-As mentioned in the previous paragraph, the spine takes care of matching
-the constructors of two trees, beyond that we still need to define a way
-to proceed with the diff between the products of data stored in the constructors.
+The spine takes care of matching
+the constructors of two trees, alignments handle the products packed within the constructors.
 Recall that this alignment has to work between two heterogeneous lists
 corresponding to the fields associated with two distinct constructors.
 The approach presented below is inspired by the existing algorithms
@@ -614,7 +623,9 @@ based on the edit distance between two strings. The problem of finding
 an alignment of two lists of constructor fields can be viewed as the
 problem of finding an edit script between them. An edit script is
 simply a sequence of operations which describes how to change the source
-list into the destination. To compute an edit script we simply
+list into the destination. In the case of \diff the source and destination lists are the lists of lines in the source and destination files; in our context
+the source and destination lists are the products of fields of the source and destination constructors respectively. 
+To compute an edit script we simply
 traverse the lists, from left to right, considering one element from each
 list. At each step we are presented with three choices:
 
@@ -632,17 +643,6 @@ list. At each step we are presented with three choices:
   destination.
 \end{itemize}
 
-This approach is similar to the one used to compute edit scripts; there is one major difference though. In the
-case of strings we can assume deletions and insertions to be somewhat
-equivalent in cost thus we can safely try to maximise one of the two.
-However, in our case, the elements we are inserting or deleting are
-subtrees of arbitrary size, therefore it is not obvious if we should try and maximise
-insertions or deletions.
-
-This poses the problem that when enumerating alignments we have no guiding heuristic to cut the number
-of solutions, for the time being we will simply ignore the problem and resort to enumerate
-all possible alignments, avoiding to skew the algorithm into preferring
-insertions over deletions or vice versa.
 
 The following GADT models the sequence of operations that represent an 
 alignment.
@@ -655,14 +655,27 @@ data Al (at :: U -> *) :: [U] -> [U] -> * where
   Amod :: at u -> Al at xs ys -> Al at (u ': xs) (u ': ys)
 \end{lstlisting}
 
-\texttt{Al} is parametrised by the same function on pairs of introduced in the spine. 
+\texttt{Al} is parametrised by the same type-level function introduced in the spine. 
 \texttt{A0} represents the empty alignment, \texttt{Ains} and \texttt{Adel} take as first argument
-a singleton representing a runtime instance of the type \texttt{u}. These two, together
+a singleton representing the element being inserted or deleted. These two, together
 with an alignment for the rest of the list, give us the alignment with
 an insertion (resp. deletion) as explained in the section above. In the
 \texttt{Amod} case the first argument is the predicate on the underlying atom that describes how to transform 
 it and the second one, as for the case of insertions and deletions, represents an  
 alignment between the rest of the lists. 
+
+One key difference to keep in mind, between the edit scripts produced by diff and the alignments is the atomicity 
+of the elements being aligned (lines and sub-trees respectively). In the
+case of strings we can assume deletions and insertions to be somewhat
+equivalent in cost thus we can safely try to maximise one of the two.
+However, in our case, the elements we are inserting or deleting are
+sub-trees of arbitrary size, therefore it is not obvious if we should try and maximise
+insertions or deletions.
+
+This poses the problem that when enumerating alignments we have no guiding heuristic to cut the number
+of solutions, for the time being we will simply ignore the problem and resort to enumerate
+all possible alignments, avoiding to skew the algorithm into preferring
+insertions over deletions or vice versa.
 
 Let's walk through calculating the alignment for our running example: we have to 
 produce an alignment between \texttt{[KSExpr, KSExpr]} and \texttt{[Kint]} (recall that these are the shapes of the 
@@ -696,7 +709,7 @@ fields. Note that this construction explicitly excludes pairing constant atoms
 to recursive ones, this choice serves to prune the search space and reduce the 
 number of possible pairings that can be constructed.
 \\\\
-To represent pairs of constant atoms we can introduce a helper \texttt{Contract} datatype which 
+To represent pairs of constant atoms we introduce a helper \texttt{Contract} datatype which 
 lifts f over a pair of xs.
 
 \begin{lstlisting}[language=haskell]
@@ -731,10 +744,10 @@ The other case is covered by the \texttt{As} constructor, recall that in this ca
 can be read as: a pair of \texttt{Usingl u}.
 
 In our example we have already seen the case for \texttt{Ai}, the atoms paired 
-by the first spine were all $Kexpr$s which we recursively calculated spines on. 
+by the first spine were all \texttt{Kexpr}s which we recursively calculated spines on. 
 The \texttt{As} will be produced when we match two \texttt{Value}s that contain 
-different integers, in that case we produce a pair of $Using Kint$ that record 
-the transformation from one $Int$ to the other.
+different integers, in that case we produce a pair of \texttt{Usingl Kint} that record 
+the transformation from one \texttt{Int} to the other.
 
 \subsection{Recursive alignments}\label{recursive alignments}
 
@@ -753,8 +766,8 @@ handle such cases we can extend our spines and alignments with the datatype
 A match of constructors will be represented as a spine while insertions and 
 deletions will record the constructor being inserted (resp. deleted) and a 
 \texttt{Ctx} which records which fields are associated to that constructor.
-\texttt{Ctx}s are inspired by zippers: they can be thought as a representation 
-of a  type with a hole somewhere; the hole represents the place where we 
+\texttt{Ctx}s list zippers \cite{zippers}: they can be thought as a representation 
+of a type with a hole somewhere; the hole represents the place where we 
 plug in the rest of the tree to continue the computation.
 \begin{lstlisting}[language=haskell]
 data Almu :: U -> U -> * where
@@ -772,8 +785,6 @@ being generated at each step.
 
 \subsection{Putting everything together}\label{putting everything together}
 
-With these types it is easy to write a function that computes the diff between 
-two trees. 
 We can write this function from the ``bottom up'',
 starting from the atoms and working our way up through spines and recursive alignments. 
 Notice how all these functions return a list of results, as non-determinism 
@@ -991,11 +1002,29 @@ phases can proceed in a loop as the correct definition of this notion is still
 unclear and will become clearer through experimentation and comparison against 
 current diffing algorithms.
 
+
+\begin{center}
+ \begin{tabular} { ||c|c|| }
+   \hline Visual Representation of Patches & 10 - 10 - 2017 \\
+   \hline
+   \hline Oracle Framework & 20 - 10 - 2017 \\ 
+   \hline Convert optimisations to Oracles & 25 - 10 - 2017 \\
+   \hline Implement new Oracles (Diff, etc) & 15 - 11 -2017 \\ 
+   \hline Experimentation and comparison & 01 - 12 - 2017 \\ 
+   \hline
+   \hline Exploring disjointness & 15 - 12 - 2017 \\
+   \hline
+   \hline Final writeup & 30 - 12 - 2017 \\
+   \hline
+ \end{tabular}
+\end{center}
+
+
 \section{Oracles}
 Oracles, are something we want to introduce in the non-deterministic parts of 
 the algorithm. The goal is to be able to have a uniform interface to implement 
 different kinds of optimisations, heuristic and possibly even human interaction. 
-The key idea, is to extend the algorithm to perform a mondaic action at each 
+The key idea, is to extend the algorithm to perform a monadic action at each 
 non-deterministic ``junction''. The result of this action will be a list that 
 encodes which branches should be explored and which should be cut from the enumeration of patches.
 
@@ -1024,7 +1053,7 @@ class Oracle o m where
 The Oracle class has two functions, one for the choice on the constructor level 
 and one for the choice on the product level. At each choice, the oracle has 
 access to the history of paths issued on the branch via a reader monad, and 
-has also access to whatever global information it may contain (the $o$ type).
+has also access to it's iternal state (the $o$ type).
  
  \subsection{NoOracle}
 To get back our original behaviour we can define the most simple Oracle:
@@ -1048,7 +1077,7 @@ case.
 \subsection{NoDupBranches}
 We can also encode the same optimisation presented earlier as an oracle. We can 
 define the following function that looks at the history of issued paths to avoid 
-performing an insertion if the last step was a deletion and viceversa.
+performing an insertion if the last step was a deletion and vice-versa.
 
 \begin{lstlisting}[language=haskell]
 nextPaths :: [Path] -> [Path]
@@ -1074,11 +1103,11 @@ instance (Monad m) => OracleF NoDupBranches m where
 
 \subsection{Oracle composition}
 
-We are now back to the starting point, but we have an interface that allows us 
+We have gotten , but we have an interface that allows us 
 to keep the implementation immutable while still giving us the chance to tweak 
 its behaviour. An advantage of this is that we can define a notion of 
 composition between oracles, this way, we can layer different processes each of 
-which is independent of the other in terms of implenentation.
+which is independent of the other in terms of implementation.
 
 The composition we define wants to model a stack of oracles, the oracles are 
 interrogated in the order in which they appear on the stack. When an oracle is 
@@ -1147,7 +1176,7 @@ Given this pair of source and destination
 \end{lstlisting}
 
 The preprocessing will produce the list [OIns (1,1), OMod (3,3) (3,4)]. The 
-first line can be definately ruled as an insertion as it is adiacent to a copy 
+first line can be definitely ruled as an insertion as it is adjacent to a copy 
 on both the source and destination. \texttt{Diff3} records line 3 of the source 
 as a deletion and lines 3 and 4 of the destination as insertions. This gives us 
 two contiguous regions of insertions and deletions between source and 
@@ -1223,7 +1252,7 @@ we know that \texttt{diff3} can not reconcile the changes between source and des
 and will simply delete everything in the source and insert everything in the 
 destination. This is the case where we can attempt to generate a more efficient 
 patch, so we return an empty list to fall back to any underlying oracle that 
-will compute a full enumaration in that range. We want to add the two other else 
+will compute a full enumeration in that range. We want to add the two other else 
 branches to handle the case when transforming a source into the destination, we 
 end up on a branch that has inserted (resp. deleted) everything it had to, and 
 it simply needs to delete (rep. insert) the remaining range.
@@ -1267,13 +1296,13 @@ a \texttt{Seq} of expressions.
 This means that whenever we change a single expression to a sequence of 
 multiple ones by adding one at the end, we will record the insertion, but will 
 also mark the first line as a copy. This means it will be ``to late'', when we 
-get to the inseted line, and we already decided to copy a node which leaves us 
+get to the inserted line, and we already decided to copy a node which leaves us 
 no slot to insert the new expression.
 This problem can be fixed in different ways: one solution is to design the AST in a 
-way that this problem can not arise. If we modeled the top-level of a program, 
+way that this problem can not arise. If we modelled the top-level of a program, 
 so that the top level is always a \texttt{Seq} and we add an \texttt{Empty} 
 constructor to \texttt{Expr}, then an example like the previous one would not be 
-problematic anymore. Infact, when we get to line 2, we don't have to change the 
+problematic anymore. Indeed, when we get to line 2, we don't have to change the 
 previous constructor anymore, as the source will conveniently contain an 
 \texttt{Empty} expression slot in which we can insert our new expression.
 This solution has the problem of being very ad-hoc. We have to modify the parser 
@@ -1292,7 +1321,7 @@ still troublesome however that the correctness of the oracle depends on an
 oracle being present before it. Also, if we want to add support for other 
 languages in the future we will have to carefully reimplement the ad-hoc oracles 
 for the new languages. To solve these last lingering issues, we can adopt a 
-different stratedy. Ultimately the problem lies in the fact that there are two 
+different strategy. Ultimately the problem lies in the fact that there are two 
 distinct actors at play: one one hand we have the AST, on the other the actual lines of 
 code, which can be thought of as a pretty-print of the AST. We are using the line based solution 
 over the pretty-print of the AST to derive a solution on the AST. Our problems 
@@ -1309,7 +1338,7 @@ I mean is that every change recorded in diff3(pp(AST)) also appears in diff3(AST
 
 Another problem, perhaps even more troubling is that \texttt{diff3} can mark 
 some parts as copies even though these copies are illegal for our algorithm.
-Immagine a case where we have this pair of source and destination files
+Imagine a case where we have this pair of source and destination files
 
 \begin{lstlisting}[language=haskell]
 ((keep
@@ -1366,7 +1395,7 @@ contains at least one expression marked as copy, to deal with the deletion as we
 must also check that the converse condition does not hold going from $c$ to $a$ 
 and $b$.
 To solve the conflict we can simply remove some pairs from the set $CopyPairs(P)$ (marking them as OMods instead)
-untill the condition is satisfied. 
+until the condition is satisfied. 
 \\\\
 
 The only part that is missing is about which criteria can be used to pair up the 
@@ -1376,7 +1405,7 @@ their outer level (resulting in an \texttt{Scns} in our case), but would then la
 subtrees.  The crucial observation is that the candidate nodes to check will 
 always be marked to be starting on a line that \texttt{diff3} will have marked 
 as copies (this is exactly the issue, diff3 can issue a copy there and move across sub-trees later, our algorithm can 
-not).
+not). 
 
 One solution could be to extend the oracles to add support for a \texttt{De-optimise} 
 operation. The oracle should be able to perform some computation on each branch 
@@ -1387,7 +1416,16 @@ and then turn off as the program takes care of the of the deeper levels.
 
 Another solution, could be to try and solve the problem on the \texttt{[DiffAction]} directly, via some preprocessing.
 This criteria identified to match nodes suggests an enumeration strategy that we 
-could use to break any eventual conflicts in the \texttt{[DiffAction]}. 
+could use to break any eventual conflicts in the \texttt{[DiffAction]}. The idea is to identify which lines \texttt{diff3}
+marked as copies, and collect all the subtrees on those lines (from the source and destination respectively) so that we can check perform the check on them.
+The final observation we need is that when collecting subtrees starting on a 
+pair of lines $(s,r)$, where $s$ is a copied line from the source file that ends 
+up on line $d$ in the destination, then we will collect the same number of 
+subtrees from $s$ and $d$. This happens because the line is a copy, so it must 
+contain the same number of subtrees starting from it, both in the source and 
+destination file. Moreover, since the whole line is marked as copy, our algorithm will end 
+up only considering the respective pairs of sub-trees, meaning that we can zip 
+up the two lists and check each pair. 
 
 Given,
 \begin{itemize}
@@ -1396,16 +1434,138 @@ Given,
 \end{itemize}
 then, for each pair $(s,t) \in CopySet(P)$ we can perform the following steps:
 \begin{lstlisting}[language=haskell]
-  src <- CollectST(P,s)
-  dst <- CollectST(P,t)
-  check src dst
+  let src = CollectST(P,s)
+  let dst = CollectST(P,t)
+  map (check src dst) (zip src dst) 
 \end{lstlisting}
 
 Where \texttt{check} is the predicate to check expressions we defined earlier. 
 At this point, if check fails, we have a pair \texttt{(s,t)} of lines which 
-\texttt{diff3} identified as copies but our algorithm can not. As mentioned in the previous 
-paragraph, once identified the critical pairs of line, we can recode the whole 
-subtrees they span as modifications and fix the potential conflict.
+\texttt{diff3} identified as copies but our algorithm can not. Once identified the critical pairs of line 
+we can remove pairs from $CopySet(P)$ until the predicate is true. 
+
+\section{Cost}
+
+\section{Disjointness}
+[Need to put a decription of application somewhere ]
+We can define a predicate to decide disjointness between patches. We want to define 
+this notion just for pair of patches that share the same source, as patches on completely different files are 
+incomparable to each other. 
+The idea that we want to capture with disjointness is that two disjoint patches should always 
+commute, this means that we can apply them in any order to the source and always get the same result.
+
+We can start by attempting to define what disjointness is on the recursive 
+level, since we want that any patch, other than the trivial one, to be disjoint 
+from itself we get that whenever we have a pair of \alins is never disjoint from 
+each other, and the same holds from \aldel
+
+When matching and \alins something that is not another insertions, we extract 
+the focus from the context, and check if the focus is disjoint to whatever other 
+node we are considering. In other words, insertions are always allowed.
+
+When we match an \aldel with an \alspn we 
+will inspect the spine contained in the \alspn.
+If it is an \scp then the two are disjoint.
+If it is an \scns then they are disjoint if the recursive changes within the 
+\scns do not change the deleted context.
+If it is an \schg then they are not disjoint
+
+The only case left is when we have two \alspn. In this case we have to look at 
+the pair of spines to decide if they are disjoint. As before we can proceed by 
+enumerating all possible cases.
+
+
+
+
+\scp is disjoint from any other node. 
+
+A pair of \scns is disjoint if the constructor they fix is the same and if their 
+fields are pairwise disjoint.
+
+A pair of \schg is never disjoint.
+
+Finally, when we have an \scns and a \schg they are disjoint if the constructor 
+fixed by \scns is the constructor changed by \schg and if the fields of \scns 
+are disjoint from the alignment in \schg.
+
+
+
+This last notion of disjointness between the fields and the alignment is similar to the previous ones.
+Since we learned that the constructor of \scns and the source constructor of 
+\schg are the same we know that this alignment has as source exactly this list 
+of fields. We can step through the elements considering them in pairs. 
+If we the 
+alignment tries to insert something, we will simply recurse on the rest of the 
+alignment. 
+If we find an \adel we have to check that the patch on the corresponding field 
+is actually and identity patch. 
+Lastly, when the alignment contains an \amod we can check pair if the argument 
+of the \amod is disjoint from the field. 
+If the elements are recursive we will recurse on their arguments, in the case 
+where they are simple pairs, they will be disjoint if they both transform to the 
+same element.
+
+
+
+
+
+
+
+
+\section{Experimentation}
+With the Oracle implementing the diff3 optimisation it is finally possible to
+run experiments on real world repositories. I mined conflicts from the following
+repositories
+ \begin{itemize}
+    \item clj-http
+    \item incanter
+     \item lein-figwheen
+     \item leiningen
+     \item riemann
+     \item ring
+ \end{itemize}
+
+Extracting information from these repositories involved writing some scripts to 
+crawl the git tree of the master branch. The goal was to identify merge commits. 
+Merge commits, are identified by the simple fact of having more than one parent, we will restrict our attention to
+the case of two parents. This is the most common and sensible case for our scenario as most teams will develop
+features on different branches and eventually merge each branch into master. 
+This process will generate a merge commit with exctly two parents, one of which 
+is the master branch and the other of which is the feature branch.
+
+For each of these commits I reproduced the process of making the merge amongst branches and extracted any
+clojure files that were marked as conflicts from this merge.
+
+For each of these files we want to extract three different versions of it. The 
+original version \texttt{O.clj} represents the snapshot of the file at the moment 
+the branches initially diverged. It is the last version the two branches agreed 
+on. We also want to extract the versions \texttt{A.clj} and \texttt{B.clj} which 
+capture the current state of the file on each of the two branches.
+
+From this processing I extraced 137 folders, each containing the three snapshots 
+of the conflicting file. These files have been shrunk with a preprocessing that 
+relies on \texttt{diff3} to remove all the top level expressions that are 
+entirely marked as copies in \texttt{diff3}. 
+
+Each test consists in generating the pair of patches $OA$ and $OB$ and checking if they are disjoint. 
+The patch $OA$ is the best patch generated between \texttt{O.clj} and \texttt{A.clj} according 
+to the cost function, and $OB$ is generated in the same way but with \texttt{B.clj} 
+as destination.
+
+Each test runs in a separate process which has a lifespan of 30 seconds, after 
+which it gets terminated and the next test is ran. 
+
+Running the test gives the following results.
+
+\begin{center}
+ \begin{tabular} { ||c|c|c|c|| }
+   \hline Disjoint & Not Disjoint & Timeout & Total \\
+   \hline
+   \hline 65 & 21 & 50 & 137 \\
+    \hline
+ \end{tabular}
+\end{center}
+
 
 
 %Questions
@@ -1419,22 +1579,6 @@ subtrees they span as modifications and fix the potential conflict.
 %          All nodes that have a pair of subtrees? What about Seq -> Cons
 
 
-
-\begin{center}
- \begin{tabular} { ||c|c|| }
-   \hline Visual Representation of Patches & 10 - 10 - 2017 \\
-   \hline
-   \hline Oracle Framework & 20 - 10 - 2017 \\ 
-   \hline Convert optimisations to Oracles & 25 - 10 - 2017 \\
-   \hline Implement new Oracles (Diff, etc) & 15 - 11 -2017 \\ 
-   \hline Experimentation and comparison & 01 - 12 - 2017 \\ 
-   \hline
-   \hline Exploring disjointness & 15 - 12 - 2017 \\
-   \hline
-   \hline Final writeup & 30 - 12 - 2017 \\
-   \hline
- \end{tabular}
-\end{center}
 
 \begin{thebibliography}{9}  
 \bibitem{hasochism}

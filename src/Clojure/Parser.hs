@@ -117,8 +117,8 @@ parseComment = do
   start <- getPosition
   char ';'
   comment <- manyTill anyChar (string "\n")
-  end <- getPosition
-  return $ Comment comment (mkRange start end)
+  -- single line comment, if we parse end here we have parsed newline as well
+  return $ Comment comment (mkRange start start)
 
 parens p = between (symbol lexer "(") (string ")") p
 braces p = between (symbol lexer "{") (string "}") p

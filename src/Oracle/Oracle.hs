@@ -5,7 +5,7 @@ module Oracle.Oracle
   , module Oracle.DiffOracle
   , module Oracle.NoIllegalCopy
   , module Oracle.CopyOracle
-  , module Oracle.GroupedDiffOracle
+  -- , module Oracle.GroupedDiffOracle
   ) where
 
 import Oracle.Internal
@@ -14,4 +14,4 @@ import Oracle.NoDupBranches
 import Oracle.DiffOracle
 import Oracle.NoIllegalCopy
 import Oracle.CopyOracle
-import Oracle.GroupedDiffOracle
+-- import Oracle.GroupedDiffOracle

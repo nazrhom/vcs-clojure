@@ -2,6 +2,7 @@
 module Main where
 
 import System.IO
+import System.Exit
 import Options.Applicative
 import Data.Monoid
 import Data.List (sortBy)
@@ -20,6 +21,7 @@ import VCS.Apply
 import VCS.Multirec
 import VCS.Cost
 import VCS.Disjoint
+import VCS.Compatible
 
 import Util.PPPatch
 import Util.ToJSON
@@ -35,69 +37,10 @@ main :: IO ()
 main = do
   opts <- execParser optsHelper
 
-  s <- readFile (srcFile opts)
-  src <- parseFile (srcFile opts) s
+  case (folder opts) of
+    Just folder -> processConflictFolder folder
+    Nothing     -> patchFiles (srcFile opts) (dstFile opts) (jsonOutput opts)
 
-  d <- readFile (dstFile opts)
-  dst <- parseFile (dstFile opts) d
-
-  -- putStrLn $ show src
-  -- putStrLn $ show dst
-  let diff3 = preprocessGrouped s d
-  let diff3_plain = preprocess s d
-  let copyMaps = buildCopyOracle diff3_plain
-  --
-  -- let sT = toTree src
-  -- let dT = toTree dst
-  -- writeFile ((srcFile opts) ++ "_view") sT
-  -- writeFile ((dstFile opts) ++ "_view") dT
-  -- let diff3 = preprocessGrouped sT dT
-  -- let diff3_man = [ OMod (Range 2 4) (Range 2 4)]
-  putStrLn $ show $ diff3
-  putStrLn $ show $ copyMaps
-  -- putStrLn $ show $ diff3_plain
-
-  let oracle = (GroupedDiffOracle $ (diff3, copyMaps)) <°>  (NoDupBranches)
-  let almus = computePatches oracle src dst
-  -- mapM (\p -> do
-  --   putStrLn ("Cost: " ++ show (costAlmu p) ++ "\n" ++ show p ++ "\n")) almus
-
-  case almus of
-    []    -> error "boom"
-    almus -> do
-      putStrLn $ "Found " ++ show (length almus) ++ " patches"
-      case (jsonOutput opts) of
-        Nothing -> do
-          if (printAll opts)
-          then printPatchesWithCost almus
-          else return ()
-        Just path -> do
-          let almusCost = sortBy (comparing costAlmu) almus
-          -- putStrLn $ show (applyAlmu lvl1 (toSing src))
-          printPatchWithCost (head almusCost)
-          B.writeFile path $ encodePretty (head almusCost)
-  -- let almus = diffAlmu oracle (toSing src) (toSing dst)
-  -- let patches = map (flip applyAlmu (toSing src)) almus
-  -- let almusCost = sortBy (comparing costAlmu) almus
-  -- let worst = last almusCost
-  -- let best = head almusCost
-  -- putStrLn $ "Found " ++ show (length almus) ++ " patches."
-  -- putStrLn $ "Worst patch has a cost of : " ++ show (costAlmu worst)
-  -- putStrLn $ "Corresponding to \n" ++ show worst
-  -- putStrLn $ "Lowest cost found: " ++ show (costAlmu best)
-  -- putStrLn $ "Corresponding to \n" ++ show best
-  -- putStrLn $ show $ applyAlmu (head almus) (toSing src)
-
-checkConflict :: String -> String -> IO ()
-checkConflict srcFile dstFile = do
-  s <- readFile srcFile
-  d <- readFile dstFile
-  src <- parseFile "" srcFile
-  dst <- parseFile "" dstFile
-  let cp = buildCopyOracle (preprocess s d)
-  let diff3 = preprocessGrouped s d
-  let o = GroupedDiffOracle (diff3, cp)
-  putStrLn $ show $ solveConflicts o src dst
 
 
 printPatchesWithCost :: [Almu u v] -> IO ()
@@ -108,28 +51,77 @@ printPatchWithCost almu = do
   putStrLn $ "Cost: " ++ show (costAlmu almu)
   putStrLn (show $ almu)
 
-processConflictFolder :: IO ()
-processConflictFolder = do
-  a1 <- readFile "A1.clj"
+patchFiles :: String -> String -> Maybe String -> IO ()
+patchFiles srcFile dstFile jsonOut = do
+  s <- readFile srcFile
+  src <- parseFile srcFile s
+
+  d <- readFile dstFile
+  dst <- parseFile dstFile d
+
+  putStrLn $ show src
+  putStrLn $ show dst
+  let diff3 = buildDelInsMap $ preprocessGrouped s d
+  let diff3_plain = preprocess s d
+  let copyMaps = buildCopyOracle diff3_plain
+
+  putStrLn $ show $ diff3
+  putStrLn $ show $ copyMaps
+  -- putStrLn $ show $ diff3_plain
+  let gdiff = solveConflicts diff3 copyMaps src dst
+  putStrLn $ show $ gdiff
+  -- putStrLn $ show $ gdiff
+  let oracle = (DiffOracle gdiff <°> NoDupBranches)
+  let almus = computePatches oracle src dst
+
+  case almus of
+    []    -> error "boom"
+    almus -> do
+      putStrLn $ "Found " ++ show (length almus) ++ " patches"
+      case (jsonOut) of
+        Nothing -> return ()
+        Just path -> do
+          let almusCost = sortBy (comparing costAlmu) almus
+          printPatchWithCost (head almusCost)
+          B.writeFile path $ encodePretty (head almusCost)
+
+
+
+processConflictFolder :: String -> IO ()
+processConflictFolder folder = do
+  a1 <- readFile $ folder ++ "/A1.clj"
   a <- parseFile "A1.clj" a1
 
-  b1 <- readFile "B1.clj"
+  b1 <- readFile $ folder ++ "/B1.clj"
   b <- parseFile "B1.clj" b1
 
-  o1 <- readFile "O1.clj"
+  o1 <- readFile $ folder ++ "/O1.clj"
   o <- parseFile "O1.clj" o1
 
-  let diffOA = preprocess o1 a1
-  let oracleOA = (DiffOracle $ buildOracle diffOA) <°> NoDupBranches
+  let delInsOA = buildDelInsMap $ preprocessGrouped o1 a1
+  let delInsOB = buildDelInsMap $ preprocessGrouped o1 b1
 
-  let diffOB = preprocess o1 b1
-  let oracleOB = (DiffOracle $ buildOracle diffOB) <°> NoDupBranches
+  let cpOA = buildCopyMaps $ preprocess o1 a1
+  let cpOB = buildCopyMaps $ preprocess o1 b1
+
+  let diffOA = solveConflicts delInsOA cpOA o a
+  let diffOB = solveConflicts delInsOB cpOB o b
+
+  let oracleOA = (DiffOracle diffOA) <°> NoDupBranches
+
+  let oracleOB = (DiffOracle diffOB) <°> NoDupBranches
 
   let almuOA = computePatch oracleOA o a
   let almuOB = computePatch oracleOB o b
-
-  putStrLn $ "Patch O-A: " ++ show almuOA
-  putStrLn $ "Patch O-B: " ++ show almuOB
+  let disj = disjoint almuOA almuOB
+  let comp = compatible almuOA almuOB
+  putStrLn $ show disj
+  putStrLn $ show comp
+  if comp
+    then exitSuccess
+    else exitWith (ExitFailure 1001)
+  -- putStrLn $ "Patch O-A: " ++ show almuOA
+  -- putStrLn $ "Patch O-B: " ++ show almuOB
 
 
 allTheSame :: (Eq a) => [a] -> Bool
@@ -198,6 +190,7 @@ data Opts = Opts
   , dstFile :: String
   , jsonOutput :: Maybe String
   , printAll :: Bool
+  , folder :: Maybe String
   }
 
 setHandle :: Maybe String -> (Handle -> IO a) -> IO a
@@ -228,6 +221,12 @@ opts = Opts
     ( long "all"
     <> short 'a'
     <> help "Print all patches")
+  <*> optional (strOption
+    (  long "folder"
+    <> short 'f'
+    <> metavar "FOLDER"
+    <> help "Folder to process"
+    ))
 
 optsHelper :: ParserInfo Opts
 optsHelper = info (helper <*> opts)
