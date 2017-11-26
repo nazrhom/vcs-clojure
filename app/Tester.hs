@@ -6,6 +6,9 @@ import System.Directory
 import System.Exit
 import Control.Monad
 import System.Timeout
+import System.FilePath
+import Data.List
+-- import Data.Time.Clock
 
 import Clojure.AST
 import Clojure.Parser
@@ -28,7 +31,7 @@ executablePathRoot = ".stack-work/dist/x86_64-osx/Cabal-1.24.2.0/build/th-vcs-cl
 executablePath = "../../../../" ++ executablePathRoot
 
 timeout_time :: Int
-timeout_time = 30000000
+timeout_time = 60000000
 
 main :: IO ()
 main = do
@@ -36,12 +39,57 @@ main = do
   let dirsP = map (\d -> testPath ++ "/" ++ d) dirs
   actual_dirs <- filterM doesDirectoryExist dirsP
   results <- mapM (flip withCurrentDirectory checkDisjointness) actual_dirs
+  -- writeResults results
   let successes = filter (\b -> b == Just True) results
   let failures  = filter (\b -> b == Just False) results
   let timeouts = filter  (\b -> b == Nothing) results
   putStrLn $ "Succeded in " ++ show (length successes)
   putStrLn $ "\nFailed in " ++ show (length failures)
   putStrLn $ "\nWith " ++ show (length timeouts) ++  " timeouts "
+
+-- writeResults :: [(String, Maybe Bool)] -> IO ()
+-- writeResults res = do
+--   let splitRes = splitInFolders res
+--   mapM_ writeTable splitRes
+--
+--   where
+--     extract h = joinPath $ drop 1 (splitPath h)
+--     convert r = case r of
+--       Just True  -> "T"
+--       Just False -> "F"
+--       Nothing    -> "X"
+--     baseFolder s = head (splitPath s)
+--     splitInFolders r = groupBy (\x y -> baseFolder (fst x) == baseFolder (fst y)) r
+--
+-- writeTable :: [(String, Maybe Bool)] -> IO ()
+-- writeTable t = writeFile ("") (mkTable t)
+-- writeTable []     = undefined
+--
+-- mkTable :: [(String, Maybe Bool)] -> String
+-- mkTable res = headers ++ border ++ values
+--   where
+--     headers = foldl addHeader "" res
+--     border  = foldl addBorder "" res
+--     values  = foldl addResults "" res
+--
+--     addHeader ((header,_):xs) soFar  =
+--       soFar ++ "| " ++ extract header ++ " | "
+--     addHeader []              soFar  = soFar ++ "\n"
+--
+--     addBorder (x:xs) soFar =
+--       soFar ++ "|" ++ replicate 13 '-' ++ "|"
+--     addBorder []     soFar = soFar ++ "\n"
+--
+--     addResults ((_, result):xs) soFar =
+--       soFar ++ "|" ++ replicate 6 ' ' ++ convert result
+--         ++ replicate 6 ' ' ++ "|"
+--     addResults []               soFar = soFar
+--
+--     extract h = joinPath $ drop 1 (splitPath h)
+--     convert r = case r of
+--       Just True  -> "T"
+--       Just False -> "F"
+--       Nothing    -> "X"
 
 runDiff :: IO Bool
 runDiff = do
@@ -62,15 +110,15 @@ checkDisjointness :: IO (Maybe Bool)
 checkDisjointness = do
   cwd <- getCurrentDirectory
   putStrLn $ "Running in " ++ cwd
-  ph <- spawnProcess executablePath []
+  ph <- spawnProcess executablePath ["-f", cwd ++ "/", "-s", "_", "-d", "_"]
   result <- timeout timeout_time (waitForProcess ph)
   case result of
     Nothing -> do
       terminateProcess ph
       putStrLn $ "Process Timed out"
-      return Nothing
-    Just (ExitFailure _) -> return $ Just False
-    Just exitSuccess     -> return $ Just True
+      return (Nothing)
+    Just (ExitFailure _) -> return $ (Just False)
+    Just exitSuccess     -> return $ (Just True)
 
 checkNoConflicy :: IO (Maybe Bool)
 checkNoConflicy = do

@@ -12,6 +12,8 @@ import Data.Proxy
 import Data.Aeson.Encode.Pretty
 import qualified Data.ByteString.Lazy as B
 
+import Debug.Trace
+
 import Clojure.Parser
 import Clojure.Lang
 import Clojure.PrettyPrint
@@ -26,10 +28,9 @@ import VCS.Compatible
 import Util.PPPatch
 import Util.ToJSON
 import Util.Treeview
+import Util.UnixDiff
 
 import Oracle.Oracle
-
-import Util.UnixDiff
 
 import Patches.Diff3
 
@@ -40,8 +41,6 @@ main = do
   case (folder opts) of
     Just folder -> processConflictFolder folder
     Nothing     -> patchFiles (srcFile opts) (dstFile opts) (jsonOutput opts)
-
-
 
 printPatchesWithCost :: [Almu u v] -> IO ()
 printPatchesWithCost almus = mapM_ printPatchWithCost almus
@@ -61,41 +60,38 @@ patchFiles srcFile dstFile jsonOut = do
 
   putStrLn $ show src
   putStrLn $ show dst
-  let diff3 = buildDelInsMap $ preprocessGrouped s d
-  let diff3_plain = preprocess s d
-  let copyMaps = buildCopyOracle diff3_plain
-
-  putStrLn $ show $ diff3
-  putStrLn $ show $ copyMaps
+  let diff3 = preprocessGrouped s d
+      delInsMap = buildDelInsMap diff3
+      diff3_plain = preprocess s d
+      copyMaps = buildCopyOracle diff3_plain
+      gdiff = solveConflicts delInsMap copyMaps src dst
+      oracle = (DiffOracle gdiff <°> NoDupBranches)
+      -- oracle = (OldDiffOracle diff3 <°> NoDupBranches)
+      almu = computePatchesBounded oracle 25 5 src dst
+  -- putStrLn $ show $ diff3
+  -- putStrLn $ show $ copyMaps
   -- putStrLn $ show $ diff3_plain
-  let gdiff = solveConflicts diff3 copyMaps src dst
-  putStrLn $ show $ gdiff
-  -- putStrLn $ show $ gdiff
-  let oracle = (DiffOracle gdiff <°> NoDupBranches)
-  let almus = computePatches oracle src dst
 
-  case almus of
-    []    -> error "boom"
-    almus -> do
-      putStrLn $ "Found " ++ show (length almus) ++ " patches"
-      case (jsonOut) of
-        Nothing -> return ()
-        Just path -> do
-          let almusCost = sortBy (comparing costAlmu) almus
-          printPatchWithCost (head almusCost)
-          B.writeFile path $ encodePretty (head almusCost)
+  -- putStrLn $ show $ gdiff
+
+  putStrLn $ show $ gdiff
+  case (jsonOut) of
+    Nothing -> return ()
+    Just path -> do
+      printPatchWithCost almu
+      B.writeFile path $ encodePretty almu
 
 
 
 processConflictFolder :: String -> IO ()
 processConflictFolder folder = do
-  a1 <- readFile $ folder ++ "/A1.clj"
+  a1 <- readFile $ folder ++ "A1.clj"
   a <- parseFile "A1.clj" a1
 
-  b1 <- readFile $ folder ++ "/B1.clj"
+  b1 <- readFile $ folder ++ "B1.clj"
   b <- parseFile "B1.clj" b1
 
-  o1 <- readFile $ folder ++ "/O1.clj"
+  o1 <- readFile $ folder ++ "O1.clj"
   o <- parseFile "O1.clj" o1
 
   let delInsOA = buildDelInsMap $ preprocessGrouped o1 a1
@@ -111,8 +107,11 @@ processConflictFolder folder = do
 
   let oracleOB = (DiffOracle diffOB) <°> NoDupBranches
 
-  let almuOA = computePatch oracleOA o a
-  let almuOB = computePatch oracleOB o b
+  let almuOA = computePatchesBounded oracleOA 25 5 o a
+  let almuOB = computePatchesBounded oracleOB 25 5 o b
+  -- putStrLn $ show almuOA
+  -- putStrLn $ show almuOB
+
   let disj = disjoint almuOA almuOB
   let comp = compatible almuOA almuOB
   putStrLn $ show disj
@@ -139,7 +138,28 @@ choose []     = error "boom"
 
 computePatches :: (MonadOracle o m) =>
       o -> Expr -> Expr -> m (Almu (ToSing Expr) (ToSing Expr))
-computePatches o x y = diffAlmu o (toSing x) (toSing y)
+computePatches o x y = diffAlmu o 10000 (toSing x) (toSing y)
+
+computePatchBounded :: (MonadOracle o []) =>
+      o -> Int -> Int -> Int -> Expr -> Expr -> (Almu (ToSing Expr) (ToSing Expr))
+computePatchBounded o start incr r x y = case almus of
+    [] ->
+      trace ("empty" ++ show start) recur
+    some ->
+      if anyBounded start some
+      then trace ("found " ++ show (length some)) (choose some)
+      else trace ("greater" ++ (show $ length some)) recur
+  where
+    anyBounded :: Int -> [Almu u v] -> Bool
+    anyBounded i [] = False
+    anyBounded i (x:xs) = if costAlmu x <= i then True else anyBounded i xs
+
+    almus = diffAlmu o start (toSing x) (toSing y)
+    recur = computePatchBounded o (start+(incr*r)) incr (r+1) x y
+
+computePatchesBounded :: (MonadOracle o []) =>
+      o -> Int -> Int -> Expr -> Expr -> (Almu (ToSing Expr) (ToSing Expr))
+computePatchesBounded o s i x y = computePatchBounded o s i 1 x y
 
 computePatch :: (MonadOracle o []) =>
       o -> Expr -> Expr -> Almu (ToSing Expr) (ToSing Expr)

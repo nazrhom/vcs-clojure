@@ -151,6 +151,9 @@ compatibleAt :: (IsRecEl a => rec1 a -> rec2 a -> Bool)
 compatibleAt compatibleR (Ai r) (Ai r') = compatibleR r r'
 compatibleAt compatibleR (As p) (As p')
   = new == new'
+    -- case testEquality new new' of
+    -- Just Refl -> True
+    -- Nothing   -> False
   where
     (old, new) = unContract p
     (old', new') = unContract p'

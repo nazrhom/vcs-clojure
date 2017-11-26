@@ -70,6 +70,7 @@ executable th-vcs-clojure-tester
                      , process
                      , directory
                      , th-vcs-clojure
+                     , filepath
   default-language:    Haskell2010
 
 test-suite th-vcs-clojure-test

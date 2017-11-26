@@ -25,6 +25,8 @@ type DelInsMap = (M.IntMap Path, M.IntMap Path)
 data DiffOracle = DiffOracle DelInsMap
   deriving (Show)
 
+data OldDiffOracle = OldDiffOracle [GroupDiffAction]
+
 buildDiffOracle :: String -> String -> Expr -> Expr -> DiffOracle
 buildDiffOracle s d src dst = DiffOracle diffActions
   where
@@ -60,8 +62,8 @@ invalidatePair (srcMap, dstMap) (i,j) = (M.insert i M srcMap, M.insert j M dstMa
 askOracle :: DiffOracle -> Usingl u -> Usingl v -> [Path]
 askOracle (DiffOracle diffActions) src dst = case (extractRange src, extractRange dst) of
       (Nothing, Nothing)         -> [ M ]
-      (Just sRange, Nothing)     -> [ ]
-      (Nothing, Just dRange)     -> [ ]
+      (Just sRange, Nothing)     -> [ D ]
+      (Nothing, Just dRange)     -> [ I ]
       (Just sRange, Just dRange) -> giveAdvice' diffActions src dst
 
 unionDelInsMap :: DelInsMap -> DelInsMap -> DelInsMap
@@ -246,6 +248,16 @@ wrap (Exp e) = e
 wrap (Sel sel) = (Collection "Wrap" sel (extractRangeSepExprList sel))
 
 
+askOracle' :: OldDiffOracle -> Usingl u -> Usingl v -> [Path]
+askOracle' (OldDiffOracle diffActions) src dst = case (extractRange src, extractRange dst) of
+      (Nothing, Nothing)         -> [ M ]
+      (Just sRange, Nothing)     -> [ D ]
+      (Nothing, Just dRange)     -> [ I ]
+      (Just sRange, Just dRange) -> giveAdvice diffActions src dst
+
+instance (Monad m) => OracleF OldDiffOracle m where
+  callF o@(OldDiffOracle diffActions) s d = return $ askOracle' o s d
+
 instance (Monad m) => OracleF DiffOracle m where
   callF o@(DiffOracle diffActions) s d = return $ askOracle o s d
     -- do
@@ -260,6 +272,19 @@ instance (Monad m) => OracleF DiffOracle m where
     -- else do
     --   let ans = askOracle o s d
     --   return ans
+
+
+instance (Monad m) => OracleP OldDiffOracle m where
+  callP _ An         An         = do
+    -- traceM "empty"
+    return []
+  callP _ An         (_ `Ac` _) = do
+    -- traceM "I"
+    return [ I ]
+  callP _ (_ `Ac` _) An         = do
+    -- traceM "D"
+    return [ D ]
+  callP o@(OldDiffOracle diffActions) (s `Ac` _) (d `Ac` _) = return $ askOracle' o s d
 
 instance (Monad m) => OracleP DiffOracle m where
   callP _ An         An         = do

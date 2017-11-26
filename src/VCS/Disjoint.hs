@@ -124,6 +124,9 @@ disjointAt :: (IsRecEl a => rec1 a -> rec2 a -> Bool)
 disjointAt disjointR (Ai r) (Ai r') = disjointR r r'
 disjointAt disjointR (As p) (As p')
   = new == new'
+    -- case testEquality new new' of
+    -- Just Refl -> True
+    -- Nothing   -> False
   where
     (old, new) = unContract p
     (old', new') = unContract p'

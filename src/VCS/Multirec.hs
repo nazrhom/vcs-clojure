@@ -78,81 +78,87 @@ data Ctx (r :: U -> *) :: [U] -> * where
   Here :: (IsRecEl u) => r u -> All Usingl l  -> Ctx r (u ': l)
   There :: Usingl u -> Ctx r l -> Ctx r (u ': l)
 
-spine :: IsRecEl r => Usingl r -> Usingl r -> Spine TrivialA TrivialP r
-spine x y | x == y = Scp
-spine x y | otherwise = case (view x, view y) of
-  ((Tag c1 l1), (Tag c2 l2)) -> case testEquality c1 c2 of
-    Just Refl -> Scns c1 (zipP l1 l2)
-    Nothing -> Schg c1 c2 (Pair l1 l2)
-
 -- |Implement DP-style optimization for Alignments and Recursive alignmetns.
 --
 -- The phase records the LAST decision took by the algo (either an insertion,
 -- modification ordeletion)
 align :: (MonadOracle o m)
-      => o -> All Usingl p1 -> All Usingl p2
+      => o -> Int -> Int -> All Usingl p1 -> All Usingl p2
       -> m (Al TrivialA p1 p2)
-align orc p1 p2 = runReaderT (alignO orc p1 p2) [I,M,D]
+align orc maxCost currCost p1 p2 = runReaderT (alignO orc maxCost p1 p2) (History { path = [I,M,D], cost = currCost })
 
 alignO :: (MonadOracle o m)
-       => o -> All Usingl p1 -> All Usingl p2
+       => o -> Int -> All Usingl p1 -> All Usingl p2
        -> HistoryM m (Al TrivialA p1 p2)
-alignO orc An An = return A0
-alignO orc p1 p2
-  = do
-    paths <- callP orc p1 p2
-    followAllPaths paths orc p1 p2
+alignO orc maxCost An An = return A0
+alignO orc maxCost p1 p2 = do
+  paths <- callP orc p1 p2
+  followAllPaths paths orc maxCost p1 p2
 
 followAllPaths :: (MonadOracle o m)
-               => [Path] -> o -> All Usingl p1 -> All Usingl p2
+               => [Path] -> o -> Int -> All Usingl p1 -> All Usingl p2
                -> HistoryM m (Al TrivialA p1 p2)
-followAllPaths []     _   _  _
+followAllPaths []     _   _   _  _
   = empty
-followAllPaths (i:is) orc p1 p2
-  = (followPath i orc p1 p2) <|> (followAllPaths is orc p1 p2)
+followAllPaths (i:is) orc maxCost p1 p2
+  = (followPath i orc maxCost p1 p2) <|> (followAllPaths is orc maxCost p1 p2)
 
 
 -- * Follows one specific path. Makes sure the recursive call to
 --   alignO has access to this path, for later inspection.
 followPath :: (MonadOracle o m)
-           => Path -> o -> All Usingl p1 -> All Usingl p2
+           => Path -> o -> Int -> All Usingl p1 -> All Usingl p2
            -> HistoryM m (Al TrivialA p1 p2)
-followPath _ orc An An         = pure A0 -- XXX: Should never be called!
-followPath I orc x y = alignIns orc x y
-followPath D orc x y = alignDel orc x y
-followPath M orc x y = alignMod orc x y
-followPath FM orc (a1 `Ac` p1) (a2 `Ac` p2)
-  = case testEquality a1 a2 of
-      Just Refl -> Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
-      Nothing -> case unsafeCoerceEquality a1 a2 of
-          Just Refl -> do
-            Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
-followPath S orc x y = alignAll NoDupBranches x y
---
--- liftPath :: ([Path] -> [Path]) -> History -> History
--- liftPath f h = History { path = f (path h), deOpt = deOpt h }
+followPath _ orc maxCost An An         = pure A0
+followPath I orc maxCost x y = alignIns orc maxCost x y
+followPath D orc maxCost x y = alignDel orc maxCost x y
+followPath M orc maxCost x y = alignMod orc maxCost x y
+-- followPath FM orc (a1 `Ac` p1) (a2 `Ac` p2)
+--   = case testEquality a1 a2 of
+--       Just Refl -> Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
+--       Nothing -> case unsafeCoerceEquality a1 a2 of
+--           Just Refl -> do
+--             Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
+-- followPath S orc x y = alignAll NoDupBranches x y
+
+liftPath :: ([Path] -> [Path]) -> History -> History
+liftPath f = liftHistory (f,id)
+
+liftCost :: (Int -> Int) -> History -> History
+liftCost f = liftHistory (id,f)
+
+liftHistory :: (([Path] -> [Path], Int -> Int)) -> History -> History
+liftHistory (fp, fc) h
+  = History {
+      path = fp (path h)
+    , cost = fc (cost h)
+    }
 
 alignIns :: (MonadOracle o m)
-           => o -> All Usingl p1 -> All Usingl p2
+           => o -> Int -> All Usingl p1 -> All Usingl p2
            -> HistoryM m (Al TrivialA p1 p2)
-alignIns orc p1 (a `Ac` p) = Ains a <$> local (I:) (alignO orc p1 p)
+alignIns orc maxCost p1 (a `Ac` p) =
+  Ains a <$> local (liftPath (I:)) (alignO orc maxCost p1 p)
 
 alignDel :: (MonadOracle o m)
-           => o -> All Usingl p1 -> All Usingl p2
+           => o -> Int -> All Usingl p1 -> All Usingl p2
            -> HistoryM m (Al TrivialA p1 p2)
-alignDel orc (a `Ac` p) p2 = Adel a <$> local (D:) (alignO orc p p2)
+alignDel orc maxCost (a `Ac` p) p2 =
+  Adel a <$> local (liftPath (D:)) (alignO orc maxCost p p2)
 
 alignMod :: (MonadOracle o m)
-           => o -> All Usingl p1 -> All Usingl p2
+           => o -> Int -> All Usingl p1 -> All Usingl p2
            -> HistoryM m (Al TrivialA p1 p2)
-alignMod orc (a1 `Ac` p1) (a2 `Ac` p2) = case testEquality a1 a2 of
-    Just Refl -> Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
+alignMod orc maxCost (a1 `Ac` p1) (a2 `Ac` p2) =
+  case testEquality a1 a2 of
+    Just Refl -> Amod (Contract (a1, a2)) <$> local (liftPath (M:)) (alignO orc maxCost p1 p2)
     Nothing -> empty
 
-alignAll :: (MonadOracle o m)
-           => o -> All Usingl p1 -> All Usingl p2
-           -> HistoryM m (Al TrivialA p1 p2)
-alignAll orc x y = alignIns orc x y <|> alignDel orc x y <|> alignMod orc x y
+-- alignAll :: (MonadOracle o m)
+--            => o -> All Usingl p1 -> All Usingl p2
+--            -> HistoryM m (Al TrivialA p1 p2)
+-- alignAll orc x y = alignIns orc x y <|> alignDel orc x y <|> alignMod orc x y
+
 -- Library stuff
 newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
 
@@ -160,7 +166,7 @@ type TrivialA = Contract Usingl
 data TrivialP :: [U] -> [U] -> * where
  Pair :: All Usingl l -> All Usingl r -> TrivialP l r
   deriving (Generic)
--- 
+--
 -- mkEnv :: [Path] -> History
 -- mkEnv p = History { path = p, deOpt = False }
 
@@ -285,3 +291,9 @@ showAl A0 = ""
 showAl (Ains i al) = "+{" ++ show i ++ "}" ++ showAl al
 showAl (Adel d al) = "-{" ++ show d ++ "}" ++ showAl al
 showAl (Amod m al) = "%{" ++ show m ++ "}" ++ showAl al
+
+showNonRecAl :: Al TrivialA s d -> String
+showNonRecAl A0 = ""
+showNonRecAl (Ains i al) = "+{" ++ show i ++ "}" ++ showNonRecAl al
+showNonRecAl (Adel d al) = "-{" ++ show d ++ "}" ++ showNonRecAl al
+showNonRecAl (Amod m al) = "%{" ++ show m ++ "}" ++ showNonRecAl al

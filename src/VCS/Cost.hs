@@ -15,11 +15,11 @@ costS :: (forall a . at a -> Int)
       -> Spine at al u -> Int
 costS costAt costAl Scp = 0
 costS costAt costAl (Scns c p) = sumAll costAt p
-  where
-    sumAll :: (forall a . at a -> Int) -> All at p -> Int
-    sumAll costAt An = 0
-    sumAll costAt (a `Ac` as) = costAt a + sumAll costAt as
 costS costAt costAl (Schg i j p) = costAl p
+
+sumAll :: (forall a . at a -> Int) -> All at p -> Int
+sumAll costAt An = 0
+sumAll costAt (a `Ac` as) = costAt a + sumAll costAt as
 
 costAl :: (forall a . at a -> Int)
        -> Al at p1 p2 -> Int
