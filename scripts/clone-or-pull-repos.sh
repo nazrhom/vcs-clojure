@@ -1,4 +1,10 @@
 #!/usr/bin/env coffee
+
+#############################################################################################################
+# This script checks for a repos.json file in the same folder and attempts to clone all those               #
+# repositories to the path ../test/repos. If the repo was already cloned it will attempt to pull instead    #
+#############################################################################################################
+
 require 'shelljs/global'
 fs = require 'fs'
 _ = require 'lodash'

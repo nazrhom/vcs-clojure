@@ -1,5 +1,10 @@
 #!/usr/bin/env coffee
 
+#############################################################################################################
+# This script queries Github for the 100 most popular (ranked by number of stars) Clojure repositories.     #
+# It will then save these repositories to a file called repos.json ordering them by number of contributors  #
+#############################################################################################################
+
 request = require 'superagent'
 _ = require 'lodash'
 async = require 'async'
