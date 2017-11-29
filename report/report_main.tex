@@ -51,6 +51,10 @@
 \newcommand{\scp}{\texttt{Scp}\xspace}
 \newcommand{\scns}{\texttt{Scns}\xspace}
 \newcommand{\schg}{\texttt{Schg}\xspace}
+\newcommand{\ains}{\texttt{Ains}\xspace}
+\newcommand{\adel}{\texttt{Adel}\xspace}
+\newcommand{\amod}{\texttt{Amod}\xspace}
+\newcommand{\azero}{\texttt{A0}\xspace}
 
 \maketitle
 
@@ -1053,7 +1057,7 @@ class Oracle o m where
 The Oracle class has two functions, one for the choice on the constructor level 
 and one for the choice on the product level. At each choice, the oracle has 
 access to the history of paths issued on the branch via a reader monad, and 
-has also access to it's iternal state (the $o$ type).
+has also access to it's internal state (the $o$ type).
  
  \subsection{NoOracle}
 To get back our original behaviour we can define the most simple Oracle:
@@ -1444,10 +1448,11 @@ At this point, if check fails, we have a pair \texttt{(s,t)} of lines which
 \texttt{diff3} identified as copies but our algorithm can not. Once identified the critical pairs of line 
 we can remove pairs from $CopySet(P)$ until the predicate is true. 
 
-\section{Cost}
+\section{Evaluating Patches} \label{evaluating-patches}
+\subsection{Cost}\label{cost}
 
-\section{Disjointness}
-[Need to put a decription of application somewhere ]
+\subsection{Disjointness}\label{disj}
+[Need to put a description of application somewhere ]
 We can define a predicate to decide disjointness between patches. We want to define 
 this notion just for pair of patches that share the same source, as patches on completely different files are 
 incomparable to each other. 
@@ -1506,10 +1511,34 @@ where they are simple pairs, they will be disjoint if they both transform to the
 same element.
 
 
+\subsection{Bounded Search}\label{bd-search}
 
+The last optimisation we are going to present is very simple but will allow us 
+to gain just enough benefit to be able to handle the majority of our test-data. 
+Bounded search is a widespread technique employed when we have an exponential 
+number of solutions to a problem and a \emph{quality} function which assigns a value to 
+any (possibly partial) solution. We can start the search process by 
+enstablishing an upper bound to the quality of solutions we want to consider. As 
+we move through the solution space we want to keep track of the current quality 
+of the solution, and prune every branch that exceedes the imposed bound. 
+This process is not guaranteed to generate a solution, the upper bound to the 
+solution quality might be too low. For this reason, bounded search 
+implementations usually have some strategy to restart the search in such cases, 
+increasing the bound by a suitable amount. On the other hand, if the bounded 
+search terminates, we know that the optimal solution (where optimal means minimal according to the quality function)
+must be in the produced results.
 
+A perfect candidate for the quality function is the notion of cost defined 
+above. However we want to adapt it so that it can work on partial solutions, 
+furthermore we want to be sure to apply the pruning as soon as possible and 
+reduce the number of steps performed in a branch that will be pruned.
 
-
+We can extend our History monad to store an \texttt{Int} which will represent 
+the cost of each branch. Now we just have to change the algorithm to update this 
+local cost at every step and check if the bound hasn't been exceeded at each 
+step. We can omit the details of how this cost is assigned, as it mirrors 
+exactly the definition of the cost function over patches presented in 
+\ref{cost}. 
 
 
 \section{Experimentation}
@@ -1530,7 +1559,7 @@ crawl the git tree of the master branch. The goal was to identify merge commits.
 Merge commits, are identified by the simple fact of having more than one parent, we will restrict our attention to
 the case of two parents. This is the most common and sensible case for our scenario as most teams will develop
 features on different branches and eventually merge each branch into master. 
-This process will generate a merge commit with exctly two parents, one of which 
+This process will generate a merge commit with exactly two parents, one of which 
 is the master branch and the other of which is the feature branch.
 
 For each of these commits I reproduced the process of making the merge amongst branches and extracted any
@@ -1542,7 +1571,7 @@ the branches initially diverged. It is the last version the two branches agreed
 on. We also want to extract the versions \texttt{A.clj} and \texttt{B.clj} which 
 capture the current state of the file on each of the two branches.
 
-From this processing I extraced 137 folders, each containing the three snapshots 
+From this processing I extracted 137 folders, each containing the three snapshots 
 of the conflicting file. These files have been shrunk with a preprocessing that 
 relies on \texttt{diff3} to remove all the top level expressions that are 
 entirely marked as copies in \texttt{diff3}. 

@@ -35,7 +35,7 @@ diffS :: (IsRecEl a, MonadOracle o m) => forall rec . DiffAlMu o m rec
       -> o -> Int -> Usingl a -> Usingl a -> HistoryM m (Spine (At rec) (Al (At rec)) a)
 diffS diffR costR orc maxCost s1 s2 =
   mapSpineH (uncurry (diffAt diffR orc maxCost) . unContract)
-            (uncurryPair $ alignP diffR orc maxCost)
+            (uncurryPair $ alignP diffR costR orc maxCost)
             (costAt costR)
             (maxCost)
             (spine s1 s2)
@@ -43,11 +43,15 @@ diffS diffR costR orc maxCost s1 s2 =
   where
     alignP :: (MonadOracle o m)
            => DiffAlMu o m rec
+           -> (forall a . rec a -> Int)
            -> o -> Int -> All Usingl s -> All Usingl d -> HistoryM m (Al (At rec) s d)
-    alignP diffR orc maxCost p1 p2 = do
+    alignP diffR costR orc maxCost p1 p2 = do
       cost <- getCurrentCost
       al <- lift $ align orc maxCost cost p1 p2
-      (mapAlM (uncurry (diffAt diffR orc maxCost) . unContract) al)
+      (mapAlH (uncurry (diffAt diffR orc maxCost) . unContract)
+              (costAt costR)
+              (maxCost)
+              al)
 
 mapAlH :: (Alternative m, Monad m) =>
            (forall a . at1 a -> HistoryM m (at2 a))
@@ -96,7 +100,7 @@ mapAllH f costAt maxCost (px `Ac` pxs) = do
   k <- f px
   let costPx = costAt k
   if cost + costPx <= maxCost
-  then local (liftCost (+costPx))(Ac <$> pure k <*> mapAllH f costAt maxCost pxs)
+  then local (liftCost (+costPx)) (Ac <$> pure k <*> mapAllH f costAt maxCost pxs)
   else empty
 
 costPair :: Usingl u -> Usingl u -> Int

@@ -67,7 +67,7 @@ patchFiles srcFile dstFile jsonOut = do
       gdiff = solveConflicts delInsMap copyMaps src dst
       oracle = (DiffOracle gdiff <°> NoDupBranches)
       -- oracle = (OldDiffOracle diff3 <°> NoDupBranches)
-      almu = computePatchesBounded oracle 25 5 src dst
+      almu = computePatchesBounded oracle 28 5 src dst
   -- putStrLn $ show $ diff3
   -- putStrLn $ show $ copyMaps
   -- putStrLn $ show $ diff3_plain

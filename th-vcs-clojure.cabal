@@ -71,6 +71,7 @@ executable th-vcs-clojure-tester
                      , directory
                      , th-vcs-clojure
                      , filepath
+                     , split
   default-language:    Haskell2010
 
 test-suite th-vcs-clojure-test

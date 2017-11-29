@@ -5,7 +5,7 @@
     <databaseInfo>
         <version>134481920</version>
         <UUID>927D7D9D-98A0-419A-819C-55B8BC4EA10B</UUID>
-        <nextObjectID>109</nextObjectID>
+        <nextObjectID>110</nextObjectID>
         <metadata>
             <plist version="1.0">
                 <dict>
@@ -82,7 +82,7 @@
         <relationship name="selected" type="1/1" destination="FILE" idrefs="z105"></relationship>
         <relationship name="settings" type="1/1" destination="SETTINGS" idrefs="z102"></relationship>
         <relationship name="uisettings" type="1/1" destination="UISETTINGS" idrefs="z104"></relationship>
-        <relationship name="items" type="0/0" destination="PROJECTITEM" idrefs="z106 z105 z107"></relationship>
+        <relationship name="items" type="0/0" destination="PROJECTITEM" idrefs="z107 z105 z106"></relationship>
     </object>
     <object type="UISETTINGS" id="z104">
         <attribute name="showlogwarningitems" type="bool">0</attribute>
@@ -100,12 +100,12 @@
     </object>
     <object type="TEXFILE" id="z105">
         <attribute name="wasopen" type="bool">0</attribute>
-        <attribute name="visiblerect" type="string">{{73, 11872}, {808, 633}}</attribute>
-        <attribute name="lasteditdate" type="date">520089116.11900198459625244141</attribute>
+        <attribute name="visiblerect" type="string">{{0, 21393}, {787, 641}}</attribute>
+        <attribute name="lasteditdate" type="date">533657872.19738000631332397461</attribute>
         <attribute name="istext" type="bool">1</attribute>
-        <attribute name="fileloaddate" type="date">521208376.11067599058151245117</attribute>
+        <attribute name="fileloaddate" type="date">533657872.42911797761917114258</attribute>
         <attribute name="extension" type="string">tex</attribute>
-        <attribute name="cursor" type="string">{18621, 0}</attribute>
+        <attribute name="cursor" type="string">{75486, 0}</attribute>
         <attribute name="sortindex" type="int32">0</attribute>
         <attribute name="name" type="string">report_main.tex</attribute>
         <attribute name="isexpanded" type="bool">0</attribute>
@@ -114,7 +114,7 @@
         <relationship name="project" type="1/1" destination="PROJECT" idrefs="z103"></relationship>
         <relationship name="mainfileofproject" type="1/1" destination="PROJECT" idrefs="z103"></relationship>
         <relationship name="children" type="0/0" destination="PROJECTITEM"></relationship>
-        <relationship name="bookmarks" type="0/0" destination="BOOKMARK" idrefs="z108"></relationship>
+        <relationship name="bookmarks" type="0/0" destination="BOOKMARK"></relationship>
     </object>
     <object type="FOLDER" id="z106">
         <attribute name="sortindex" type="int32">1</attribute>
@@ -135,15 +135,21 @@
         <relationship name="children" type="0/0" destination="PROJECTITEM"></relationship>
     </object>
     <object type="BOOKMARK" id="z108">
-        <attribute name="text" type="string">
+        <attribute name="text" type="string">With this setup we can finally construct the \\texttt{View} datatype;
 </attribute>
         <attribute name="linenumber" type="int64">391</attribute>
-        <relationship name="parentfile" type="1/1" destination="FILE" idrefs="z105"></relationship>
+        <relationship name="parentfile" type="1/1" destination="FILE"></relationship>
     </object>
     <object type="BOOKMARK" id="z109">
         <attribute name="text" type="string">\\begin{lstlisting}[language=clojure]
 </attribute>
         <attribute name="linenumber" type="int64">391</attribute>
+        <relationship name="parentfile" type="1/1" destination="FILE"></relationship>
+    </object>
+    <object type="BOOKMARK" id="z110">
+        <attribute name="text" type="string">
+</attribute>
+        <attribute name="linenumber" type="int64">390</attribute>
         <relationship name="parentfile" type="1/1" destination="FILE"></relationship>
     </object>
 </database>
