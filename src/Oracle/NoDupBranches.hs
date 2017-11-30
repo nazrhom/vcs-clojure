@@ -9,7 +9,7 @@ import Data.Maybe
 import Debug.Trace
 
 import Oracle.Internal
-import Clojure.Lang
+import Language.Common
 
 data NoDupBranches = NoDupBranches
 

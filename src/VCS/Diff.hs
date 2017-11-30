@@ -16,7 +16,9 @@ import Debug.Trace
 import VCS.Apply
 import VCS.Multirec
 import VCS.Cost
-import Clojure.Lang
+import Language.Clojure.Lang
+import Language.Common
+
 import Oracle.Oracle
 
 type DiffAlMu o m rec

@@ -15,10 +15,12 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Clojure.AST
-                     , Clojure.Parser
-                     , Clojure.PrettyPrint
-                     , Clojure.Lang
+  exposed-modules:     Language.Clojure.AST
+                     , Language.Clojure.Parser
+                     , Language.Clojure.PrettyPrint
+                     , Language.Clojure.Lang
+                     , Language.BinaryTree.Lang
+                     , Language.Common
                      , VCS.Apply
                      , VCS.Diff
                      , VCS.Multirec
@@ -49,6 +51,7 @@ library
                      , aeson
                      , text
                      , vector
+                     , transformers
   default-language:    Haskell2010
 
 executable th-vcs-clojure-exe

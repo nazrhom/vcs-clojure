@@ -15,8 +15,9 @@ import Data.Type.Equality
 
 import Debug.Trace
 
-import Clojure.Lang
-import Clojure.AST
+import Language.Common
+import Language.Clojure.Lang
+import Language.Clojure.AST
 
 data Path
   = I | M | D | FM | S
@@ -65,6 +66,9 @@ instance (OracleF o m, OracleP o m) => Oracle o m where
 
 type MonadOracle o m = (Alternative m, OracleP o m , OracleF o m)
 
+guard :: (Alternative m) => Bool -> m a -> m a
+guard True  a = a
+guard False _ = empty
 data ComposeOracle a b = ComposeOracle a b
 data PickBest a b = PickBest a b
 

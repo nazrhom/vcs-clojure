@@ -11,9 +11,9 @@ import Data.List
 import Data.List.Split
 -- import Data.Time.Clock
 
-import Clojure.AST
-import Clojure.Parser
-import Clojure.Lang
+import Language.Clojure.AST
+import Language.Clojure.Parser
+import Language.Clojure.Lang
 
 import VCS.Multirec
 import VCS.Disjoint

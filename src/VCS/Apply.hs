@@ -11,7 +11,9 @@ module VCS.Apply where
 import Data.Type.Equality hiding (apply)
 
 import VCS.Multirec
-import Clojure.Lang
+import Language.Clojure.Lang
+import Language.Common
+
 import Debug.Trace
 
 applyS :: IsRecEl r => (forall a . at a -> Usingl a -> Maybe (Usingl a))
@@ -70,11 +72,9 @@ applyAtmuPos (FixPos almu) x = applyAlmu almu x
 applyAtmuNeg :: (IsRecEl u, IsRecEl v) => AtmuNeg u v -> Usingl v -> Maybe (Usingl u)
 applyAtmuNeg (FixNeg almu) x = applyAlmu almu x
 
-ctxIns :: (forall a . IsRecEl a => p a -> Maybe (Usingl a)) -> Ctx p l -> Maybe (All Usingl l)
-ctxIns f (There x xs) = Ac x <$> ctxIns f xs
-ctxIns f (Here x xs) = do
-  x' <- f x
-  return $ x' .@. xs
+ctxIns :: IsRecEl u => Ctx (AtmuPos u) l -> Usingl u -> Maybe (All Usingl l)
+ctxIns (Here x xs)  u = Ac <$> applyAtmuPos x u <*> pure xs
+ctxIns (There x xs) u = Ac <$> pure x <*> ctxIns xs u
 
 ctxDel :: IsRecEl v => Ctx (AtmuNeg v) l -> All Usingl l -> Maybe (Usingl v)
 ctxDel (Here px _)  (xx `Ac` _)  = applyAtmuNeg px xx
@@ -82,7 +82,7 @@ ctxDel (There _ xs) (_ `Ac` xss) = ctxDel xs xss
 
 applyAlmu :: (IsRecEl u, IsRecEl v) => Almu u v -> Usingl u -> Maybe (Usingl v)
 applyAlmu (Alspn s) x = applyS applyAtAlmuH (applyAl applyAtAlmuH) s x
-applyAlmu (Alins constr ctx) x = inj constr <$> ctxIns (\p -> applyAtmuPos p x) ctx
+applyAlmu (Alins constr ctx) x = inj constr <$> ctxIns ctx x
 applyAlmu (Aldel constr ctx) x = case view x of
   (Tag c1 p1) -> case testEquality constr c1 of
     Just Refl -> ctxDel ctx p1

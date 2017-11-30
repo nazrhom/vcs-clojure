@@ -6,9 +6,11 @@
 module Util.ToJSON where
 
 import VCS.Multirec
-import Clojure.Lang
-import Clojure.PrettyPrint
-import Clojure.AST
+import Language.Clojure.Lang
+import Language.Clojure.PrettyPrint
+import Language.Clojure.AST
+import Language.Common
+
 
 import Data.Aeson
 import Data.Text

@@ -5,7 +5,7 @@
 module Oracle.NoOracle where
 
 import Oracle.Internal
-import Clojure.Lang
+import Language.Common
 
 
 -- * The "dumb" oracle, then, is:

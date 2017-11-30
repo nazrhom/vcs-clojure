@@ -9,7 +9,8 @@ module VCS.Disjoint where
 import Data.Type.Equality hiding (apply)
 
 import VCS.Multirec
-import Clojure.Lang
+import Language.Clojure.Lang
+import Language.Common
 
 
 disjoint :: Almu u v -> Almu u w -> Bool

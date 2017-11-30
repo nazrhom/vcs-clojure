@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Clojure.Parser
+module Language.Clojure.Parser
     ( parseTop
     , parse
     , parseTest
@@ -22,7 +22,7 @@ import Text.Parsec.Token hiding (braces, parens, brackets, identifier, operator)
 import Text.Parsec.Language
 import Data.Char hiding (Space)
 
-import Clojure.AST
+import Language.Clojure.AST
 
 lexer = makeTokenParser javaStyle
   { identStart = alphaNum <|> oneOf "_':*-&\\,."

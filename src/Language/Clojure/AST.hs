@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE KindSignatures #-}
 
-module Clojure.AST where
+module Language.Clojure.AST where
 
 import Text.Parsec.Pos
 import GHC.Generics

@@ -9,7 +9,9 @@ module VCS.Compatible where
 import Data.Type.Equality hiding (apply)
 
 import VCS.Multirec
-import Clojure.Lang
+import Language.Clojure.Lang
+import Language.Common
+
 
 
 compatible :: Almu u v -> Almu u w -> Bool

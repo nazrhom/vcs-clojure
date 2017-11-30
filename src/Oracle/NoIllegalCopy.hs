@@ -4,13 +4,13 @@
 
 module Oracle.NoIllegalCopy where
 
-import Oracle.Internal
-
-import Clojure.Lang
-import Clojure.AST
-import Clojure.Parser
-
-data NoIllegalCopy = NoIllegalCopy
+-- import Oracle.Internal
+--
+-- import Clojure.Lang
+-- import Clojure.AST
+-- import Clojure.Parser
+--
+-- data NoIllegalCopy = NoIllegalCopy
 
 -- instance (Monad m) => OracleF NoIllegalCopy m where
 --   callF o s d = return $ askOracle s d

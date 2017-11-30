@@ -14,9 +14,9 @@ import qualified Data.ByteString.Lazy as B
 
 import Debug.Trace
 
-import Clojure.Parser
-import Clojure.Lang
-import Clojure.PrettyPrint
+import Language.Clojure.Parser
+import Language.Clojure.Lang
+import Language.Clojure.PrettyPrint
 
 import VCS.Diff
 import VCS.Apply

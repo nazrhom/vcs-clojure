@@ -15,8 +15,8 @@ import Data.List
 import Debug.Trace
 
 import Oracle.Internal
-import Clojure.Lang
-import Clojure.AST
+import Language.Clojure.Lang
+import Language.Clojure.AST
 import Util.UnixDiff
 
 type DiffOp = Path
@@ -33,7 +33,7 @@ buildOracle (first:rest) = (process first) `unionDelInsMap` (buildOracle rest)
     process (Copy (i1, i2)) = (M.empty, M.empty)
     process (Ins i) = (M.empty, M.singleton i I)
     process (Del i) = (M.singleton i D, M.empty)
-    
+
 
 askOracle :: DiffOracle -> LineRange -> LineRange -> [Path]
 askOracle (DiffOracle (delMap, insMap)) srcRange dstRange =

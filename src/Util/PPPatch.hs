@@ -6,8 +6,9 @@
 module Util.PPPatch where
 
 import VCS.Multirec
-import Clojure.Lang
-import Clojure.PrettyPrint
+import Language.Clojure.Lang
+import Language.Clojure.PrettyPrint
+import Language.Common
 import Data.Type.Equality hiding (apply)
 
 showPatchEffect :: (IsRecEl u, IsRecEl v) => Almu u v -> Usingl u -> String

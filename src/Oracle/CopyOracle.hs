@@ -10,9 +10,10 @@ module Oracle.CopyOracle
 import Oracle.Internal
 
 import Util.UnixDiff
-import Clojure.Lang
-import Clojure.AST
-import Clojure.Parser
+import Language.Clojure.Lang
+import Language.Clojure.AST
+import Language.Clojure.Parser
+import Language.Common
 import Data.Tuple
 import Data.Maybe
 

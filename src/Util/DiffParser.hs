@@ -8,8 +8,9 @@ import System.Directory
 import System.IO
 import Data.List
 
-import Clojure.PrettyPrint
-import Clojure.Parser
+import Language.Clojure.PrettyPrint
+import Language.Clojure.Parser
+import Language.Clojure.AST
 
 import Debug.Trace
 
@@ -29,21 +30,13 @@ processDir = do
   (fA, fO, fB) <- readFiles
   (pA, pO, pB) <- parseFiles (fA, fO, fB)
   let (a, o, b) = minimize pA pO pB
-      lrA = map extractExprLines a
-      lrO = map extractExprLines o
-      lrB = map extractExprLines b
+      lrA = map extractRangeExpr a
+      lrO = map extractRangeExpr o
+      lrB = map extractRangeExpr b
 
   writeSelectedLines fA "A1.clj" lrA
   writeSelectedLines fO "O1.clj" lrO
   writeSelectedLines fB "B1.clj" lrB
-
-extractExprLines :: Expr -> LineRange
-extractExprLines (Special _ _ lr) = lr
-extractExprLines (Dispatch _ lr)  = lr
-extractExprLines (Collection _ _ lr) = lr
-extractExprLines (Term _ lr) = lr
-extractExprLines (Comment _ lr) = lr
-extractExprLines (Seq _ _ lr) = lr
 
 writeSelectedLines :: String -> FilePath -> [LineRange] -> IO ()
 writeSelectedLines f tgt lrs = do

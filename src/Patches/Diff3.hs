@@ -2,8 +2,9 @@
 
 module Patches.Diff3 where
 
-import Clojure.AST
-import Clojure.Lang
+import Language.Clojure.AST
+import Language.Clojure.Lang
+import Language.Common
 
 import VCS.Multirec
 

@@ -24,8 +24,9 @@ import GHC.Generics
 
 import Debug.Trace
 
-import Clojure.AST
-import Clojure.Lang
+import Language.Common
+import Language.Clojure.AST
+import Language.Clojure.Lang
 import Oracle.Oracle
 
 -- The actual puzzle

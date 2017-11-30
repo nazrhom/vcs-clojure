@@ -14,8 +14,9 @@ import qualified Data.IntMap as M
 import qualified Data.Set as S
 
 import Oracle.Internal
-import Clojure.Lang
-import Clojure.AST
+import Language.Common
+import Language.Clojure.AST
+import Language.Clojure.Lang
 import Util.UnixDiff
 
 type CopyMap = M.IntMap Int

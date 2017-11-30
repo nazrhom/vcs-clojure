@@ -9,23 +9,15 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
-module Clojure.Lang where
+module Language.Clojure.Lang where
 
 import Data.Type.Equality hiding (apply)
 import GHC.TypeLits (ErrorMessage(..), TypeError)
-import Clojure.AST
+import Language.Clojure.AST
 import Data.Proxy
+import Language.Common
 
 -- UNIVERSE
-data All (p :: k -> *) :: [k] -> * where
-  An :: All p '[]
-  Ac :: p x -> All p xs -> All p (x ': xs)
-
-(.@.) :: p x -> All p xs -> All p (x ': xs)
-(.@.) = Ac
-infixr 2 .@.
-infixr 2 `Ac`
-
 data U =
     KString
   | KSepExprList

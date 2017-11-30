@@ -1,6 +1,6 @@
 {-# LANGUAGE GADTs #-}
 
-module Clojure.PrettyPrint
+module Language.Clojure.PrettyPrint
     ( ppTop
     , ppLines
     , ppExpr
@@ -11,8 +11,8 @@ module Clojure.PrettyPrint
     ) where
 
 import Text.PrettyPrint.Leijen
-import Clojure.Lang
-import Clojure.AST
+import Language.Clojure.Lang
+import Language.Clojure.AST
 
 ppTop :: Expr -> String
 ppTop es = show $ ppExpr es

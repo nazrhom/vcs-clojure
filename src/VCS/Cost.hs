@@ -6,8 +6,10 @@
 module VCS.Cost where
 
 import VCS.Multirec
-import Clojure.Lang
-import Clojure.AST
+import Language.Clojure.Lang
+import Language.Clojure.AST
+import Language.Common
+
 
 
 costS :: (forall a . at a -> Int)

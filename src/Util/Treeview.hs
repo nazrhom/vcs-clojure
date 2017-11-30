@@ -1,6 +1,6 @@
 module Util.Treeview where
 
-import Clojure.AST
+import Language.Clojure.AST
 import Control.Monad.State
 
 type CurrentLine = Int

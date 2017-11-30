@@ -5,7 +5,7 @@ module Util.UnixDiff where
 import Data.Algorithm.Diff
 import qualified Data.Algorithm.DiffOutput as O
 
-import Clojure.AST
+import Language.Clojure.AST
 
 data GroupDiffAction = OMod LineRange LineRange
                      | OIns LineRange Int
