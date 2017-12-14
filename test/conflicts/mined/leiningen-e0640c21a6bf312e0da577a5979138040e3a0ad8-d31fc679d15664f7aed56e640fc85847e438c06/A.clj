@@ -1,0 +1,145 @@
+(ns leiningen.change
+  "Rewrite project.clj by applying a function."
+  (:require [clojure.string :as str]
+            [clojure.zip :as zip]
+            [clojure.java.io :as io]
+            [net.cgrand.sjacket :as sj]
+            [net.cgrand.sjacket.parser :as parser]))
+
+;;; Helpers
+
+(defn- fail-argument! [msg]
+  (throw (IllegalArgumentException. msg)))
+
+(defn- clj->sjacket [value]
+  (if (string? value)
+    (str "\"" value "\"")
+    (-> value print-str parser/parser :content first)))
+
+;; NOTE: this destroy comments, formatting, etc.
+(defn- sjacket->clj [value]
+  (if-not (#{:comment :whitespace :newline} (:tag value))
+    (-> value sj/str-pt read-string)))
+
+(defn ^:internal normalize-path [value]
+  (if (coll? value)
+    value
+    (map keyword (remove empty? (str/split value #":")))))
+
+(defn ^:internal collapse-fn [f args]
+  (let [f (cond (ifn? f) f
+                (= "set" f) (constantly (first args))
+                (string? f) (resolve (symbol f)))]
+    #(apply f % args)))
+
+;;; Traversal
+
+(defn- defproject? [loc]
+  (let [{:keys [tag content]} (zip/node loc)]
+    (and (= :name tag)
+         (= ["defproject"] content))))
+
+(defn- find-defproject [loc]
+  (->> loc
+       (iterate zip/next)
+       (take-while (comp not zip/end?))
+       (filter defproject?)
+       first))
+
+(defn- find-string [loc]
+  (->> loc
+      (iterate zip/right)
+      (take-while (comp not nil?))
+      (filter (comp #{:string} :tag zip/node))
+      first))
+
+(defn- find-key [loc key]
+  (->> loc
+       (iterate zip/right)
+       (take-while (comp not nil?))
+       (partition 2)
+       (map first)
+       (filter (comp #{key} sjacket->clj zip/node))
+       first))
+
+(defn- next-value [loc]
+  (->> loc
+       (iterate zip/right)
+       (take-while (comp not nil?))
+       (drop 1)
+       (remove (comp #{:whitespace :comment} :tag zip/node))
+       first))
+
+(defn- parse-project [project-str]
+  (-> (parser/parser project-str)
+      zip/xml-zip
+      find-defproject
+      (or (fail-argument! "Project definition not found"))
+      zip/up))
+
+;;; Modifiers
+
+(defn- insert-entry [loc val]
+  (-> (if-not (= "{" (zip/node (zip/left loc)))
+        (zip/insert-left loc " ")
+        loc)
+      (zip/insert-left (clj->sjacket val))))
+
+(defn insert-key-val [loc key val]
+  (-> loc
+      (insert-entry key)
+      (insert-entry val)))
+
+(defn- update-version [proj fn]
+  (-> proj
+      find-string
+      (or (fail-argument! "Project version not found"))
+      (zip/edit fn)
+      zip/root))
+
+(defn- update-setting [proj [p & ath] fn]
+  (let [loc (or (-> proj (find-key p) next-value)
+                (-> proj
+                    zip/rightmost
+                    (insert-key-val p {})
+                    zip/left))]
+    (if (empty? ath)
+      (zip/root (zip/edit loc fn))
+      (recur (-> loc zip/down zip/right) ath fn))))
+
+;;; Public API
+
+(defn change-string
+  [project-str key-or-path f & args]
+  (let [f (collapse-fn f args)
+        wrapped-f (comp clj->sjacket f sjacket->clj)
+        path (normalize-path key-or-path)
+        proj (parse-project project-str)]
+    (sj/str-pt
+     ;; TODO: support :artifact-id, :group-id
+     (if (= path [:version])
+       (update-version proj wrapped-f)
+       (update-setting proj path wrapped-f)))))
+
+(defn change
+  "Rewrite project.clj with f applied to the value at key-or-path.
+
+The first argument should be a keyword (or mashed-together keywords for
+nested values indicating which value to change). The second argument
+should name a function var which will be called with the current value
+as its first argument and the remaining task aruments as the rest.
+
+This will append \"-SNAPSHOT\" to the current version:
+
+    $ lein change version str \"-SNAPSHOT\"
+
+When called programmatically, you may pass a coll of keywords for the
+first arg or an actual function for the second.
+
+Note that this task reads the project.clj file from disk rather than
+honoring the project map, so profile merging or `update-in` invocations
+will not effect it."
+  [project key-or-path f & args]
+  ;; cannot work with project map, want to preserve formatting, comments, etc
+  (let [source (slurp (io/file (:root project) "project.clj"))]
+    (spit "project.clj" (apply change-string source key-or-path f args))))

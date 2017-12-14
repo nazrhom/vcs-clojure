@@ -1,0 +1,15 @@
+Seq Collection "Parens" Cons Term TaggedString "Var" "defproject" "Space" Cons Term TaggedString "Var" "clj-http" "Space" Cons Term TaggedString "String" "0.2.0-SNAPSHOT" "NewLine" 
+Cons Term TaggedString "Var" ":description" "Space" Cons Term TaggedString "String" "A Clojure HTTP library wrapping the Apache HttpComponents client." "NewLine" 
+Cons Term TaggedString "Var" ":dependencies" "Space" Cons Collection "Vec" Cons Collection "Vec" Cons Term TaggedString "Var" "org.clojure/clojure" "Space" Cons Term TaggedString "String" "1.2.1" "Empty" Nil "NewLine" 
+Cons Collection "Vec" Cons Term TaggedString "Var" "org.apache.httpcomponents/httpclient" "Space" Cons Term TaggedString "String" "4.1.2" "Empty" Nil "NewLine" 
+Cons Collection "Vec" Cons Term TaggedString "Var" "commons-codec" "Space" Cons Term TaggedString "String" "1.5" "Empty" Nil "NewLine" 
+Cons Collection "Vec" Cons Term TaggedString "Var" "commons-io" "Space" Cons Term TaggedString "String" "1.4" "Empty" Nil "Empty" Nil "NewLine" 
+Cons Term TaggedString "Var" ":dev-dependencies" "Space" Cons Collection "Vec" Cons Collection "Vec" Cons Term TaggedString "Var" "swank-clojure" "Space" Cons Term TaggedString "String" "1.3.2" "Empty" Nil "NewLine" 
+Cons Collection "Vec" Cons Term TaggedString "Var" "ring/ring-jetty-adapter" "Space" Cons Term TaggedString "String" "0.3.11" "Empty" Nil "NewLine" 
+Cons Collection "Vec" Cons Term TaggedString "Var" "ring/ring-devel" "Space" Cons Term TaggedString "String" "0.3.11" "Empty" Nil "NewLine" 
+Cons Collection "Vec" Cons Term TaggedString "Var" "robert/hooke" "Space" Cons Term TaggedString "String" "1.1.2" "Empty" Nil "NewLine" 
+Cons Collection "Vec" Cons Term TaggedString "Var" "clj-stacktrace" "Space" Cons Term TaggedString "String" "0.2.3" "Empty" Nil "Empty" Nil "NewLine" 
+Cons Term TaggedString "Var" ":test-selectors" "Space" Cons Collection "Set" Cons Term TaggedString "Var" ":default" "Space" Cons Dispatch Collection "Parens" Cons Term TaggedString "Var" "not" "Space" Cons Collection "Parens" Cons Term TaggedString "Var" ":integration" "Space" Cons Term TaggedString "Var" "%" "Empty" Nil "Empty" Nil "NewLine" 
+Cons Term TaggedString "Var" ":integration" "Space" Cons Term TaggedString "Var" ":integration" "NewLine" 
+Cons Term TaggedString "Var" ":all" "Space" Cons Collection "Parens" Cons Term TaggedString "Var" "constantly" "Space" Cons Term TaggedString "Var" "true" "Empty" Nil "Empty" Nil "Empty" Nil 
+Empty

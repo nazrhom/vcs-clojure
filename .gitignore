@@ -22,7 +22,6 @@ cabal.project.local
 
 # test projects
 test/repos/*
-test/conflicts/mined/*
 test/results/*
 !test/repos/.gitkeep
 

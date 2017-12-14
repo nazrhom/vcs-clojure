@@ -1,0 +1,18 @@
+Seq Collection "Parens" Cons Term TaggedString "Var" "ns" "Space" Cons Term TaggedString "Var" "clj-http.cookies" "NewLine" 
+Cons Collection "Parens" Cons Term TaggedString "Var" ":require" "Space" Cons Collection "Vec" Cons Term TaggedString "Var" "clj-http.util" "Space" Cons Term TaggedString "Var" ":refer" "Space" Cons Collection "Vec" Cons Term TaggedString "Var" "opt" "Empty" Nil "Empty" Nil "NewLine" 
+Cons Collection "Vec" Cons Term TaggedString "Var" "clojure.string" "Space" Cons Term TaggedString "Var" ":refer" "Space" Cons Collection "Vec" Cons Term TaggedString "Var" "blank?" "Space" Cons Term TaggedString "Var" "join" "Space" Cons Term TaggedString "Var" "lower-case" "Empty" Nil "Empty" Nil "Empty" Nil "NewLine" 
+Cons Collection "Parens" Cons Term TaggedString "Var" ":import" "Space" Cons Collection "Parens" Cons Term TaggedString "Var" "org.apache.http.client.params" "Space" Cons Term TaggedString "Var" "ClientPNames" "Space" Cons Term TaggedString "Var" "CookiePolicy" "Empty" Nil "NewLine" 
+Cons Collection "Parens" Cons Term TaggedString "Var" "org.apache.http.cookie" "Space" Cons Term TaggedString "Var" "ClientCookie" "Space" Cons Term TaggedString "Var" "CookieOrigin" "Empty" Nil "NewLine" 
+Cons Collection "Parens" Cons Term TaggedString "Var" "org.apache.http.params" "Space" Cons Term TaggedString "Var" "BasicHttpParams" "Empty" Nil "NewLine" 
+Cons Collection "Parens" Cons Term TaggedString "Var" "org.apache.http.impl.cookie" "Space" Cons Term TaggedString "Var" "BasicClientCookie2" "Empty" Nil "NewLine" 
+Cons Collection "Parens" Cons Term TaggedString "Var" "org.apache.http.impl.cookie" "Space" Cons Term TaggedString "Var" "BrowserCompatSpecFactory" "Empty" Nil "NewLine" 
+Cons Collection "Parens" Cons Term TaggedString "Var" "org.apache.http.message" "Space" Cons Term TaggedString "Var" "BasicHeader" "Empty" Nil "NewLine" 
+Cons Term TaggedString "Var" "org.apache.http.client.CookieStore" "NewLine" 
+Cons Collection "Parens" Cons Term TaggedString "Var" "org.apache.http.impl.client" "Space" Cons Term TaggedString "Var" "BasicCookieStore" "Empty" Nil "NewLine" 
+Cons Collection "Parens" Cons Term TaggedString "Var" "org.apache.http" "Space" Cons Term TaggedString "Var" "Header" "Empty" Nil "NewLine" 
+Cons Collection "Parens" Cons Term TaggedString "Var" "org.apache.http.protocol" "Space" Cons Term TaggedString "Var" "BasicHttpContext" "Empty" Nil "Empty" Nil "Empty" Nil 
+
+Seq Collection "Parens" Cons Term TaggedString "Var" "defn" "Space" Cons Term TaggedString "Var" "cookie-spec" "Space" Cons Term TaggedString "Var" "^" "Empty" Cons Term TaggedString "Var" "CookieSpec" "Space" Cons Collection "Vec" Nil "NewLine" 
+Cons Collection "Parens" Cons Term TaggedString "Var" "." "Empty" Cons Term TaggedString "Var" "newInstance" "NewLine" 
+Cons Collection "Parens" Cons Term TaggedString "Var" "BrowserCompatSpecFactory." "Empty" Nil "NewLine" 
+Cons Collection "Parens" Cons Term TaggedString "Var" "BasicHttpContext." "Empty" Nil "Empty" Nil "Empty" Nil Empty
