@@ -17,6 +17,7 @@ import VCS.Apply
 import VCS.Multirec
 import VCS.Cost
 import Language.Clojure.Lang
+import Language.Clojure.Cost
 import Language.Common
 
 import Oracle.Oracle
@@ -41,7 +42,6 @@ diffS diffR costR orc maxCost s1 s2 =
             (costAt costR)
             (maxCost)
             (spine s1 s2)
-
   where
     alignP :: (MonadOracle o m)
            => DiffAlMu o m rec
@@ -225,12 +225,85 @@ diffDel orc maxCost s x = case (view s) of
     then Aldel c <$> local (liftHistory ((D:), (+1))) (diffDelCtx orc maxCost p x)
     else empty
 
+
 spine :: IsRecEl r => Usingl r -> Usingl r -> Spine TrivialA TrivialP r
 spine x y | x == y = Scp
 spine x y | otherwise = case (view x, view y) of
   ((Tag c1 l1), (Tag c2 l2)) -> case testEquality c1 c2 of
     Just Refl -> Scns c1 (zipP l1 l2)
     Nothing -> Schg c1 c2 (Pair l1 l2)
+
+-- |Implement DP-style optimization for Alignments and Recursive alignmetns.
+--
+-- The phase records the LAST decision took by the algo (either an insertion,
+-- modification ordeletion)
+align :: (MonadOracle o m)
+      => o -> Int -> Int -> All Usingl p1 -> All Usingl p2
+      -> m (Al TrivialA p1 p2)
+align orc maxCost currCost p1 p2 = runReaderT (alignO orc maxCost p1 p2) (History { path = [I,M,D], cost = currCost })
+
+alignO :: (MonadOracle o m)
+       => o -> Int -> All Usingl p1 -> All Usingl p2
+       -> HistoryM m (Al TrivialA p1 p2)
+alignO orc maxCost An An = return A0
+alignO orc maxCost p1 p2 = do
+  paths <- callP orc p1 p2
+  followAllPaths paths orc maxCost p1 p2
+
+followAllPaths :: (MonadOracle o m)
+               => [Path] -> o -> Int -> All Usingl p1 -> All Usingl p2
+               -> HistoryM m (Al TrivialA p1 p2)
+followAllPaths []     _   _   _  _
+  = empty
+followAllPaths (i:is) orc maxCost p1 p2
+  = (followPath i orc maxCost p1 p2) <|> (followAllPaths is orc maxCost p1 p2)
+
+
+-- * Follows one specific path. Makes sure the recursive call to
+--   alignO has access to this path, for later inspection.
+followPath :: (MonadOracle o m)
+           => Path -> o -> Int -> All Usingl p1 -> All Usingl p2
+           -> HistoryM m (Al TrivialA p1 p2)
+followPath _ orc maxCost An An         = pure A0
+followPath I orc maxCost x y = alignIns orc maxCost x y
+followPath D orc maxCost x y = alignDel orc maxCost x y
+followPath M orc maxCost x y = alignMod orc maxCost x y
+
+
+liftPath :: ([Path] -> [Path]) -> History -> History
+liftPath f = liftHistory (f,id)
+
+liftCost :: (Int -> Int) -> History -> History
+liftCost f = liftHistory (id,f)
+
+liftHistory :: (([Path] -> [Path], Int -> Int)) -> History -> History
+liftHistory (fp, fc) h
+  = History {
+      path = fp (path h)
+    , cost = fc (cost h)
+    }
+
+alignIns :: (MonadOracle o m)
+           => o -> Int -> All Usingl p1 -> All Usingl p2
+           -> HistoryM m (Al TrivialA p1 p2)
+alignIns orc maxCost p1 (a `Ac` p) =
+  Ains a <$> local (liftPath (I:)) (alignO orc maxCost p1 p)
+
+alignDel :: (MonadOracle o m)
+           => o -> Int -> All Usingl p1 -> All Usingl p2
+           -> HistoryM m (Al TrivialA p1 p2)
+alignDel orc maxCost (a `Ac` p) p2 =
+  Adel a <$> local (liftPath (D:)) (alignO orc maxCost p p2)
+
+alignMod :: (MonadOracle o m)
+           => o -> Int -> All Usingl p1 -> All Usingl p2
+           -> HistoryM m (Al TrivialA p1 p2)
+alignMod orc maxCost (a1 `Ac` p1) (a2 `Ac` p2) =
+  case testEquality a1 a2 of
+    Just Refl -> Amod (Contract (a1, a2)) <$> local (liftPath (M:)) (alignO orc maxCost p1 p2)
+    Nothing -> empty
+
+
 
 --- Utility
 uncurryPair :: (All Usingl s -> All Usingl d -> res)

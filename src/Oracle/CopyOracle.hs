@@ -2,10 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE GADTs #-}
 
-module Oracle.CopyOracle
-  ( CopyOracle(..)
-  , buildCopyOracle
-  ) where
+module Oracle.CopyOracle where
 
 import Oracle.Internal
 

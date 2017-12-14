@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 module Main where
 
 import System.IO
@@ -17,6 +18,7 @@ import Debug.Trace
 import Language.Clojure.Parser
 import Language.Clojure.Lang
 import Language.Clojure.PrettyPrint
+import Language.Clojure.AST
 
 import VCS.Diff
 import VCS.Apply
@@ -32,15 +34,12 @@ import Util.UnixDiff
 
 import Oracle.Oracle
 
-import Patches.Diff3
-
 main :: IO ()
 main = do
   opts <- execParser optsHelper
-
-  case (folder opts) of
-    Just folder -> processConflictFolder folder
-    Nothing     -> patchFiles (srcFile opts) (dstFile opts) (jsonOutput opts)
+  case opts of
+    Conflict f -> processConflictFolder f
+    Patch s d j _ -> patchFiles s d j
 
 printPatchesWithCost :: [Almu u v] -> IO ()
 printPatchesWithCost almus = mapM_ printPatchWithCost almus
@@ -63,7 +62,7 @@ patchFiles srcFile dstFile jsonOut = do
   let diff3 = preprocessGrouped s d
       delInsMap = buildDelInsMap diff3
       diff3_plain = preprocess s d
-      copyMaps = buildCopyOracle diff3_plain
+      copyMaps = buildCopyMaps diff3_plain
       gdiff = solveConflicts delInsMap copyMaps src dst
       oracle = (DiffOracle gdiff <°> NoDupBranches)
       -- oracle = (OldDiffOracle diff3 <°> NoDupBranches)
@@ -80,8 +79,6 @@ patchFiles srcFile dstFile jsonOut = do
     Just path -> do
       printPatchWithCost almu
       B.writeFile path $ encodePretty almu
-
-
 
 processConflictFolder :: String -> IO ()
 processConflictFolder folder = do
@@ -114,9 +111,10 @@ processConflictFolder folder = do
 
   let disj = disjoint almuOA almuOB
   let comp = compatible almuOA almuOB
+
   putStrLn $ show disj
   putStrLn $ show comp
-  if comp
+  if disj
     then exitSuccess
     else exitWith (ExitFailure 1001)
   -- putStrLn $ "Patch O-A: " ++ show almuOA
@@ -204,13 +202,15 @@ parseFile name src = case parse parseTop name src of
 
 
 
-data Opts = Opts
-  {
+data Opts =
+  Conflict {
+    folder :: String
+  } |
+  Patch {
     srcFile :: String
   , dstFile :: String
   , jsonOutput :: Maybe String
   , printAll :: Bool
-  , folder :: Maybe String
   }
 
 setHandle :: Maybe String -> (Handle -> IO a) -> IO a
@@ -218,8 +218,8 @@ setHandle Nothing act = act stdout
 setHandle (Just path) act = withFile path WriteMode act
 
 opts :: Parser Opts
-opts = Opts
-  <$> strOption
+opts = (
+  Patch <$> strOption
     (  long "source"
     <> short 's'
     <> metavar "SRC_TARGET"
@@ -241,12 +241,14 @@ opts = Opts
     ( long "all"
     <> short 'a'
     <> help "Print all patches")
-  <*> optional (strOption
+  ) <|> (
+  Conflict <$> strOption
     (  long "folder"
     <> short 'f'
     <> metavar "FOLDER"
     <> help "Folder to process"
-    ))
+    )
+  )
 
 optsHelper :: ParserInfo Opts
 optsHelper = info (helper <*> opts)

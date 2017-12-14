@@ -2,11 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE GADTs #-}
 
-module Oracle.DiffOracleOld
-  ( DiffOracle(..)
-  , buildOracle
-  )
-  where
+module Oracle.DiffOracleOld where
 
 import qualified Data.IntMap as M
 import Data.Maybe

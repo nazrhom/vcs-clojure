@@ -22,7 +22,7 @@
                             "children": [
                                 {
                                     "text": {
-                                        "value": "UString \"Parens\""
+                                        "value": "UCollTy Parens"
                                     }
                                 },
                                 {
@@ -50,7 +50,7 @@
                                                 },
                                                 {
                                                     "text": {
-                                                        "value": "UString \"Space\""
+                                                        "value": "USep Space"
                                                     }
                                                 },
                                                 {
@@ -78,7 +78,7 @@
                                                                 },
                                                                 {
                                                                     "text": {
-                                                                        "value": "UString \"NewLine\""
+                                                                        "value": "USep NewLine"
                                                                     }
                                                                 },
                                                                 {
@@ -106,7 +106,7 @@
                                                                                 },
                                                                                 {
                                                                                     "text": {
-                                                                                        "value": "UString \"NewLine\""
+                                                                                        "value": "USep NewLine"
                                                                                     }
                                                                                 },
                                                                                 {
@@ -133,7 +133,7 @@
                                                                                                             "children": [
                                                                                                                 {
                                                                                                                     "text": {
-                                                                                                                        "value": "UString \"Parens\""
+                                                                                                                        "value": "UCollTy Parens"
                                                                                                                     }
                                                                                                                 },
                                                                                                                 {
@@ -161,12 +161,12 @@
                                                                                                                                 },
                                                                                                                                 {
                                                                                                                                     "text": {
-                                                                                                                                        "value": "UString \"Space\""
+                                                                                                                                        "value": "USep Space"
                                                                                                                                     }
                                                                                                                                 },
                                                                                                                                 {
                                                                                                                                     "text": {
-                                                                                                                                        "value": "C1ConsProof",
+                                                                                                                                        "value": "Cons",
                                                                                                                                         "name": "Aldel"
                                                                                                                                     },
                                                                                                                                     "children": [
@@ -178,13 +178,13 @@
                                                                                                                                                 {
                                                                                                                                                     "text": {
                                                                                                                                                         "name": "Collection",
-                                                                                                                                                        "type": "\"Parens\""
+                                                                                                                                                        "type": "Parens"
                                                                                                                                                     },
                                                                                                                                                     "children": [
                                                                                                                                                         {
                                                                                                                                                             "text": {
                                                                                                                                                                 "name": "Cons",
-                                                                                                                                                                "type": "\"Space\""
+                                                                                                                                                                "type": "Space"
                                                                                                                                                             },
                                                                                                                                                             "children": [
                                                                                                                                                                 {
@@ -196,7 +196,7 @@
                                                                                                                                                                             "text": {
                                                                                                                                                                                 "value": "\"org.apache.http.client.params\"",
                                                                                                                                                                                 "name": "TaggedString",
-                                                                                                                                                                                "type": "\"Var\""
+                                                                                                                                                                                "type": "Var"
                                                                                                                                                                             }
                                                                                                                                                                         }
                                                                                                                                                                     ]
@@ -204,7 +204,7 @@
                                                                                                                                                                 {
                                                                                                                                                                     "text": {
                                                                                                                                                                         "name": "Cons",
-                                                                                                                                                                        "type": "\"Space\""
+                                                                                                                                                                        "type": "Space"
                                                                                                                                                                     },
                                                                                                                                                                     "children": [
                                                                                                                                                                         {
@@ -216,7 +216,7 @@
                                                                                                                                                                                     "text": {
                                                                                                                                                                                         "value": "\"ClientPNames\"",
                                                                                                                                                                                         "name": "TaggedString",
-                                                                                                                                                                                        "type": "\"Var\""
+                                                                                                                                                                                        "type": "Var"
                                                                                                                                                                                     }
                                                                                                                                                                                 }
                                                                                                                                                                             ]
@@ -224,7 +224,7 @@
                                                                                                                                                                         {
                                                                                                                                                                             "text": {
                                                                                                                                                                                 "name": "Cons",
-                                                                                                                                                                                "type": "\"Empty\""
+                                                                                                                                                                                "type": "EmptySep"
                                                                                                                                                                             },
                                                                                                                                                                             "children": [
                                                                                                                                                                                 {
@@ -236,7 +236,7 @@
                                                                                                                                                                                             "text": {
                                                                                                                                                                                                 "value": "\"CookiePolicy\"",
                                                                                                                                                                                                 "name": "TaggedString",
-                                                                                                                                                                                                "type": "\"Var\""
+                                                                                                                                                                                                "type": "Var"
                                                                                                                                                                                             }
                                                                                                                                                                                         }
                                                                                                                                                                                     ]
@@ -263,7 +263,7 @@
                                                                                                                                             "children": [
                                                                                                                                                 {
                                                                                                                                                     "text": {
-                                                                                                                                                        "values": "\"NewLine\""
+                                                                                                                                                        "value": "NewLine"
                                                                                                                                                     }
                                                                                                                                                 }
                                                                                                                                             ]
@@ -297,7 +297,7 @@
                                                                                                                                                                             "children": [
                                                                                                                                                                                 {
                                                                                                                                                                                     "text": {
-                                                                                                                                                                                        "value": "UString \"Parens\""
+                                                                                                                                                                                        "value": "UCollTy Parens"
                                                                                                                                                                                     }
                                                                                                                                                                                 },
                                                                                                                                                                                 {
@@ -325,7 +325,7 @@
                                                                                                                                                                                                 },
                                                                                                                                                                                                 {
                                                                                                                                                                                                     "text": {
-                                                                                                                                                                                                        "value": "UString \"Space\""
+                                                                                                                                                                                                        "value": "USep Space"
                                                                                                                                                                                                     }
                                                                                                                                                                                                 },
                                                                                                                                                                                                 {
@@ -353,7 +353,7 @@
                                                                                                                                                                                                                 },
                                                                                                                                                                                                                 {
                                                                                                                                                                                                                     "text": {
-                                                                                                                                                                                                                        "value": "UString \"Space\""
+                                                                                                                                                                                                                        "value": "USep Space"
                                                                                                                                                                                                                     }
                                                                                                                                                                                                                 },
                                                                                                                                                                                                                 {
@@ -381,8 +381,8 @@
                                                                                                                                                                                                                                 },
                                                                                                                                                                                                                                 {
                                                                                                                                                                                                                                     "text": {
-                                                                                                                                                                                                                                        "dst": "UString \"Space\"",
-                                                                                                                                                                                                                                        "src": "UString \"Empty\""
+                                                                                                                                                                                                                                        "dst": "USep Space",
+                                                                                                                                                                                                                                        "src": "USep EmptySep"
                                                                                                                                                                                                                                     }
                                                                                                                                                                                                                                 },
                                                                                                                                                                                                                                 {
@@ -411,7 +411,7 @@
                                                                                                                                                                                                                                                                     "text": {
                                                                                                                                                                                                                                                                         "value": "\"CookieSpec\"",
                                                                                                                                                                                                                                                                         "name": "TaggedString",
-                                                                                                                                                                                                                                                                        "type": "\"Var\""
+                                                                                                                                                                                                                                                                        "type": "Var"
                                                                                                                                                                                                                                                                     }
                                                                                                                                                                                                                                                                 }
                                                                                                                                                                                                                                                             ]
@@ -425,7 +425,7 @@
                                                                                                                                                                                                                                                     "children": [
                                                                                                                                                                                                                                                         {
                                                                                                                                                                                                                                                             "text": {
-                                                                                                                                                                                                                                                                "values": "\"Empty\""
+                                                                                                                                                                                                                                                                "value": "EmptySep"
                                                                                                                                                                                                                                                             }
                                                                                                                                                                                                                                                         }
                                                                                                                                                                                                                                                     ]
@@ -464,12 +464,12 @@
                                                                                                                                                                 },
                                                                                                                                                                 {
                                                                                                                                                                     "text": {
-                                                                                                                                                                        "value": "UString \"NewLine\""
+                                                                                                                                                                        "value": "USep NewLine"
                                                                                                                                                                     }
                                                                                                                                                                 },
                                                                                                                                                                 {
                                                                                                                                                                     "text": {
-                                                                                                                                                                        "value": "C1ConsProof",
+                                                                                                                                                                        "value": "Cons",
                                                                                                                                                                         "name": "Aldel"
                                                                                                                                                                     },
                                                                                                                                                                     "children": [
@@ -481,13 +481,13 @@
                                                                                                                                                                                 {
                                                                                                                                                                                     "text": {
                                                                                                                                                                                         "name": "Collection",
-                                                                                                                                                                                        "type": "\"Parens\""
+                                                                                                                                                                                        "type": "Parens"
                                                                                                                                                                                     },
                                                                                                                                                                                     "children": [
                                                                                                                                                                                         {
                                                                                                                                                                                             "text": {
                                                                                                                                                                                                 "name": "Cons",
-                                                                                                                                                                                                "type": "\"Space\""
+                                                                                                                                                                                                "type": "Space"
                                                                                                                                                                                             },
                                                                                                                                                                                             "children": [
                                                                                                                                                                                                 {
@@ -499,7 +499,7 @@
                                                                                                                                                                                                             "text": {
                                                                                                                                                                                                                 "value": "\"org.apache.http.params\"",
                                                                                                                                                                                                                 "name": "TaggedString",
-                                                                                                                                                                                                                "type": "\"Var\""
+                                                                                                                                                                                                                "type": "Var"
                                                                                                                                                                                                             }
                                                                                                                                                                                                         }
                                                                                                                                                                                                     ]
@@ -507,7 +507,7 @@
                                                                                                                                                                                                 {
                                                                                                                                                                                                     "text": {
                                                                                                                                                                                                         "name": "Cons",
-                                                                                                                                                                                                        "type": "\"Empty\""
+                                                                                                                                                                                                        "type": "EmptySep"
                                                                                                                                                                                                     },
                                                                                                                                                                                                     "children": [
                                                                                                                                                                                                         {
@@ -519,7 +519,7 @@
                                                                                                                                                                                                                     "text": {
                                                                                                                                                                                                                         "value": "\"BasicHttpParams\"",
                                                                                                                                                                                                                         "name": "TaggedString",
-                                                                                                                                                                                                                        "type": "\"Var\""
+                                                                                                                                                                                                                        "type": "Var"
                                                                                                                                                                                                                     }
                                                                                                                                                                                                                 }
                                                                                                                                                                                                             ]
@@ -544,7 +544,7 @@
                                                                                                                                                                             "children": [
                                                                                                                                                                                 {
                                                                                                                                                                                     "text": {
-                                                                                                                                                                                        "values": "\"NewLine\""
+                                                                                                                                                                                        "value": "NewLine"
                                                                                                                                                                                     }
                                                                                                                                                                                 }
                                                                                                                                                                             ]
@@ -588,7 +588,7 @@
                                                                                                 },
                                                                                                 {
                                                                                                     "text": {
-                                                                                                        "value": "UString \"Empty\""
+                                                                                                        "value": "USep EmptySep"
                                                                                                     }
                                                                                                 },
                                                                                                 {
@@ -647,7 +647,7 @@
                                             "children": [
                                                 {
                                                     "text": {
-                                                        "value": "UString \"Parens\""
+                                                        "value": "UCollTy Parens"
                                                     }
                                                 },
                                                 {
@@ -675,7 +675,7 @@
                                                                 },
                                                                 {
                                                                     "text": {
-                                                                        "value": "UString \"Space\""
+                                                                        "value": "USep Space"
                                                                     }
                                                                 },
                                                                 {
@@ -703,7 +703,7 @@
                                                                                 },
                                                                                 {
                                                                                     "text": {
-                                                                                        "value": "UString \"Space\""
+                                                                                        "value": "USep Space"
                                                                                     }
                                                                                 },
                                                                                 {
@@ -731,7 +731,7 @@
                                                                                                 },
                                                                                                 {
                                                                                                     "text": {
-                                                                                                        "value": "UString \"Empty\""
+                                                                                                        "value": "USep EmptySep"
                                                                                                     }
                                                                                                 },
                                                                                                 {
@@ -759,7 +759,7 @@
                                                                                                                 },
                                                                                                                 {
                                                                                                                     "text": {
-                                                                                                                        "value": "UString \"Space\""
+                                                                                                                        "value": "USep Space"
                                                                                                                     }
                                                                                                                 },
                                                                                                                 {
@@ -787,7 +787,7 @@
                                                                                                                                 },
                                                                                                                                 {
                                                                                                                                     "text": {
-                                                                                                                                        "value": "UString \"NewLine\""
+                                                                                                                                        "value": "USep NewLine"
                                                                                                                                     }
                                                                                                                                 },
                                                                                                                                 {
@@ -814,7 +814,7 @@
                                                                                                                                                             "children": [
                                                                                                                                                                 {
                                                                                                                                                                     "text": {
-                                                                                                                                                                        "value": "UString \"Parens\""
+                                                                                                                                                                        "value": "UCollTy Parens"
                                                                                                                                                                     }
                                                                                                                                                                 },
                                                                                                                                                                 {
@@ -852,7 +852,7 @@
                                                                                                                                                                                                             "children": [
                                                                                                                                                                                                                 {
                                                                                                                                                                                                                     "text": {
-                                                                                                                                                                                                                        "value": "UString \"Var\""
+                                                                                                                                                                                                                        "value": "UTag Var"
                                                                                                                                                                                                                     }
                                                                                                                                                                                                                 },
                                                                                                                                                                                                                 {
@@ -871,7 +871,7 @@
                                                                                                                                                                                 },
                                                                                                                                                                                 {
                                                                                                                                                                                     "text": {
-                                                                                                                                                                                        "value": "UString \"NewLine\""
+                                                                                                                                                                                        "value": "USep NewLine"
                                                                                                                                                                                     }
                                                                                                                                                                                 },
                                                                                                                                                                                 {
@@ -896,7 +896,7 @@
                                                                                                                                                 },
                                                                                                                                                 {
                                                                                                                                                     "text": {
-                                                                                                                                                        "value": "UString \"Empty\""
+                                                                                                                                                        "value": "USep EmptySep"
                                                                                                                                                     }
                                                                                                                                                 },
                                                                                                                                                 {

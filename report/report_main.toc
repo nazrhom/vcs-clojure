@@ -1,0 +1,33 @@
+\select@language {english}
+\contentsline {section}{\numberline {1}Introduction}{2}{section.1}
+\contentsline {subsection}{\numberline {1.1}Overview}{3}{subsection.1.1}
+\contentsline {section}{\numberline {2}Background}{5}{section.2}
+\contentsline {subsection}{\numberline {2.1}Sum of Products}{7}{subsection.2.1}
+\contentsline {subsection}{\numberline {2.2}Building our Universe}{8}{subsection.2.2}
+\contentsline {section}{\numberline {3}Type-directed diff}{10}{section.3}
+\contentsline {subsection}{\numberline {3.1}Spine}{12}{subsection.3.1}
+\contentsline {subsection}{\numberline {3.2}Alignment}{14}{subsection.3.2}
+\contentsline {subsection}{\numberline {3.3}Atoms}{16}{subsection.3.3}
+\contentsline {subsection}{\numberline {3.4}Recursive alignments}{17}{subsection.3.4}
+\contentsline {subsection}{\numberline {3.5}Putting everything together}{18}{subsection.3.5}
+\contentsline {subsection}{\numberline {3.6}Applying Patches}{19}{subsection.3.6}
+\contentsline {subsection}{\numberline {3.7}Disjointness}{21}{subsection.3.7}
+\contentsline {subsection}{\numberline {3.8}Visualization}{23}{subsection.3.8}
+\contentsline {subsection}{\numberline {3.9}Optimisation}{23}{subsection.3.9}
+\contentsline {section}{\numberline {4}Clojure}{24}{section.4}
+\contentsline {section}{\numberline {5}Heuristics}{26}{section.5}
+\contentsline {subsection}{\numberline {5.1}Basic Oracles}{27}{subsection.5.1}
+\contentsline {subsubsection}{\numberline {5.1.1}NoOracle}{28}{subsubsection.5.1.1}
+\contentsline {subsubsection}{\numberline {5.1.2}NoDupBranches}{28}{subsubsection.5.1.2}
+\contentsline {subsection}{\numberline {5.2}Oracle composition}{29}{subsection.5.2}
+\contentsline {subsection}{\numberline {5.3}DiffOracle}{30}{subsection.5.3}
+\contentsline {subsubsection}{\numberline {5.3.1}Shortcomings}{32}{subsubsection.5.3.1}
+\contentsline {subsubsection}{\numberline {5.3.2}Further Shortcomings}{34}{subsubsection.5.3.2}
+\contentsline {subsection}{\numberline {5.4}Cost}{37}{subsection.5.4}
+\contentsline {subsection}{\numberline {5.5}Bounded Search}{39}{subsection.5.5}
+\contentsline {section}{\numberline {6}Experimentation}{40}{section.6}
+\contentsline {subsection}{\numberline {6.1}Gathering Data}{40}{subsection.6.1}
+\contentsline {subsection}{\numberline {6.2}Domain specific improvements}{41}{subsection.6.2}
+\contentsline {subsection}{\numberline {6.3}Results}{42}{subsection.6.3}
+\contentsline {section}{\numberline {7}Conclusion}{42}{section.7}
+\contentsline {subsection}{\numberline {7.1}Related Work}{42}{subsection.7.1}

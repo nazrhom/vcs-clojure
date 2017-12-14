@@ -9,99 +9,127 @@ module VCS.Compatible where
 import Data.Type.Equality hiding (apply)
 
 import VCS.Multirec
+import VCS.Disjoint
 import Language.Clojure.Lang
 import Language.Common
 
 
-
 compatible :: Almu u v -> Almu u w -> Bool
+compatible =
+  compatibleAlmu
+    (compatibleAt (compatibleAlmuH compatible))
+    compatible
+
+structurallyCompatible :: Almu u v -> Almu u w -> Bool
+structurallyCompatible =
+  compatibleAlmu
+    (structurallyCompatibleAt (compatibleAlmuH structurallyCompatible))
+    structurallyCompatible
+compatibleAlmu :: (forall a . (At AlmuH) a -> (At AlmuH) a -> Bool)
+           -> (forall u v w . Almu u v -> Almu u w -> Bool)
+           -> Almu u v -> Almu u w -> Bool
 -- * Both are spines, easy
-compatible (Alspn s) (Alspn s')
-  = compatibleS s s'
+compatibleAlmu compatibleAt _ (Alspn s) (Alspn s')
+  = compatibleS compatibleAt s s'
 -- * Insertions
-compatible (Alins c ctx) (Alins c' ctx')
+compatibleAlmu compatibleAt rec (Alins c ctx) (Alins c' ctx')
   = case testEquality' c c' of
-    Just (Refl, Refl) -> matchCtxPos ctx ctx'
+    Just (Refl, Refl) -> matchCtxPos rec ctx ctx'
     Nothing -> False
-compatible (Alins constr ctx) almu
-  = compatibleFromCtxPos ctx almu
-compatible almu (Alins constr ctx)
-  = compatibleFromCtxPos ctx almu
+compatibleAlmu _ rec (Alins constr ctx) almu
+  = compatibleFromCtxPos rec ctx almu
+compatibleAlmu _ rec almu (Alins constr ctx)
+  = compatibleFromCtxPos rec ctx almu
 -- * Deletions and copies are trivially compatible
-compatible (Aldel c ctx) (Alspn Scp)
+compatibleAlmu _ _ (Aldel c ctx) (Alspn Scp)
   = True
-compatible (Alspn Scp) (Aldel c ctx)
+compatibleAlmu _ _ (Alspn Scp) (Aldel c ctx)
   = True
 
-compatible (Aldel c ctx) (Aldel c' ctx')
+compatibleAlmu _ rec (Aldel c ctx) (Aldel c' ctx')
   = case testEquality' c c' of
-    Just (Refl, Refl) -> matchCtxNeg ctx ctx'
+    Just (Refl, Refl) -> matchCtxNeg rec ctx ctx'
     Nothing -> False
 
 -- * Deletions and changes are compatible, if they align properly.
-compatible (Aldel c ctx) (Alspn (Scns c' ats))
+compatibleAlmu _ rec (Aldel c ctx) (Alspn (Scns c' ats))
   = case testEquality' c c' of
-      Just (Refl , Refl) -> compatibleFromCtxNeg ctx ats
+      Just (Refl , Refl) -> compatibleFromCtxNeg rec ctx ats
       Nothing            -> False
-compatible (Alspn (Scns c' ats)) (Aldel c ctx)
+compatibleAlmu _ rec (Alspn (Scns c' ats)) (Aldel c ctx)
   = case testEquality' c c' of
-      Just (Refl , Refl) -> compatibleFromCtxNeg ctx ats
+      Just (Refl , Refl) -> compatibleFromCtxNeg rec ctx ats
       Nothing            -> False
-compatible _ _ = False
+compatibleAlmu _ _ _ _ = False
 
-compatibleAlmuH :: AlmuH u -> AlmuH u -> Bool
-compatibleAlmuH (AlmuH almu) (AlmuH almu') = compatible almu almu'
+compatibleAlmuH :: (forall u v w . Almu u v -> Almu u w -> Bool)
+                -> AlmuH u -> AlmuH u -> Bool
+compatibleAlmuH rec (AlmuH almu) (AlmuH almu') = rec almu almu'
 
-compatibleFromCtxNeg :: Ctx (AtmuNeg u) l -> All (At (AlmuH)) l -> Bool
-compatibleFromCtxNeg (Here almu1 rest1) ((Ai almu2) `Ac` rest2) = compatible (unNeg almu1) (unH almu2) && (checkAll rest2)
+
+compatibleFromCtxNeg :: (forall u v w . Almu u v -> Almu u w -> Bool)
+                     -> Ctx (AtmuNeg u) l -> All (At (AlmuH)) l -> Bool
+compatibleFromCtxNeg rec (Here almu1 rest1) ((Ai almu2) `Ac` rest2)
+  = rec (unNeg almu1) (unH almu2) && (checkAll rest2)
   where
     checkAll :: All (At AlmuH) l -> Bool
     checkAll An = True
     checkAll (a `Ac` as) = identityAtAlmu a && checkAll as
-compatibleFromCtxNeg (There a1 ctx) (a2 `Ac` as) = (identityAtAlmu a2) && compatibleFromCtxNeg ctx as
+compatibleFromCtxNeg rec (There a1 ctx) (a2 `Ac` as) =
+  identityAtAlmu a2 && compatibleFromCtxNeg rec ctx as
 
-compatibleFromCtxPos :: Ctx (AtmuPos u) l1 -> Almu u w -> Bool
-compatibleFromCtxPos (Here (FixPos p) l)    almu = compatible p almu
-compatibleFromCtxPos (There u ctx) almu = compatibleFromCtxPos ctx almu
+compatibleFromCtxPos :: (forall u v w . Almu u v -> Almu u w -> Bool)
+                     -> Ctx (AtmuPos u) l1 -> Almu u w -> Bool
+compatibleFromCtxPos rec (Here (FixPos p) l) almu
+  = rec p almu
+compatibleFromCtxPos rec (There u ctx) almu
+  = compatibleFromCtxPos rec ctx almu
 
-matchCtxPos :: Ctx (AtmuPos u) l -> Ctx (AtmuPos u) l -> Bool
-matchCtxPos (Here (FixPos almu1) rest1) (Here (FixPos almu2) rest2) = compatible almu1 almu2 && checkAll rest1 rest2
-  where
-    checkAll :: All Usingl l -> All Usingl l -> Bool
-    checkAll An            An            = True
-    checkAll (a1 `Ac` as1) (a2 `Ac` as2) = a1 == a2 && checkAll as1 as2
-matchCtxPos (There a1 ctx1)    (There a2 ctx2)   = a1 == a2 && matchCtxPos ctx1 ctx2
+matchCtxPos :: (forall u v w . Almu u v -> Almu u w -> Bool)
+            -> Ctx (AtmuPos u) l -> Ctx (AtmuPos u) l -> Bool
+matchCtxPos rec (Here (FixPos almu1) rest1) (Here (FixPos almu2) rest2)
+  = rec almu1 almu2 && checkAll rest1 rest2
+matchCtxPos rec (There a1 ctx1)             (There a2 ctx2)
+  = a1 == a2 && matchCtxPos rec ctx1 ctx2
 
-matchCtxNeg :: Ctx (AtmuNeg v) l -> Ctx (AtmuNeg w) l -> Bool
-matchCtxNeg (Here (FixNeg almu1) rest1) (Here (FixNeg almu2) rest2) = compatible almu1 almu2
-matchCtxNeg (There a1 ctx1)    (There a2 ctx2)   = matchCtxNeg ctx1 ctx2
+matchCtxNeg :: (forall u v w . Almu u v -> Almu u w -> Bool)
+            -> Ctx (AtmuNeg v) l -> Ctx (AtmuNeg w) l -> Bool
+matchCtxNeg rec (Here (FixNeg almu1) rest1) (Here (FixNeg almu2) rest2)
+  = rec almu1 almu2 && checkAll rest1 rest2
+matchCtxNeg rec (There a1 ctx1)             (There a2 ctx2)
+  = a1 == a2 && matchCtxNeg rec ctx1 ctx2
 
-compatibleS ::  Spine (At AlmuH) (Al (At AlmuH)) u
+checkAll :: All Usingl l -> All Usingl l -> Bool
+checkAll An            An            = True
+checkAll (a1 `Ac` as1) (a2 `Ac` as2) = a1 == a2 && checkAll as1 as2
+
+compatibleS :: (forall a . (At AlmuH) a -> (At AlmuH) a -> Bool)
+           -> Spine (At AlmuH) (Al (At AlmuH)) u
            -> Spine (At AlmuH) (Al (At AlmuH)) u
            -> Bool
-compatibleS Scp s'
+compatibleS _ Scp s'
   = True
-compatibleS s'  Scp
+compatibleS _ s'  Scp
   = True
-compatibleS (Scns c p) (Scns c' p')
+compatibleS compatibleAt (Scns c p) (Scns c' p')
   = case testEquality c c' of
-          Just Refl -> compatibleAts (compatibleAt compatibleAlmuH) p p'
+          Just Refl -> compatibleAts compatibleAt p p'
           Nothing -> False
 
-compatibleS (Scns c p) (Schg i j p')
+compatibleS compatibleAt (Scns c p) (Schg i j p')
  = case testEquality c i of
-         Just Refl -> compatibleAtAl p p'
+         Just Refl -> compatibleAtAl compatibleAt p p'
          Nothing   -> False
 
-compatibleS (Schg i j p') (Scns c p)
+compatibleS compatibleAt (Schg i j p') (Scns c p)
  = case testEquality c i of
-         Just Refl -> compatibleAtAl p p'
+         Just Refl -> compatibleAtAl compatibleAt p p'
          Nothing   -> False
 
-compatibleS (Schg i j p) (Schg i' j' p')
+compatibleS compatibleAt (Schg i j p) (Schg i' j' p')
   = case testEquality' j j' of
     Just (Refl, Refl) -> case testEquality' i i' of
-      Just (Refl,Refl) -> compatibleAl p p'
+      Just (Refl,Refl) -> compatibleAl compatibleAt p p'
       Nothing -> False
     Nothing -> False
 
@@ -110,67 +138,73 @@ compatibleAts :: (forall a . at1 a -> at2 a -> Bool)
 compatibleAts compatibleAt An An = True
 compatibleAts compatibleAt (a `Ac` as) (b `Ac` bs) = compatibleAt a b && compatibleAts compatibleAt as bs
 
-compatibleAtAl :: All (At AlmuH) s -> Al (At AlmuH) s d -> Bool
-compatibleAtAl An           _
-  = True
-compatibleAtAl (a `Ac` as) (Ains at al)
-  = compatibleAtAl (a `Ac` as) al
-compatibleAtAl (a `Ac` as) (Adel at al)
-  = (identityAtAlmu a) && compatibleAtAl as al
-compatibleAtAl (a `Ac` as) (Amod at al)
-  = (compatibleAt compatibleAlmuH a at) && compatibleAtAl as al
 
-compatibleAl :: Al (At AlmuH) s d -> Al (At AlmuH) s d' -> Bool
-compatibleAl A0 A0 = True
+compatibleAtAl :: (forall a . (At AlmuH) a -> (At AlmuH) a -> Bool)
+                -> All (At AlmuH) s -> Al (At AlmuH) s d -> Bool
+compatibleAtAl _ An           _
+  = True
+compatibleAtAl compatibleAt (a `Ac` as) (Ains at al)
+  = compatibleAtAl compatibleAt (a `Ac` as) al
+compatibleAtAl compatibleAt (a `Ac` as) (Adel at al)
+  = (identityAtAlmu a) && compatibleAtAl compatibleAt as al
+compatibleAtAl compatibleAt (a `Ac` as) (Amod at al)
+  = compatibleAt a at && compatibleAtAl compatibleAt as al
+
+compatibleAl :: (forall a . (At AlmuH) a -> (At AlmuH) a -> Bool)
+              -> Al (At AlmuH) s d -> Al (At AlmuH) s d' -> Bool
+compatibleAl _ A0 A0 = True
 
 -- * Insertions
-compatibleAl (Ains a al) (Ains a' al')
+compatibleAl compatibleAt (Ains a al) (Ains a' al')
   = case testEquality a a' of
-    Just Refl -> a == a' && compatibleAl al al'
+    Just Refl -> a == a' && compatibleAl compatibleAt al al'
     Nothing   -> False
-compatibleAl al (Ains a' al')
-  = compatibleAl al al'
-compatibleAl (Ains a al) al'
-  = compatibleAl al al'
+compatibleAl compatibleAt al (Ains a' al')
+  = compatibleAl compatibleAt al al'
+compatibleAl compatibleAt (Ains a al) al'
+  = compatibleAl compatibleAt al al'
 
-compatibleAl (Adel a al) (Adel a' al')
-  = compatibleAl al al'
+compatibleAl compatibleAt (Adel a al) (Adel a' al')
+  = case testEquality a a' of
+    Just Refl -> a == a' && compatibleAl compatibleAt al al'
+    Nothing   -> False
 
 -- * Mod and deletion
 
-compatibleAl (Adel a al) (Amod a' al')
-  = identityAtAlmu a' && compatibleAl al al'
+compatibleAl compatibleAt (Adel a al) (Amod a' al')
+  = identityAtAlmu a' && compatibleAl compatibleAt al al'
 
-compatibleAl (Amod a al) (Adel a' al')
-  = identityAtAlmu a && compatibleAl al al'
+compatibleAl compatibleAt (Amod a al) (Adel a' al')
+  = identityAtAlmu a && compatibleAl compatibleAt  al al'
 
-compatibleAl (Amod a al) (Amod a' al')
-  = (compatibleAt compatibleAlmuH) a a' && compatibleAl al al'
+compatibleAl compatibleAt (Amod a al) (Amod a' al')
+  = compatibleAt a a' && compatibleAl compatibleAt al al'
 
 
 compatibleAt :: (IsRecEl a => rec1 a -> rec2 a -> Bool)
            -> At rec1 a -> At rec2 a -> Bool
 compatibleAt compatibleR (Ai r) (Ai r') = compatibleR r r'
 compatibleAt compatibleR (As p) (As p')
-  = new == new'
-    -- case testEquality new new' of
-    -- Just Refl -> True
-    -- Nothing   -> False
+  = old == new || old' == new' || new == new'
   where
     (old, new) = unContract p
     (old', new') = unContract p'
 
----- Identity ------
-identityAtAlmu :: At AlmuH v -> Bool
-identityAtAlmu = identityAt (identityAlmu . unH)
+structurallyCompatibleAt  :: (IsRecEl a => rec1 a -> rec2 a -> Bool)
+           -> At rec1 a -> At rec2 a -> Bool
+structurallyCompatibleAt = structurallyDisjointAt
 
-identityAlmu :: Almu u v -> Bool
-identityAlmu (Alspn Scp) = True
-identityAlmu _         = False
-
-identityAt :: (IsRecEl a => rec a -> Bool)
-              -> At rec a -> Bool
-identityAt idRec (Ai r) = idRec r
-identityAt idRec (As c) = old == new
-  where
-    (old, new) = unContract c
+-- ---- Identity ------
+-- identityAtAlmu :: At AlmuH v -> Bool
+-- identityAtAlmu = identityAt (identityAlmu . unH)
+--
+-- identityAlmu :: Almu u v -> Bool
+-- identityAlmu (Alspn Scp) = True
+-- identityAlmu _         = False
+--
+-- identityAt :: (IsRecEl a => rec a -> Bool)
+--               -> At rec a -> Bool
+-- identityAt idRec (Ai r) = idRec r
+-- identityAt idRec (As c) = old == new
+--   where
+--     (old, new) = unContract c

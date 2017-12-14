@@ -7,10 +7,8 @@ module VCS.Cost where
 
 import VCS.Multirec
 import Language.Clojure.Lang
-import Language.Clojure.AST
+import Language.Clojure.Cost
 import Language.Common
-
-
 
 costS :: (forall a . at a -> Int)
       -> (forall p1 p2 . al p1 p2 -> Int)
@@ -62,25 +60,3 @@ costCtxNeg (There atmu almu) = costUsingl atmu + costCtxNeg almu
 
 costAll :: All Usingl l -> Int
 costAll as = foldAll (\u acc -> acc + costUsingl u) 0 as
-
-costUsingl :: Usingl u -> Int
-costUsingl (UString u) = 1
-costUsingl (UExpr e) = costExpr e
-costUsingl (USepExprList sel) = costSepExprist sel
-costUsingl (UTerm t) = costTerm t
-
-costExpr :: Expr -> Int
-costExpr (Special fty e _) = 1 + costExpr e
-costExpr (Dispatch e _) = costExpr e
-costExpr (Collection cty sel _) = 1 + costSepExprist sel
-costExpr (Term t _) = costTerm t
-costExpr (Comment s _) = 1
-costExpr (Seq e1 e2 _) = costExpr e1 + costExpr e2
-costExpr (Empty _) = 0
-
-costSepExprist :: SepExprList -> Int
-costSepExprist (Nil _) = 0
-costSepExprist (Cons e sep sel _) = 1 + costExpr e + costSepExprist sel
-
-costTerm :: Term -> Int
-costTerm t = 2

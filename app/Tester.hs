@@ -9,7 +9,7 @@ import System.Timeout
 import System.FilePath
 import Data.List
 import Data.List.Split
--- import Data.Time.Clock
+import Data.Time.Clock
 
 import Language.Clojure.AST
 import Language.Clojure.Parser
@@ -36,11 +36,10 @@ executablePathRoot = ".stack-work/dist/x86_64-osx/Cabal-1.24.2.0/build/th-vcs-cl
 executablePath = "../../../../" ++ executablePathRoot
 
 timeout_time :: Int
-timeout_time = 600000000
+timeout_time = 600000
 
 minutesToMicro :: Int -> Int
 minutesToMicro i = i * (6 * 10 ^ 7)
-
 
 main :: IO ()
 main = do
@@ -69,10 +68,12 @@ writeResults res = do
     takeBaseName path = intercalate "-" $ reverse $ drop 2 $ reverse $ splitOn "-" (last $ splitPath path)
 
 writeTable :: (FilePath, [(String, Maybe Bool)]) -> IO ()
-writeTable (path, t) = writeFile (toConflictResultFolder path) (mkTable t)
+writeTable (path, t) = do
+  time <- getCurrentTime
+  writeFile (toConflictResultFolder path time) (mkTable t)
   where
-    toConflictResultFolder path =
-      resultPath ++ path ++ "/out.md"
+    toConflictResultFolder path name =
+      resultPath ++ path ++ "/" ++ show name ++ ".md"
 
 
 mkTable :: [(String, Maybe Bool)] -> String
@@ -124,7 +125,7 @@ checkDisjointness :: IO (FilePath, Maybe Bool)
 checkDisjointness = do
   cwd <- getCurrentDirectory
   putStrLn $ "Running in " ++ cwd
-  ph <- spawnProcess executablePath ["-f", cwd ++ "/", "-s", "_", "-d", "_"]
+  ph <- spawnProcess executablePath ["-f", cwd ++ "/"]
   result <- timeout timeout_time (waitForProcess ph)
   case result of
     Nothing -> do
@@ -152,7 +153,7 @@ checkConflict srcFile dstFile = do
   d <- readFile dstFile
   src <- parseFile "" s
   dst <- parseFile "" d
-  let cp = buildCopyOracle (preprocess s d)
+  let cp = buildCopyMaps (preprocess s d)
   let diff3 = buildDelInsMap $ preprocessGrouped s d
   putStrLn $ "cp" ++ show cp
   putStrLn $ "diff3" ++ show diff3

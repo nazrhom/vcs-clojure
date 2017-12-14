@@ -21,13 +21,13 @@ import qualified Data.Map  as M
 import Control.Monad.Reader
 import Unsafe.Coerce
 import GHC.Generics
+import Data.Constraint (Constraint, (:-), (\\), Dict(..))
+import Data.Constraint.Forall (Forall, ForallF, ForallT, inst, instF, instT)
 
 import Debug.Trace
 
 import Language.Common
-import Language.Clojure.AST
 import Language.Clojure.Lang
-import Oracle.Oracle
 
 -- The actual puzzle
 
@@ -53,12 +53,30 @@ data Almu :: U -> U -> * where
   Alins :: ConstrFor v s -> Ctx (AtmuPos u) (TypeOf s) -> Almu u v
   Aldel :: ConstrFor u s -> Ctx (AtmuNeg v) (TypeOf s) -> Almu u v
 
+data PartialAlmu :: U -> U -> * where
+  TSpn :: Spine (At (AlmuP)) (Al (At (AlmuP))) u
+        -> PartialAlmu u u
+  TIns :: ConstrFor v s -> Ctx (PartialPos u) (TypeOf s)
+        -> PartialAlmu u v
+  TDel :: ConstrFor u s -> Ctx (PartialNeg v) (TypeOf s)
+        -> PartialAlmu u v
+
+data AlmuP :: U -> * where
+  AlmuBase :: TrivialA u -> AlmuP u
+  AlmuF :: f (PartialAlmu u u) -> AlmuP u
+
 data AlmuH :: U -> * where
   AlmuH :: Almu u u -> AlmuH u
   deriving (Show, Generic)
 
 unH :: AlmuH u -> Almu u u
 unH (AlmuH u) = u
+
+data PartialPos (v :: U) :: U -> * where
+  TPos :: (Usingl v, Usingl u) -> PartialPos v u
+
+data PartialNeg (v :: U) :: U -> * where
+  TNeg :: (Usingl u, Usingl v) -> PartialNeg v u
 
 -- Atmu positive and negative variations
 data AtmuPos (v :: U) :: U -> * where
@@ -79,86 +97,6 @@ data Ctx (r :: U -> *) :: [U] -> * where
   Here :: (IsRecEl u) => r u -> All Usingl l  -> Ctx r (u ': l)
   There :: Usingl u -> Ctx r l -> Ctx r (u ': l)
 
--- |Implement DP-style optimization for Alignments and Recursive alignmetns.
---
--- The phase records the LAST decision took by the algo (either an insertion,
--- modification ordeletion)
-align :: (MonadOracle o m)
-      => o -> Int -> Int -> All Usingl p1 -> All Usingl p2
-      -> m (Al TrivialA p1 p2)
-align orc maxCost currCost p1 p2 = runReaderT (alignO orc maxCost p1 p2) (History { path = [I,M,D], cost = currCost })
-
-alignO :: (MonadOracle o m)
-       => o -> Int -> All Usingl p1 -> All Usingl p2
-       -> HistoryM m (Al TrivialA p1 p2)
-alignO orc maxCost An An = return A0
-alignO orc maxCost p1 p2 = do
-  paths <- callP orc p1 p2
-  followAllPaths paths orc maxCost p1 p2
-
-followAllPaths :: (MonadOracle o m)
-               => [Path] -> o -> Int -> All Usingl p1 -> All Usingl p2
-               -> HistoryM m (Al TrivialA p1 p2)
-followAllPaths []     _   _   _  _
-  = empty
-followAllPaths (i:is) orc maxCost p1 p2
-  = (followPath i orc maxCost p1 p2) <|> (followAllPaths is orc maxCost p1 p2)
-
-
--- * Follows one specific path. Makes sure the recursive call to
---   alignO has access to this path, for later inspection.
-followPath :: (MonadOracle o m)
-           => Path -> o -> Int -> All Usingl p1 -> All Usingl p2
-           -> HistoryM m (Al TrivialA p1 p2)
-followPath _ orc maxCost An An         = pure A0
-followPath I orc maxCost x y = alignIns orc maxCost x y
-followPath D orc maxCost x y = alignDel orc maxCost x y
-followPath M orc maxCost x y = alignMod orc maxCost x y
--- followPath FM orc (a1 `Ac` p1) (a2 `Ac` p2)
---   = case testEquality a1 a2 of
---       Just Refl -> Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
---       Nothing -> case unsafeCoerceEquality a1 a2 of
---           Just Refl -> do
---             Amod (Contract (a1 , a2)) <$> local (M:) (alignO orc p1 p2)
--- followPath S orc x y = alignAll NoDupBranches x y
-
-liftPath :: ([Path] -> [Path]) -> History -> History
-liftPath f = liftHistory (f,id)
-
-liftCost :: (Int -> Int) -> History -> History
-liftCost f = liftHistory (id,f)
-
-liftHistory :: (([Path] -> [Path], Int -> Int)) -> History -> History
-liftHistory (fp, fc) h
-  = History {
-      path = fp (path h)
-    , cost = fc (cost h)
-    }
-
-alignIns :: (MonadOracle o m)
-           => o -> Int -> All Usingl p1 -> All Usingl p2
-           -> HistoryM m (Al TrivialA p1 p2)
-alignIns orc maxCost p1 (a `Ac` p) =
-  Ains a <$> local (liftPath (I:)) (alignO orc maxCost p1 p)
-
-alignDel :: (MonadOracle o m)
-           => o -> Int -> All Usingl p1 -> All Usingl p2
-           -> HistoryM m (Al TrivialA p1 p2)
-alignDel orc maxCost (a `Ac` p) p2 =
-  Adel a <$> local (liftPath (D:)) (alignO orc maxCost p p2)
-
-alignMod :: (MonadOracle o m)
-           => o -> Int -> All Usingl p1 -> All Usingl p2
-           -> HistoryM m (Al TrivialA p1 p2)
-alignMod orc maxCost (a1 `Ac` p1) (a2 `Ac` p2) =
-  case testEquality a1 a2 of
-    Just Refl -> Amod (Contract (a1, a2)) <$> local (liftPath (M:)) (alignO orc maxCost p1 p2)
-    Nothing -> empty
-
--- alignAll :: (MonadOracle o m)
---            => o -> All Usingl p1 -> All Usingl p2
---            -> HistoryM m (Al TrivialA p1 p2)
--- alignAll orc x y = alignIns orc x y <|> alignDel orc x y <|> alignMod orc x y
 
 -- Library stuff
 newtype Contract (f :: k -> *) (x :: k) = Contract { unContract :: (f x , f x) }
@@ -215,6 +153,19 @@ mapAt f (As t) = As t
 
 unsafeCoerceEquality :: Usingl a -> Usingl b -> Maybe (a :~: b)
 unsafeCoerceEquality a b = unsafeCoerce $ Just Refl
+
+-- useful wrappers for instances
+data Predicate (a :: * -> Constraint) = Predicate
+data Proxy (a :: *) = Proxy
+
+proxy :: a -> Proxy a
+proxy _ = Proxy
+
+inst_ :: Predicate p -> Proxy a -> Forall p :- p a
+inst_ _ _ = inst
+
+instF_ :: Predicate p -> Proxy (u a) -> ForallF p u :- p (u a)
+instF_ _ _ = instF
 -- Show instances
 deriving instance Show (Almu u v)
 deriving instance Show (Al (At AlmuH) p1 p2)
@@ -223,6 +174,7 @@ deriving instance Show (Spine (At AlmuH) (Al (At AlmuH)) u)
 deriving instance Show (All Usingl l)
 deriving instance Show (All (At AlmuH) l)
 deriving instance Show (Ctx (AtmuPos u) p)
+deriving instance Show (Ctx (Almu u) p)
 deriving instance Show (Ctx (AtmuNeg u) p)
 deriving instance Show (f x) => Show (Contract f x)
 
@@ -237,7 +189,7 @@ instance Eq (Almu u v) where
     Just Refl -> ctx1 == ctx2
   _ == _ = False
 
-instance Eq (Spine (At AlmuH) (Al (At AlmuH)) u) where
+instance (ForallF Eq p) => Eq (Spine p (Al p) u) where
   Scp == Scp = True
   (Scns c1 p1) == (Scns c2 p2) = case testEquality c1 c2 of
     Nothing -> False
@@ -249,14 +201,33 @@ instance Eq (Spine (At AlmuH) (Al (At AlmuH)) u) where
       Just Refl -> p1 == p2
   _ == _ = False
 
-deriving instance Eq (Ctx (AtmuPos u) p)
-deriving instance Eq (Ctx (AtmuNeg u) p)
-deriving instance Eq (All Usingl l)
+equality :: Predicate Eq
+equality = Predicate
+
+-- withEqualityOf :: (Eq (u a) => c) -> (u a) -> c
+withEqualityOf e p = e \\ instF_ equality (proxy p)
+
+-- deriving instance Eq (Ctx (AtmuPos u) p)
+instance (ForallF Eq almu) => Eq (Ctx almu p) where
+  (Here al1 rest1) == (Here al2 rest2)
+    = (al1 == al1 \\ instF_ equality (proxy al1)) && rest1 == rest2
+  (There u1 ctx1)  == (There u2 ctx2)
+    = (u1 == u2 && ctx1 == ctx2)
+-- deriving instance Eq (Ctx (AtmuNeg u) p)
+instance (ForallF Eq u) => Eq (All u l) where
+  (u1 `Ac` us1) == (u2 `Ac` us2)
+    = (u1 == u2 \\ instF_ equality (proxy u1)) && us1 == us2
+  An            == An            = True
 deriving instance Eq (AtmuPos u v)
 deriving instance Eq (AtmuNeg u v)
 deriving instance Eq (AlmuH u)
-deriving instance Eq (Al (At AlmuH) p1 p2)
-deriving instance Eq (All (At AlmuH) l)
+instance (ForallF Eq p) => Eq (Al p p1 p2) where
+  A0 == A0 = True
+  (Ains p1 rest1) == (Ains p2 rest2) = p1 == p2 && rest1 == rest2
+  (Amod m1 rest1) == (Amod m2 rest2)
+    = (m1 == m2 \\ instF_ equality (proxy m1)) && rest1 == rest2
+
+-- deriving instance Eq (All (At AlmuH) l)
 deriving instance Eq (At AlmuH u)
 deriving instance Eq (TrivialA u)
 

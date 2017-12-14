@@ -6,11 +6,11 @@
 module Util.ToJSON where
 
 import VCS.Multirec
-import Language.Clojure.Lang
-import Language.Clojure.PrettyPrint
-import Language.Clojure.AST
-import Language.Common
 
+import Language.Clojure.Lang
+import Language.Clojure.PrettyPrint (ppConstr)
+import Language.Clojure.ToJSON
+import Language.Common
 
 import Data.Aeson
 import Data.Text
@@ -19,7 +19,6 @@ import qualified Data.Vector as V
 mkNode :: Object -> V.Vector Value -> Value
 mkNode obj children = object [ "text" .= obj
                              , "children" .= Array children ]
-
 mkLeaf :: Object -> Value
 mkLeaf obj = mkNode obj V.empty
 
@@ -44,11 +43,11 @@ instance ToJSON (Almu u v) where
     , "children" .= toJSONArray (toJSON s) ]
   toJSON (Aldel d ctx) = object [
       "text" .= object [ "name" .= ("Aldel" :: Text)
-                       , "value" .= show d ]
+                       , "value" .= show (ppConstr d) ]
     , "children" .= toJSON ctx]
   toJSON (Alins i ctx) = object [
       "text" .= object [ "name" .= ("Alins" :: Text)
-                       , "value" .= show i ]
+                       , "value" .= show (ppConstr i) ]
     , "children" .= toJSON ctx ]
 
 instance ToJSON (Al (At AlmuH) p1 p2) where
@@ -111,69 +110,6 @@ instance ToJSON (AtmuPos u v) where
 instance ToJSON (AtmuNeg u v) where
 instance ToJSON (ConstrFor u v) where
   toJSON c = object [ "text" .= object [ "value" .= show (ppConstr c) ]]
-instance ToJSON (Contract Usingl l) where
-  toJSON c = if old == new
-             then object [ "text" .= object [
-                              "value" .= show new ] ]
-             else object [ "text" .= object [
-                              "src" .= show old
-                            , "dst" .= show new ] ]
-      where
-        (old, new) = unContract c
-
-instance ToJSON Expr where
-  toJSON (Special fty expr _) = object [
-    "text" .= object [
-        "name" .= ("Special" :: Text)
-      , "type" .= show fty ]
-    , "children" .= toJSONArray (toJSON expr) ]
-  toJSON (Dispatch expr _) = object [
-    "text" .= object [
-      "name" .= ("Dispatch" :: Text) ]
-    , "children" .= toJSONArray (toJSON expr) ]
-  toJSON (Collection cty sel _) = object [
-    "text" .= object [
-        "name" .= ("Collection" :: Text)
-      , "type" .= show cty ]
-    , "children" .= toJSONArray (toJSON sel) ]
-  toJSON (Term term _) = object [
-    "text" .= object [
-      "name" .= ("Term" :: Text) ]
-    , "children" .= toJSONArray (toJSON term) ]
-  toJSON (Comment str _) = object [
-    "text" .= object [
-      "name" .= ("Comment" :: Text)
-    , "value" .= show str ] ]
-  toJSON (Seq e1 e2 _) = object [
-    "text" .= object [
-      "name" .= ("Seq" :: Text) ]
-    , "children" .= Array ((toJSON e1) `V.cons` (V.singleton (toJSON e2))) ]
-  toJSON (Empty _) = object [
-    "text" .= object [
-      "name" .= ("Empty" :: Text) ] ]
-
-instance ToJSON SepExprList where
-  toJSON (Nil _) =  object [
-    "text" .= object [
-      "name" .= ("Nil" :: Text) ] ]
-  toJSON (Cons expr sep sel _) = object [
-    "text" .= object [
-        "name" .= ("Cons" :: Text)
-      , "type" .= show sep ]
-    , "children" .= Array ((toJSON expr) `V.cons` (V.singleton (toJSON sel))) ]
-
-instance ToJSON Term where
-  toJSON (TaggedString tag str _) = object [
-    "text" .= object [
-        "name" .= ("TaggedString" :: Text)
-      , "type" .= show tag
-      , "value" .= show str ] ]
-
-instance ToJSON LineRange where
-  toJSON (Range start end) = object [ "text" .= object [
-      "name" .= ("Range" :: Text)
-    , "start" .= toJSON start
-    , "end" .= toJSON end ] ]
 
 instance ToJSON (All (At AlmuH) l) where
   toJSON as = Array $ go as
@@ -189,8 +125,13 @@ instance ToJSON (All Usingl l) where
         go An = V.empty
         go (b `Ac` bs) = toJSON b `V.cons` go bs
 
-instance ToJSON (Usingl u) where
-  toJSON (UString u) = object [ "text" .= object ["values" .= show u ] ]
-  toJSON (USepExprList u) = toJSON u
-  toJSON (UExpr u) = toJSON u
-  toJSON (UTerm u) = toJSON u
+instance ToJSON (Contract Usingl l) where
+  toJSON c = if old == new
+             then object [ "text" .= object [
+                              "value" .= show new ] ]
+             else object [ "text" .= object [
+                              "src" .= show old
+                            , "dst" .= show new ] ]
+      where
+        (old, new) = unContract c
+

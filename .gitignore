@@ -23,6 +23,7 @@ cabal.project.local
 # test projects
 test/repos/*
 test/conflicts/mined/*
+test/results/*
 !test/repos/.gitkeep
 
 # prevent test output files to pollute repo
@@ -35,6 +36,8 @@ scripts/node_modules
 papers
 
 #report
+report.diff.*
+_minted*
 report/*.log
 report/*.gz
 report/*.blg

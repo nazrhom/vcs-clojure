@@ -82,7 +82,7 @@
         <relationship name="selected" type="1/1" destination="FILE" idrefs="z105"></relationship>
         <relationship name="settings" type="1/1" destination="SETTINGS" idrefs="z102"></relationship>
         <relationship name="uisettings" type="1/1" destination="UISETTINGS" idrefs="z104"></relationship>
-        <relationship name="items" type="0/0" destination="PROJECTITEM" idrefs="z107 z105 z106"></relationship>
+        <relationship name="items" type="0/0" destination="PROJECTITEM" idrefs="z105 z106 z107"></relationship>
     </object>
     <object type="UISETTINGS" id="z104">
         <attribute name="showlogwarningitems" type="bool">0</attribute>
@@ -100,12 +100,12 @@
     </object>
     <object type="TEXFILE" id="z105">
         <attribute name="wasopen" type="bool">0</attribute>
-        <attribute name="visiblerect" type="string">{{0, 21393}, {787, 641}}</attribute>
-        <attribute name="lasteditdate" type="date">533657872.19738000631332397461</attribute>
+        <attribute name="visiblerect" type="string">{{1, 28}, {814, 687}}</attribute>
+        <attribute name="lasteditdate" type="date">533993060.37732398509979248047</attribute>
         <attribute name="istext" type="bool">1</attribute>
-        <attribute name="fileloaddate" type="date">533657872.42911797761917114258</attribute>
+        <attribute name="fileloaddate" type="date">533993060.19814002513885498047</attribute>
         <attribute name="extension" type="string">tex</attribute>
-        <attribute name="cursor" type="string">{75486, 0}</attribute>
+        <attribute name="cursor" type="string">{656, 0}</attribute>
         <attribute name="sortindex" type="int32">0</attribute>
         <attribute name="name" type="string">report_main.tex</attribute>
         <attribute name="isexpanded" type="bool">0</attribute>
@@ -147,8 +147,7 @@
         <relationship name="parentfile" type="1/1" destination="FILE"></relationship>
     </object>
     <object type="BOOKMARK" id="z110">
-        <attribute name="text" type="string">
-</attribute>
+        <attribute name="text" type="string"></attribute>
         <attribute name="linenumber" type="int64">390</attribute>
         <relationship name="parentfile" type="1/1" destination="FILE"></relationship>
     </object>

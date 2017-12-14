@@ -1,39 +1,39 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
 
 module Language.Clojure.AST where
 
 import Text.Parsec.Pos
 import GHC.Generics
+import Data.Text
 
 data SepExprList =
    Nil LineRange
  | Cons Expr Sep SepExprList LineRange
  deriving (Show, Generic)
 
-type Sep = String
--- data Sep = Space | Comma | NewLine deriving (Show, Eq)
+data Sep = Space | Comma | NewLine | EmptySep deriving (Show, Eq)
 
 data Expr = Special FormTy Expr LineRange
           | Dispatch Expr LineRange
-          | Collection CollType SepExprList LineRange
+          | Collection CollTy SepExprList LineRange
           | Term Term LineRange
-          | Comment String LineRange
+          | Comment Text LineRange
           | Seq Expr Expr LineRange
           | Empty LineRange
           deriving (Show, Generic)
 -- ref: https://8thlight.com/blog/colin-jones/2012/05/22/quoting-without-confusion.html
-type FormTy = String
--- data FormTy = Quote | SQuote | UnQuote | DeRef deriving (Show, Eq)
 
-type CollType = String
--- data CollType = Vec | Set | Parens deriving (Show, Eq)
+data FormTy = Quote | SQuote | UnQuote | DeRef deriving (Show, Eq)
 
-data Term = TaggedString Tag String LineRange
-          deriving (Show, Generic)
+data CollTy = Vec | Set | Parens deriving (Show, Eq)
 
-type Tag = String
--- data Tag = String | Metadata | Var  deriving (Show, Eq)
+data Term = TaggedString Tag Text LineRange
+  deriving (Show, Generic)
+
+data Tag = String | Metadata | Var  deriving (Show, Eq)
 
 data SubTree = Exp Expr | Sel SepExprList
   deriving (Show)

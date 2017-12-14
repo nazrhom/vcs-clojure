@@ -66,9 +66,6 @@ instance (OracleF o m, OracleP o m) => Oracle o m where
 
 type MonadOracle o m = (Alternative m, OracleP o m , OracleF o m)
 
-guard :: (Alternative m) => Bool -> m a -> m a
-guard True  a = a
-guard False _ = empty
 data ComposeOracle a b = ComposeOracle a b
 data PickBest a b = PickBest a b
 

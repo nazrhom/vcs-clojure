@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DataKinds #-}
 
 module Language.Clojure.Parser
     ( parseTop
@@ -9,7 +10,7 @@ module Language.Clojure.Parser
     -- AST
     , Expr(..)
     , FormTy(..)
-    , CollType(..)
+    , CollTy(..)
     , Term(..)
     , Tag(..)
     , SepExprList(..)
@@ -21,6 +22,8 @@ import Text.Parsec hiding (Empty)
 import Text.Parsec.Token hiding (braces, parens, brackets, identifier, operator)
 import Text.Parsec.Language
 import Data.Char hiding (Space)
+import qualified Data.Text as T
+import Data.Proxy
 
 import Language.Clojure.AST
 
@@ -70,10 +73,10 @@ parseSpecial = do
   return $ Special ident expr (mkRange start end)
 
 parseSpecialIdent = choice
-  [ "Quote" <$ char '\''
-  , "SQuote" <$ char '`'
-  , "UnQuote" <$ char '~'
-  , "DeRef" <$ char '@'
+  [ Quote <$ char '\''
+  , SQuote <$ char '`'
+  , UnQuote <$ char '~'
+  , DeRef <$ char '@'
   ]
 
 parseTaggedString = choice [parseString, parseVar, parseMetadata]
@@ -118,29 +121,30 @@ parseComment = do
   char ';'
   comment <- manyTill anyChar (string "\n")
   -- single line comment, if we parse end here we have parsed newline as well
-  return $ Comment comment (mkRange start start)
+  return $ Comment (T.pack comment) (mkRange start start)
 
 parens p = between (symbol lexer "(") (string ")") p
 braces p = between (symbol lexer "{") (string "}") p
 brackets p = between (symbol lexer "[") (string "]") p
 
+
 parseSet = do
   start <- getPosition
   contents <- braces parseSepExprList
   end <- getPosition
-  return $ Collection "Set" contents (mkRange start end)
+  return $ Collection Set contents (mkRange start end)
 
 parseVec = do
   start <- getPosition
   contents <- brackets parseSepExprList
   end <- getPosition
-  return $ Collection "Vec" contents (mkRange start end)
+  return $ Collection Vec contents (mkRange start end)
 
 parseParens = do
   start <- getPosition
   contents <- parens parseSepExprList
   end <- getPosition
-  return $ Collection "Parens" contents (mkRange start end)
+  return $ Collection Parens contents (mkRange start end)
 
 parseSepExprList = parseSepExprList1 <|> parseEmptyList
 
@@ -157,17 +161,16 @@ parseSepExprList1 = do
   return $ Cons x sep xs (mkRange start end)
 
 parseSep = choice
-  [ "Comma" <$ lexeme lexer (char ',')
-  , "NewLine" <$ lexeme lexer (many1 endOfLine)
-  , "Space" <$ lexeme lexer (many1 (space <|> tab))
-  , "Empty" <$ lookAhead (anyChar)
+  [ Comma <$ lexeme lexer (char ',')
+  , NewLine <$ lexeme lexer (many1 endOfLine)
+  , Space <$ lexeme lexer (many1 (space <|> tab))
+  , EmptySep <$ lookAhead (anyChar)
   ]
-
 parseString = do
   start <- getPosition
   qstring <- quotedString
   end <- getPosition
-  return $ TaggedString "String" qstring (mkRange start end)
+  return $ TaggedString String (T.pack qstring) (mkRange start end)
   where
     quotedString :: Parsec String () String
     quotedString = do
@@ -180,7 +183,7 @@ parseVar = do
   start <- getPosition
   vstring <- (identifier <|> operator)
   end <- getPosition
-  return $ TaggedString "Var" vstring (mkRange start end)
+  return $ TaggedString Var (T.pack vstring) (mkRange start end)
 
 identifier = do
   c <- alphaNum <|> oneOf "_':*-&\\,."
@@ -197,4 +200,4 @@ parseMetadata = do
   char '^'
   meta <- identifier
   end <- getPosition
-  return $ TaggedString "Metadata" meta (mkRange start end)
+  return $ TaggedString Metadata (T.pack meta) (mkRange start end)

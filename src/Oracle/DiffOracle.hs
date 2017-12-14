@@ -26,8 +26,6 @@ type DelInsMap = (M.IntMap Path, M.IntMap Path)
 data DiffOracle = DiffOracle DelInsMap
   deriving (Show)
 
-data OldDiffOracle = OldDiffOracle [GroupDiffAction]
-
 buildDiffOracle :: String -> String -> Expr -> Expr -> DiffOracle
 buildDiffOracle s d src dst = DiffOracle diffActions
   where
@@ -60,12 +58,7 @@ invalidate diffActions ((ConflictAt pairs):rest) = invalidate (S.foldl invalidat
 invalidatePair :: DelInsMap -> (Int, Int) -> DelInsMap
 invalidatePair (srcMap, dstMap) (i,j) = (M.insert i M srcMap, M.insert j M dstMap)
 
-askOracle :: DiffOracle -> Usingl u -> Usingl v -> [Path]
-askOracle (DiffOracle diffActions) src dst = case (extractRange src, extractRange dst) of
-      (Nothing, Nothing)         -> [ M ]
-      (Just sRange, Nothing)     -> [ D ]
-      (Nothing, Just dRange)     -> [ I ]
-      (Just sRange, Just dRange) -> giveAdvice' diffActions src dst
+
 
 unionDelInsMap :: DelInsMap -> DelInsMap -> DelInsMap
 unionDelInsMap (s1, d1) (s2, d2) = (M.union s1 s2, M.union d1 d2)
@@ -84,36 +77,6 @@ insertRange (Range s e) o = go s M.empty
     go i m | i <= e    = go (i+1) (M.insert i o m)
            | otherwise = m
 
-giveAdvice :: [GroupDiffAction] -> Usingl u -> Usingl v -> [Path]
-giveAdvice [] src dst = [ M ]
-  where
-    dstRange = fromJust $ extractRange dst
-    srcRange = fromJust $ extractRange src
-giveAdvice ((OMod srcLr dstLr):os) src dst =
-  if src `inSync` srcLr && dst `inSync` dstLr then []
-  else if src `inSync` srcLr then
-    [ D ]
-  else if dst `inSync` dstLr then
-    [ I ]
-  else giveAdvice os src dst
-  where
-    dstRange = fromJust $ extractRange dst
-    srcRange = fromJust $ extractRange src
-
-giveAdvice ((OIns lr i):os) src dst =
-  if dst `inSync` lr
-  then [ I ]
-  else giveAdvice os src dst
-  where
-    dstRange = fromJust $ extractRange dst
-
-giveAdvice ((ODel lr i):os) src dst =
-  if src `inSync` lr
-  then [ D ]
-  else giveAdvice os src dst
-  where
-    srcRange = fromJust $ extractRange src
-
 giveAdvice' :: DelInsMap -> Usingl u -> Usingl v -> [Path]
 giveAdvice' (srcMap, dstMap) src dst =
   if (isMod srcRange srcMap && isMod dstRange dstMap)
@@ -126,7 +89,6 @@ giveAdvice' (srcMap, dstMap) src dst =
   where
     srcRange = fromJust $ extractRange src
     dstRange = fromJust $ extractRange dst
-
 
 isContainedIn :: LineRange -> LineRange -> Bool
 isContainedIn (Range s1 e1) (Range s2 e2) = s2 <= s1 && e1 <= e2
@@ -246,67 +208,23 @@ zipEqLen as         [] = error "src is longer"
 
 wrap :: SubTree -> Expr
 wrap (Exp e) = e
-wrap (Sel sel) = (Collection "Wrap" sel (extractRangeSepExprList sel))
-
-
-askOracle' :: OldDiffOracle -> Usingl u -> Usingl v -> [Path]
-askOracle' (OldDiffOracle diffActions) src dst = case (extractRange src, extractRange dst) of
-      (Nothing, Nothing)         -> [ M ]
-      (Just sRange, Nothing)     -> [ D ]
-      (Nothing, Just dRange)     -> [ I ]
-      (Just sRange, Just dRange) -> giveAdvice diffActions src dst
-
-instance (Monad m) => OracleF OldDiffOracle m where
-  callF o@(OldDiffOracle diffActions) s d = return $ askOracle' o s d
+wrap (Sel sel) = (Collection Parens sel (extractRangeSepExprList sel))
 
 instance (Monad m) => OracleF DiffOracle m where
   callF o@(DiffOracle diffActions) s d = return $ askOracle o s d
-    -- do
-    -- let guard = deOptimize copyMaps s d
-    -- let sRange = extractRange s
-    -- let dRange = extractRange d
-    -- if guard then do
-    --   traceM "Guard is true"
-    --   traceM ("src[" ++ show sRange ++ "]: " ++ show s)
-    --   traceM ("dst[" ++ show dRange ++ "]: " ++ show d)
-    --   return [S]
-    -- else do
-    --   let ans = askOracle o s d
-    --   return ans
-
-
-instance (Monad m) => OracleP OldDiffOracle m where
-  callP _ An         An         = do
-    -- traceM "empty"
-    return []
-  callP _ An         (_ `Ac` _) = do
-    -- traceM "I"
-    return [ I ]
-  callP _ (_ `Ac` _) An         = do
-    -- traceM "D"
-    return [ D ]
-  callP o@(OldDiffOracle diffActions) (s `Ac` _) (d `Ac` _) = return $ askOracle' o s d
 
 instance (Monad m) => OracleP DiffOracle m where
   callP _ An         An         = do
-    -- traceM "empty"
     return []
   callP _ An         (_ `Ac` _) = do
-    -- traceM "I"
     return [ I ]
   callP _ (_ `Ac` _) An         = do
-    -- traceM "D"
     return [ D ]
   callP o@(DiffOracle diffActions) (s `Ac` _) (d `Ac` _) = return $ askOracle o s d
-  --  do
-  --   let guard = deOptimize copyMaps s d
-  --   let sRange = extractRange s
-  --   let dRange = extractRange d
-  --   if guard then do
-  --     -- traceM "Guard is true"
-  --     -- traceM ("src[" ++ show sRange ++ "]: " ++ show s)
-  --     -- traceM ("dst[" ++ show dRange ++ "]: " ++ show d)
-  --     return [S]
-  --   else do
-  --     let ans = askOracle o s d
-  --     return ans
+
+askOracle :: DiffOracle -> Usingl u -> Usingl v -> [Path]
+askOracle (DiffOracle diffActions) src dst = case (extractRange src, extractRange dst) of
+      (Nothing, Nothing)         -> [ M ]
+      (Just sRange, Nothing)     -> [ D ]
+      (Nothing, Just dRange)     -> [ I ]
+      (Just sRange, Just dRange) -> giveAdvice' diffActions src dst
