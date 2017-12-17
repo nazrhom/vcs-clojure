@@ -93,7 +93,6 @@ processConflictFolder folder = do
   let diffOB = solveConflicts delInsOB cpOB o b
 
   let oracleOA = (DiffOracle diffOA) <°> NoDupBranches
-
   let oracleOB = (DiffOracle diffOB) <°> NoDupBranches
 
   let almuOA = computePatchesBounded oracleOA 25 5 o a

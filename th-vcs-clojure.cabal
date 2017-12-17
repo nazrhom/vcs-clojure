@@ -33,7 +33,6 @@ library
                      , VCS.Cost
                      , VCS.Disjoint
                      , VCS.Compatible
-                     , VCS.DiffPartial
                      , Util.PPPatch
                      , Util.DiffParser
                      , Util.UnixDiff

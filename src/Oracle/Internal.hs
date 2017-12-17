@@ -5,10 +5,12 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Oracle.Internal where
 
 import Control.Monad.Reader
+import Control.Monad.State
 import Control.Applicative
 import Data.List
 import Data.Type.Equality
@@ -26,30 +28,55 @@ data Path
 -- * The history is the list of all issued instructions.
 --   XXX: DO NOT CONFUSE WITH THE LIST OF POSSIBLE PATHS
 --        TO PURSUE
--- type History = [Path]
+type History = [Path]
 
 
-data History = History {
-    path :: [Path]
-  , cost :: Int
-  } deriving (Show)
+-- data History = History {
+--     path :: [Path]
+--   , cost :: Int
+--   } deriving (Show)
 
 initialHistory :: History
-initialHistory = History {
-    path = [I,M,D]
-  , cost = 0
-}
+initialHistory = [I,M,D]
+--   History {
+--     path = [I,M,D]
+--   , cost = 0
+-- }
+
+liftH :: (Monad m) => m a -> HistoryM m a
+liftH = HistoryM . (lift . lift)
 
 getCurrentCost :: (Monad m) => HistoryM m Int
-{-# INLINE getCurrentCost #-}
-getCurrentCost = do
-  h <- ask
-  return (cost h)
+getCurrentCost = get
+
+updateCost :: (Monad m) => Int -> HistoryM m Int
+updateCost i = do
+  c <- get
+  put (i + c)
+  return $ i+c
+
+guardCost :: (MonadPlus m) => Int -> Int -> HistoryM m a -> HistoryM m a
+guardCost incr maxCost k = do
+  c <- getCurrentCost
+  if c+incr <= maxCost
+  then do
+    updateCost incr
+    k
+  else empty
 -- * The Oracle will have access to it's previously issued history
 --   ON THE CURRENT BRANCH.
 --
-type HistoryM = ReaderT History
+newtype HistoryM m a = HistoryM {
+    runH :: ReaderT History (StateT Int m) a
+} deriving (Monad, MonadReader History, MonadState Int, Applicative, Functor, Alternative)
 
+-- instance MonadTrans (HistoryM m a) where
+--   lift =
+runHistory :: (Monad m) => History -> Int -> HistoryM m a -> m (a, Int)
+runHistory h i k = runStateT (runReaderT (runH k) h) i
+
+evalHistory :: (Monad m) => History -> Int -> HistoryM m a -> m a
+evalHistory h i k = evalStateT (runReaderT (runH k) h) i
 -- * Oracle for alignment
 class Oracle o m where
   callOP :: o -> All Usingl p1 -> All Usingl p2 -> HistoryM m [Path]
@@ -65,7 +92,7 @@ instance (OracleF o m, OracleP o m) => Oracle o m where
   callOP = callP
   callOF = callF
 
-type MonadOracle o m = (Alternative m, OracleP o m , OracleF o m)
+type MonadOracle o m = (MonadPlus m, OracleP o m , OracleF o m)
 
 data ComposeOracle a b = ComposeOracle a b
 data PickBest a b = PickBest a b
