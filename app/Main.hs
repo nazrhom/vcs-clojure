@@ -110,16 +110,30 @@ processConflictFolder folder = do
   -- putStrLn $ show almuOB
 
   let disj = disjoint almuOA almuOB
+  let sDisj = structurallyDisjoint almuOA almuOB
   let comp = compatible almuOA almuOB
+  let sComp = structurallyCompatible almuOA almuOB
 
   putStrLn $ show disj
+  putStrLn $ show sDisj
   putStrLn $ show comp
-  if disj
-    then exitSuccess
-    else exitWith (ExitFailure 1001)
+  putStrLn $ show sComp
+
+  let res = encode disj sDisj comp sComp
+  -- We encode the results in an binary number
+  exitWith (ExitFailure res)
   -- putStrLn $ "Patch O-A: " ++ show almuOA
   -- putStrLn $ "Patch O-B: " ++ show almuOB
 
+encode :: Bool -> Bool -> Bool -> Bool -> Int
+encode a b c d = 1 +
+    (convert a) * 2^3 +
+    (convert b) * 2^2 +
+    (convert c) * 2^1 +
+    (convert d) * 2^0
+  where
+  convert True  = 1
+  convert False = 0
 
 allTheSame :: (Eq a) => [a] -> Bool
 allTheSame xs = and $ map (== head xs) (tail xs)

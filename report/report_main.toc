@@ -11,23 +11,22 @@
 \contentsline {subsection}{\numberline {3.4}Recursive alignments}{17}{subsection.3.4}
 \contentsline {subsection}{\numberline {3.5}Putting everything together}{18}{subsection.3.5}
 \contentsline {subsection}{\numberline {3.6}Applying Patches}{19}{subsection.3.6}
-\contentsline {subsection}{\numberline {3.7}Disjointness}{21}{subsection.3.7}
-\contentsline {subsection}{\numberline {3.8}Visualization}{23}{subsection.3.8}
-\contentsline {subsection}{\numberline {3.9}Optimisation}{23}{subsection.3.9}
-\contentsline {section}{\numberline {4}Clojure}{24}{section.4}
-\contentsline {section}{\numberline {5}Heuristics}{26}{section.5}
-\contentsline {subsection}{\numberline {5.1}Basic Oracles}{27}{subsection.5.1}
-\contentsline {subsubsection}{\numberline {5.1.1}NoOracle}{28}{subsubsection.5.1.1}
-\contentsline {subsubsection}{\numberline {5.1.2}NoDupBranches}{28}{subsubsection.5.1.2}
-\contentsline {subsection}{\numberline {5.2}Oracle composition}{29}{subsection.5.2}
-\contentsline {subsection}{\numberline {5.3}DiffOracle}{30}{subsection.5.3}
-\contentsline {subsubsection}{\numberline {5.3.1}Shortcomings}{32}{subsubsection.5.3.1}
-\contentsline {subsubsection}{\numberline {5.3.2}Further Shortcomings}{34}{subsubsection.5.3.2}
-\contentsline {subsection}{\numberline {5.4}Cost}{37}{subsection.5.4}
-\contentsline {subsection}{\numberline {5.5}Bounded Search}{39}{subsection.5.5}
-\contentsline {section}{\numberline {6}Experimentation}{40}{section.6}
-\contentsline {subsection}{\numberline {6.1}Gathering Data}{40}{subsection.6.1}
-\contentsline {subsection}{\numberline {6.2}Domain specific improvements}{41}{subsection.6.2}
-\contentsline {subsection}{\numberline {6.3}Results}{42}{subsection.6.3}
-\contentsline {section}{\numberline {7}Conclusion}{42}{section.7}
-\contentsline {subsection}{\numberline {7.1}Related Work}{42}{subsection.7.1}
+\contentsline {subsection}{\numberline {3.7}Disjointedness}{21}{subsection.3.7}
+\contentsline {subsection}{\numberline {3.8}Visualization}{24}{subsection.3.8}
+\contentsline {subsection}{\numberline {3.9}Optimisation}{25}{subsection.3.9}
+\contentsline {section}{\numberline {4}Clojure}{26}{section.4}
+\contentsline {section}{\numberline {5}Heuristics}{27}{section.5}
+\contentsline {subsection}{\numberline {5.1}Basic Oracles}{28}{subsection.5.1}
+\contentsline {subsubsection}{\numberline {5.1.1}NoOracle}{29}{subsubsection.5.1.1}
+\contentsline {subsubsection}{\numberline {5.1.2}NoDupBranches}{30}{subsubsection.5.1.2}
+\contentsline {subsection}{\numberline {5.2}Oracle composition}{30}{subsection.5.2}
+\contentsline {subsection}{\numberline {5.3}DiffOracle}{31}{subsection.5.3}
+\contentsline {subsubsection}{\numberline {5.3.1}Shortcomings}{34}{subsubsection.5.3.1}
+\contentsline {subsubsection}{\numberline {5.3.2}Further Shortcomings}{36}{subsubsection.5.3.2}
+\contentsline {subsection}{\numberline {5.4}Cost}{38}{subsection.5.4}
+\contentsline {subsection}{\numberline {5.5}Bounded Search}{41}{subsection.5.5}
+\contentsline {section}{\numberline {6}Experimentation}{41}{section.6}
+\contentsline {subsection}{\numberline {6.1}Domain specific improvements}{41}{subsection.6.1}
+\contentsline {subsection}{\numberline {6.2}Results}{43}{subsection.6.2}
+\contentsline {section}{\numberline {7}Conclusion}{44}{section.7}
+\contentsline {subsection}{\numberline {7.1}Related Work}{44}{subsection.7.1}

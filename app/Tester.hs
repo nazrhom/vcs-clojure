@@ -10,6 +10,8 @@ import System.FilePath
 import Data.List
 import Data.List.Split
 import Data.Time.Clock
+import Data.Char
+import Numeric
 
 import Language.Clojure.AST
 import Language.Clojure.Parser
@@ -46,65 +48,104 @@ main = do
   dirs <- listDirectory testPath
   let dirsP = map (\d -> testPath ++ "/" ++ d) dirs
   actual_dirs <- filterM doesDirectoryExist dirsP
-  results <- mapM (flip withCurrentDirectory checkDisjointness) actual_dirs
+  results <- mapM (flip withCurrentDirectory checkPredicates) actual_dirs
   writeResults results
-  let successes = filter (\b -> snd b == Just True) results
-  let failures  = filter (\b -> snd b == Just False) results
-  let timeouts = filter  (\b -> snd b == Nothing) results
-  putStrLn $ "Succeded in " ++ show (length successes)
-  putStrLn $ "\nFailed in " ++ show (length failures)
-  putStrLn $ "\nWith " ++ show (length timeouts) ++  " timeouts "
+  let timeouts = filter isTimeout results
+  let completed = filter (\b -> not (isTimeout b)) results
 
-writeResults :: [(String, Maybe Bool)] -> IO ()
+  let disj_  = filter (\t -> disj t == True) completed
+      sDisj_ = filter (\t -> sDisj t == True) completed
+      comp_  = filter (\t -> comp t == True) completed
+      sComp_ = filter (\t -> sComp t == True) completed
+
+  putStrLn $ "Number of Timeouts " ++ show (length timeouts)
+
+  putStrLn $ "Disjoint: " ++ show (length disj_)
+  putStrLn $ "Structurally-Disjoint: " ++ show (length sDisj_)
+  putStrLn $ "Compatible: " ++ show (length comp_)
+  putStrLn $ "Structurally-Compatible: " ++ show (length sComp_)
+
+isTimeout :: TestResult -> Bool
+isTimeout (Timeout _) = True
+isTimeout _           = False
+
+writeResults :: [TestResult] -> IO ()
 writeResults res = do
   let splitRes = splitInFolders res
-  traceM (show $ length splitRes)
-  mapM_ writeTable splitRes
+  mapM_ writeTables splitRes
 
   where
     baseFolder s = head (splitPath s)
-    splitInFolders r = map (\xs -> (takeBaseName (fst (head xs)), xs))
-      (groupBy (\x y -> takeBaseName (fst x) == takeBaseName (fst y)) r)
-    takeBaseName path = intercalate "-" $ reverse $ drop 2 $ reverse $ splitOn "-" (last $ splitPath path)
 
-writeTable :: (FilePath, [(String, Maybe Bool)]) -> IO ()
-writeTable (path, t) = do
-  time <- getCurrentTime
-  writeFile (toConflictResultFolder path time) (mkTable t)
+simplifyName :: TestResult -> String
+simplifyName res = intercalate "-" $ reverse $ drop 2 $ reverse $ splitOn "-" (last $ splitPath (extractPath res))
+
+splitInFolders :: [TestResult] -> [(FilePath, [TestResult])]
+splitInFolders r = map (\xs ->
+    (simplifyName (head xs), xs)) groups
   where
-    toConflictResultFolder path name =
-      resultPath ++ path ++ "/" ++ show name ++ ".md"
+  groups = (groupBy
+    (\x y ->
+      simplifyName x == simplifyName y)
+    r)
+
+extractPath :: TestResult -> FilePath
+extractPath (Timeout a) = a
+extractPath tr          = tPath tr
+
+liftMaybe :: (TestResult -> Bool) -> TestResult -> Maybe Bool
+liftMaybe f (Timeout _) = Nothing
+liftMaybe f a           = Just $ f a
+
+writeTables :: (FilePath, [TestResult]) -> IO ()
+writeTables (path, result) = do
+  let rDisj = liftMaybe disj
+      rSDisj = liftMaybe sDisj
+      rComp = liftMaybe comp
+      rSComp = liftMaybe sComp
+
+  writeTableFor rDisj (toConflictResultFolder "Disj") result
+  writeTableFor rSDisj (toConflictResultFolder "Struct-Disj") result
+  writeTableFor rComp (toConflictResultFolder "Comp") result
+  writeTableFor rSComp (toConflictResultFolder "Struct-Comp") result
+  where
+  toConflictResultFolder name =
+    resultPath ++ path ++ "/" ++ name ++ ".md"
+
+writeTableFor :: (TestResult -> Maybe Bool)
+              -> FilePath -> [TestResult] -> IO ()
+writeTableFor f path result = do
+  writeFile path (mkTableFor f result)
 
 
-mkTable :: [(String, Maybe Bool)] -> String
-mkTable res = headers ++ "\n" ++ border ++ "\n" ++ values
+mkTableFor :: (TestResult -> Maybe Bool) -> [TestResult] -> String
+mkTableFor takeRes res = headers ++ "\n" ++ border ++ "\n" ++ values
   where
     headers = foldl addHeader "" res
     border  = foldl addBorder "" res
     values  = foldl addResults "" res
 
-    addHeader :: String -> (String, Maybe Bool) -> String
-    addHeader soFar (header,_)  =
-      soFar ++ "| " ++ extract header ++ " | "
+    addHeader :: String -> TestResult -> String
+    addHeader soFar r  =
+      soFar ++ "| " ++ simplify (extractPath r) ++ " | "
 
-    addBorder :: String -> (String, Maybe Bool) -> String
+    addBorder :: String -> TestResult -> String
     addBorder soFar x =
       soFar ++ "|" ++ replicate 13 '-' ++ "|"
 
-    addResults :: String -> (String, Maybe Bool) -> String
-    addResults soFar (_, result) =
-      soFar ++ "|" ++ replicate 6 ' ' ++ convert result
+    addResults :: String -> TestResult -> String
+    addResults soFar r =
+      soFar ++ "|" ++ replicate 6 ' ' ++ convert (takeRes r)
         ++ replicate 6 ' ' ++ "|"
     convert r = case r of
       Just True  -> "T"
       Just False -> "F"
       Nothing    -> "X"
 
-    extract :: FilePath -> String
-    extract h = intercalate "-" $ map (take 5) (drop (length split - 2) split)
+    simplify :: FilePath -> String
+    simplify h = intercalate "-" $ map (take 5) (drop (length split - 2) split)
       where
         split = splitOn "-" (last (splitPath h))
-
 
 runDiff :: IO Bool
 runDiff = do
@@ -121,8 +162,16 @@ runDiff = do
       putStrLn $ "Process terminated with exitcode " ++ show exitcode
       return True
 
-checkDisjointness :: IO (FilePath, Maybe Bool)
-checkDisjointness = do
+data TestResult = Timeout FilePath |
+  TestResult  { disj :: Bool
+              , sDisj :: Bool
+              , comp :: Bool
+              , sComp :: Bool
+              , tPath :: FilePath }
+  deriving (Show, Eq)
+
+checkPredicates :: IO TestResult
+checkPredicates = do
   cwd <- getCurrentDirectory
   putStrLn $ "Running in " ++ cwd
   ph <- spawnProcess executablePath ["-f", cwd ++ "/"]
@@ -131,9 +180,36 @@ checkDisjointness = do
     Nothing -> do
       terminateProcess ph
       putStrLn $ "Process Timed out"
-      return (cwd, Nothing)
-    Just (ExitFailure _) -> return $ (cwd, Just False)
-    Just exitSuccess     -> return $ (cwd, Just True)
+      return $ Timeout cwd
+    Just (ExitFailure c) -> return $ decode c cwd
+    Just _     -> error "Unexpected Exitcode"
+
+decode :: Int -> FilePath -> TestResult
+decode i p = TestResult {
+            disj=disj
+          , sDisj = sDisj
+          , comp = comp
+          , sComp = sComp
+          , tPath = p
+    }
+  where
+    int2b '1' = True
+    int2b '0' = False
+    int2b i = error $ "Can not decode " ++ show i
+
+    disj = int2b $ numbers !! 0
+    sDisj = int2b $ numbers !! 1
+    comp = int2b $ numbers !! 2
+    sComp = int2b $ numbers !! 3
+
+    numbers = conv2Bin (i - 1)
+
+conv2Bin :: Int -> String
+conv2Bin x = if length ans < 4
+    then reverse $ take 4 $ (reverse ans) ++ (repeat '0')
+    else ans
+  where
+  ans = Numeric.showIntAtBase 2 Data.Char.intToDigit x ""
 
 checkNoConflicy :: IO (Maybe Bool)
 checkNoConflicy = do

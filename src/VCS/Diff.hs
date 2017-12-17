@@ -55,8 +55,8 @@ diffS diffR costR orc maxCost s1 s2 =
               (maxCost)
               al)
 
-mapAlH :: (Alternative m, Monad m) =>
-           (forall a . at1 a -> HistoryM m (at2 a))
+mapAlH :: (Alternative m, Monad m)
+        => (forall a . at1 a -> HistoryM m (at2 a))
         -> (forall a . at2 a -> Int)
         -> Int
         -> Al at1 s d -> HistoryM m (Al at2 s d)

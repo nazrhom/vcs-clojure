@@ -125,7 +125,7 @@ active projects, available on Github, that will provide us a good sample of data
 \\
 The specification given by Miraldo et al. \cite{type-directed-diff} is completely non-deterministic. After presenting the algorithm for a type-directed diff, alongside its Haskell implementation, we will analyze the performance of the non-deterministic specification and conclude that it is still to slow for real-world data. 
 To solve this problem we will introduce different heuristics to guide the process of patch generation and analyze their performance and shortcomings.
-Finally we will introduce the notion of \emph{disjointness}, a predicate that attempts to capture the intuition that two patches that "touch different things" should be mergeable. We will use this predicate to run experiments on conflicts gathered from public repositories on Github and compare the amount of merge conflicts obtained by our approach compared to \diff3
+Finally we will introduce the notion of \emph{disjointedness}, a predicate that attempts to capture the intuition that two patches that "touch different things" should be mergeable. We will use this predicate to run experiments on conflicts gathered from public repositories on Github and compare the amount of merge conflicts obtained by our approach compared to \diff3
 
 \section{Background}\label{dependent-types-in-haskell}
 
@@ -875,66 +875,119 @@ matches the constructr we intend to delete and simply carry on if it does.
 finds and only calling the recursive application once it finds the corresponding 
 hole.
 
-\subsection{Disjointness}\label{disj}
-We can define a predicate to decide disjointness between patches. We want to define 
-this notion just for pair of patches that share the same source, as patches on completely different files are 
-incomparable to each other. 
-The idea that we want to capture with disjointness is that two disjoint patches should always 
-commute, this means that we can apply them in any order to the source and always get the same result.
+\subsection{Disjointedness}\label{disj}
+We can define a predicate to decide disjointedness between patches. We want to define this notion only for pair of patches that share the same source, as patches from completely different sources are incomparable to each other. 
+The idea that we want to capture with disjointedness is that two disjoint patches should always commute; this means that we can apply them in any order to the source and always get the same result.
 
-We can start by attempting to define what disjointness is on the recursive 
-level, since we want that any patch, other than the trivial one, to be disjoint 
-from itself we get that whenever we have a pair of \alins is never disjoint from 
-each other, and the same holds from \aldel
+We can start by attempting to define what disjointedness is on the recursive 
+level.  Disjointedness should model the fact that two patches are acting on different parts of the source. This suggests we want to impose the condition that any patch different from the trivial one, is disjoint from itself.  
+\\
+Following this line of though we can start by defining
 
-When matching and \alins something that is not another insertions, we extract 
-the focus from the context, and check if the focus is disjoint to whatever other 
-node we are considering. In other words, insertions are always allowed.
+\begin{minted}{haskell}
+disjointAlmu _ _ (Alins _ _) (Alins _ _) 
+  = False
+disjointAlmu _ _ (Aldel _ _) (Aldel _ _)
+  = False
+\end{minted}
 
-When we match an \aldel with an \alspn we 
-will inspect the spine contained in the \alspn.
-\begin{itemize}
-\item If it is an \scp then the two are trivially disjoint.
+When matching an \alins with anything else, we extract the focus from the context, and recursively call the disjointedness predicate on the focus and whatever the other argument is. In other words, insertions are always allowed.
 
-\item If it is an \scns then they are disjoint if the recursive changes within the \scns do not change the deleted context.
+\begin{minted}{haskell}
+disjointAlmu (Alins constr ctx) almu
+  = disjointFromCtxPos ctx almu
+disjointAlmu almu (Alins constr ctx)
+  = disjointFromCtxPos ctx almu
+\end{minted}
 
-\item If it is an \schg then they are not disjoint
+When we match an \aldel with an \alspn we will inspect the spine contained in the \alspn.
+\\
+If it is an \scp then the two are trivially disjoint.
 
-\end{itemize}
+\begin{minted}{haskell}
+disjointAlmu _ _ (Aldel c ctx) (Alspn Scp)
+  = True
+disjointAlmu _ _ (Alspn Scp) (Aldel c ctx)
+  = True
+\end{minted}
+
+If it is an \scns then they are disjoint if the recursive changes within the \scns do not change the deleted context and the focus of the context is disjoint from the corresponding changes in the \scns product.
+
+\begin{minted}{haskell}
+disjointAlmu  (Aldel c ctx) (Alspn (Scns c' ats))
+  = case testEquality c c' of
+      Just Refl -> disjointFromCtxNeg ctx ats
+      Nothing   -> False
+disjointAlmu (Alspn (Scns c' ats)) (Aldel c ctx)
+  = case testEquality c c' of
+      Just Refl -> disjointFromCtxNeg ctx ats
+      Nothing   -> False
+\end{minted}
+
+If it is an \schg then they are not disjoint.
 
 The only case left is when we have two \alspn. In this case we have to look at 
-the pair of spines to decide if they are disjoint. As before we can proceed by 
-enumerating all possible cases.
+the pair of spines to decide if they are disjoint. 
+As before, we can step through all the cases.
 
-\begin{itemize}
-\item \scp is disjoint from any other node. 
+\scp is disjoint from any other node. 
 
-\item A pair of \scns is disjoint if the constructor they fix is the same and if their 
+\begin{minted}{haskell}
+disjointS Scp s'
+  = True
+disjointS s'  Scp
+  = True
+\end{minted}
+
+A pair of \scns is disjoint if the constructor they fix is the same and if their 
 fields are pairwise disjoint.
 
-\item A pair of \schg is never disjoint.
-\end{itemize}
+\begin{minted}{haskell}
+disjointS (Scns c p) (Scns c' p')
+  = case testEquality c c' of
+          Just Refl -> disjAts p p'
+          Nothing   -> False
+\end{minted}                   
+
+A pair of \schg is never disjoint.
 
 
-Finally, when we have an \scns and a \schg they are disjoint if the constructor 
+Finally, when we have an \scns and a \schg, they are disjoint if the constructor 
 fixed by \scns is the constructor changed by \schg and if the fields of \scns 
-are disjoint from the alignment in \schg.
+are disjoint from the alignment in \schg. 
 
+\begin{minted}{haskell}
+disjointS disjointAt (Scns c p) (Schg i j p')
+ = case testEquality c i of
+         Just Refl -> disjAtAl p p'
+         Nothing   -> False
 
-This last notion of disjointness between the fields and the alignment is similar to the previous ones.
-Since we learned that the constructor of \scns and the source constructor of 
-\schg are the same we know that this alignment has as source exactly this list 
+disjointS disjointAt (Schg i j p') (Scns c p)
+ = case testEquality c i of
+         Just Refl -> disjAtAl p p'
+         Nothing   -> False
+\end{minted}
+
+The predicate \toHaskell{disjAtAl} follows the same pattern outlined up to this point.
+Since we learned that the constructor of \scns and the source constructor of \schg are the same we know that this alignment has as source exactly this list 
 of fields. We can step through the elements considering them in pairs. 
-If we the 
-alignment tries to insert something, we will simply recurse on the rest of the 
-alignment. 
-If we find an \adel we have to check that the patch on the corresponding field 
-is actually and identity patch. 
-Lastly, when the alignment contains an \amod we can check pair if the argument 
-of the \amod is disjoint from the field. 
-If the elements are recursive we will recurse on their arguments, in the case 
-where they are simple pairs, they will be disjoint if they both transform to the 
-same element.
+Insertions are always fine as long as the rest of the patches are disjoint.
+If we find an \adel we have to check that the patch on the field being deleted is actually and identity patch. 
+Lastly, when the alignment contains an \amod we can check if the argument of the \amod is disjoint from the field.
+\\
+To do so we need to introduce a function that tells us when two atoms are disjoint, the recursive case can be dealt with a function which will be taken as the first argument to close the recursive loop.
+Finally, two non-recursive atoms are disjoint if either one of them is the identity (represented by a pair containing the same element).
+
+\begin{minted}{haskell}
+disjointAt :: (IsRecEl a => rec1 a -> rec2 a -> Bool)
+           -> At rec1 a -> At rec2 a -> Bool
+disjointAt disjointR (Ai r) (Ai r') = disjointR r r'
+disjointAt disjointR (As p) (As p')
+  = old == new || old' == new'
+  where
+    (old, new) = unContract p
+    (old', new') = unContract p'
+\end{minted}
 
  
 
@@ -1513,7 +1566,7 @@ The cost of the context, as in the case for alignments, sums the cost of all the
 \subsection{Bounded Search}\label{bd-search}
 
 The last optimisation we are going to present is very simple but will allow us to gain just enough benefit to be able to handle the majority of our test data. 
-Bounded search is a widespread technique employed when we have an exponential number of solutions to a problem and a \emph{quality} function which assigns a value to any (possibly partial) solution. We can start the search process by enstablishing an upper bound to the quality of solutions we want to consider. 
+Bounded search is a widespread technique employed when we have an exponential number of solutions to a problem and a \emph{quality} function which assigns a value to any (possibly partial) solution. We can start the search process by establishing an upper bound to the quality of solutions we want to consider. 
 \\
 As we move through the solution space we want to keep track of the current quality of the solution, and prune every branch that exceeds the imposed bound. 
 This process is not guaranteed to generate a solution, the upper bound to the solution quality might be too low. For this reason, bounded search implementations usually have some strategy to restart the search in such cases, increasing the bound by a suitable amount. On the other hand, if the bounded search terminates, we know that the optimal solution (where optimal means minimal according to the quality function) must be in the produced results.
@@ -1528,7 +1581,33 @@ We will thread the current cost across the computation at each alignment step (r
 
 \section{Experimentation}
 
-\subsection{Gathering Data}
+\subsection{Domain specific improvements}
+
+Before presenting the results we want to introduce a relaxation of the definition of disjointedness. Many of the conflicts appearing in the collected test data share a common pattern. These are conflicts that arise from the equivalent of configuration files, which in Clojure are often expressed in the language itself via the \toClojure{defproject} macro.
+\\
+For example:
+
+\begin{minted}{clj}
+(defproject project-name "1.2.3"
+  :description "The description of the project"
+  :dependencies [[dependency-1 "0.0.1"]
+     [dependency-2 "1.1.0"]]
+  :dev-dependencies [[dev-dependency-1 "1.5.1"]])
+\end{minted}
+
+It is very common for these files to give rise to conflicts due to modifications in the required version of the different dependencies by commits which are either merged into or rebased on top of the development branch. 
+\\
+We can define two patches to be structurally-disjoint if they only differ on non-recursive atoms. Given a pair of structurally disjoint patches we can employ some domain specific merging strategies which may automate or drastically reduce the user effort required to perform the merge. In a case like the one described above, most of the conflicts are resolved by picking the highest version number every time there is a conflict consisting of a choice between two strings encoding version numbers. Nowadays, most projects adhere to SEMVER \cite{semver} which defines a standard total-ordering for strings representing versions which partially encode the semantics of the change. 
+\\
+This suggests that conflicts arising from structurally-disjoint patches can often be automatically via some user-defined partial ordering between the atoms of the language. For the case of SEMVER specifically we could imagine encoding different specific resolution strategies e.g. we could decide to automatically resolve conflicts between patch and minor version changes and still notify the user when there is a conflict on a major version change.
+\\
+\\
+There is another relaxation of the disjointedness predicate which we may consider. The current definition of disjointedness imposes that every patch $p$, that is different from the trivial patch \scp, is not disjoint from itself. We can attempt to relax the definition from disjointedness to compatibility: two compatible patches may modify the same elements, as long as they do so in the same way. It is easy to see that every patch is compatible with itself.
+\\
+Because of the current practices in how branches and the development process is managed, it is not so rare that we may need to merge a pair of patches which both contain the same changes. These common changes can come from cherry-picking another commit, rebasing, merging or any similar operation. Compatible patches can still not be applied in commuting order with the same result unless we relax the definition of application as well. However, it is easy to see that given two patches from the same source, and a proof that they are compatible, we can produce a single patch which encompasses the same changes and is independent of the order in which the two patches are supplied to the function. To put it another way: two patches are compatible if we can combine the into one without throwing away any information and the function that combines them is commutative in its arguments.
+Clearly disjointedness implies compatibility by picking the merging function to be the application we defined earlier.
+
+\subsection{Results}
 In order to test the framework in a real world context we need to find some suitable data. To acquire this we explored all the Clojure repositories on Github and extracted the ones with the best combination of stars and collaborators. A high number of collaborators will possibly imply a higher chance for conflicts in the source tree, the high number of stars is a good indicator of the quality of the Clojure code and hopefully provides a selection of repository from different domains.
 \\
 What we need is a way to identify merge points in a projects history; we also want to know how \diffthree performed in those merges, in essence: we want to find all merge points and record if the merge was performed automatically or a conflict had to be manually fixed.
@@ -1557,57 +1636,32 @@ Conflicts were mined from the following repositories
     \item ring
  \end{itemize}
 
-\subsection{Domain specific improvements}
-
-Before presenting the results we want to introduce a relaxation of the definition of disjointness. Many of the conflicts appearing in the collected test data share a common pattern. These are conflicts that arise from the equivalent of configuration files, which in Clojure are often expressed in the language itself via the \toClojure{defproject} macro.
+The following table shows the results of running the tests for disjointedness and compatibility, both in the full and the structurally-respecting variations. 
 \\
-For example:
-
-\begin{minted}{clj}
-(defproject project-name "1.2.3"
-  :description "The description of the project"
-  :dependencies [[dependency-1 "0.0.1"]
-     [dependency-2 "1.1.0"]]
-  :dev-dependencies [[dev-dependency-1 "1.5.1"]])
-\end{minted}
-
-It is very common for these files to give rise to conflicts due to modifications in the required version of the different dependencies by commits which are either merged into or rebased on top of the development branch. 
-
-We can define two patches to be structurally-disjoint if they only differ on non-recursive atoms. Given a pair of structurally disjoint patches we can employ some domain specific merging strategies which may automate or drastically reduce the user effort required to perform the merge. In a case like the one described above, most of the conflicts are resolved by picking the highest version number every time there is a conflict consisting of a choice between two strings encoding version numbers. Nowadays, most projects adhere to SEMVER \cite{semver} which defines a standard total-ordering for strings representing versions which partially encode the semantics of the change. 
-\\
-This suggests that conflicts arising from structurally-disjoint patches can often be automatically via some user-defined partial ordering between the atoms of the language. For the case of SEMVER specifically we could imagine encoding different specific resolution strategies e.g. we could decide to automatically resolve conflicts between patch and minor version changes and still notify the user when there is a conflict on a major version change.
-
-\subsection{Results}
-Running the test gives the following results.
-
 \begin{center}
  \begin{tabular} { ||c|c|c|c|| }
-   \hline Disjoint & Not Disjoint & Timeout & Query \\
+   \hline Predicate & True & False  \\
    \hline
-   \hline 32 & 84 & 18 & Disjoint \\
-   \hline 97 & 19 & 18 & Structurally-Disjoint \\
+   \hline Disjoint & 32 & 84 \\
+   \hline Structurally-Disjoint & 0 & 0 \\
+   \hline Compatible & 0 & 0 \\
+   \hline Structurally-Compatible & 97 & 19 \\
    \hline
  \end{tabular}
 \end{center}
+
+[Some discussion of specific numbers?]
 \section{Conclusion}
 
-STRUCTURALLY COMPATIBLE 
-Succeded in 97
-Failed in 19
-With 18 timeouts
-
-DISJOINTNESS
-Succeded in 32
-Failed in 84
-With 18 timeouts
 
 \subsection{Related Work}\label{rel-work}
 In this thesis we focus on converting the theoretical approach presented in \cite{type-directed-diff} into a practical implementation that can be tested against real-world data. Previous attempts to tackle this problems varied in the approach taken. 
-Untyped approaches have been extensively studied, some authors focused on the linear \cite{diff, bergroth} variation, while others attempted to tackle the problem on trees \cite{Akutsu, klein,demanie, billie, autexier, chawalthe}. 
+Untyped approaches have been extensively studied: with authors focusing both on the linear \cite{diff, bergroth} and the tree \cite{Akutsu, klein,demanie, billie, autexier, chawalthe} variation. 
 \\
-Other authors have explored the typed approach in recent years \ref{Vassena, Loh} but restricted their attention to the linear variation. 
+In recent years other authors explored the typed approach \ref{Vassena, Loh} in a generic setting. However they restricted their attention to the linear variation, by considering a flattening of the tree consisting in a pre-order traversal. This flattening however, makes it harder to guarantee that the transformation encoded in a patch is structurally preserving.
 \\
-Several pieces of related work exist in the literature: from VCS systems built on strong theoretical foundations like Darcs and Pijul, respectively based on work by Roundy \cite{darcs} and Mimram \cite{cat-of-patches}. 
+Several pieces of related work exist in the literature: from VCS systems built on strong theoretical foundations like Darcs and Pijul, respectively based on work by Roundy \cite{darcs} and Mimram \cite{cat-of-patches}. In our experimentation we have used Git to extract the information required for a merge (e.g. picking the common ancestor between two files). It is interesting to note how O'Connor \cite{git-inconsitent} and other authors point out how the strategy adopted by Git for merges is inherently inconsistent and can lead to some surprising outcomes compared to other VCS.
+\\
 Finally, Swierstra et al. \cite{swie-loh} showed how separation logic and Hoare calculus can be used to reason about patches, in particular in terms of characterizing the relationship between patches.
 %Questions
 %
@@ -1655,6 +1709,8 @@ Hickey, Rich. "The clojure programming language." Proceedings of the 2008 sympos
 \bibitem{treant} http://fperucic.github.io/treant-js/
 
 \bibitem{semver} https://semver.org/
+
+\bibitem{darcs} Roundy, David. "Darcs: distributed version management in haskell." Proceedings of the 2005 ACM SIGPLAN workshop on Haskell. ACM, 2005.
 
 \end{thebibliography}
 \end{document}  
