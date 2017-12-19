@@ -6,10 +6,7 @@ import System.IO
 import System.Exit
 import Options.Applicative
 import Data.Monoid
-import Data.List (sortBy)
-import Data.Ord (comparing)
-import Data.Maybe
-import Data.Proxy
+import Data.Proxy()
 import Data.Aeson.Encode.Pretty
 import qualified Data.ByteString.Lazy as B
 
@@ -17,27 +14,22 @@ import Debug.Trace
 
 import Language.Clojure.Parser
 import Language.Clojure.Lang
-import Language.Clojure.PrettyPrint
-import Language.Clojure.AST
 
 import VCS.Diff
-import VCS.Apply
 import VCS.Multirec
 import VCS.Cost
 import VCS.Disjoint
 import VCS.Compatible
 
-import Util.PPPatch
-import Util.ToJSON
-import Util.Treeview
+import Util.ToJSON()
 import Util.UnixDiff
 
 import Oracle.Oracle
 
 main :: IO ()
 main = do
-  opts <- execParser optsHelper
-  case opts of
+  op <- execParser optsHelper
+  case op of
     Conflict f -> processConflictFolder f
     Patch s d j _ -> patchFiles s d j
 
@@ -57,8 +49,8 @@ patchFiles srcFile dstFile jsonOut = do
   d <- readFile dstFile
   dst <- parseFile dstFile d
 
-  putStrLn $ show src
-  putStrLn $ show dst
+  -- putStrLn $ show src
+  -- putStrLn $ show dst
   let diff3 = preprocessGrouped s d
       delInsMap = buildDelInsMap diff3
       diff3_plain = preprocess s d
@@ -73,7 +65,7 @@ patchFiles srcFile dstFile jsonOut = do
 
   -- putStrLn $ show $ gdiff
 
-  putStrLn $ show $ gdiff
+  -- putStrLn $ show $ gdiff
   case (jsonOut) of
     Nothing -> return ()
     Just path -> do
@@ -139,7 +131,7 @@ allTheSame :: (Eq a) => [a] -> Bool
 allTheSame xs = and $ map (== head xs) (tail xs)
 
 choose' :: Almu u v -> Int -> [Almu u v] -> Almu u v
-choose' curr c [] = curr
+choose' curr _ [] = curr
 choose' curr c (p:ps)
   | c <= costAlmu p = choose' curr c ps
   | otherwise       = choose' p (costAlmu p) ps
@@ -157,14 +149,14 @@ computePatchBounded :: (MonadOracle o []) =>
 computePatchBounded o start incr r x y = case almus of
     [] ->
       trace ("empty" ++ show start) recur
-    some ->
-      if anyBounded start some
-      then trace ("found " ++ show (length some)) (choose some)
-      else trace ("greater" ++ (show $ length some)) recur
+    some_ ->
+      if anyBounded start some_
+      then trace ("found " ++ show (length some_)) (choose some_)
+      else trace ("greater" ++ (show $ length some_)) recur
   where
     anyBounded :: Int -> [Almu u v] -> Bool
-    anyBounded i [] = False
-    anyBounded i (x:xs) = if costAlmu x <= i then True else anyBounded i xs
+    anyBounded _ [] = False
+    anyBounded i (a:as) = if costAlmu a <= i then True else anyBounded i as
 
     almus = diffAlmu o start (toSing x) (toSing y)
     recur = computePatchBounded o (start+(incr*r)) incr (r+1) x y

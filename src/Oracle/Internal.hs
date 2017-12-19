@@ -41,6 +41,7 @@ initialHistory = History {
 }
 
 getCurrentCost :: (Monad m) => HistoryM m Int
+{-# INLINE getCurrentCost #-}
 getCurrentCost = do
   h <- ask
   return (cost h)

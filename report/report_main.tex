@@ -1630,21 +1630,23 @@ Conflicts were mined from the following repositories
  \begin{itemize}
     \item clj-http
     \item incanter
-    \item lein-figwheen
+    \item lein-figwheel
     \item leiningen
     \item riemann
     \item ring
  \end{itemize}
 
 The following table shows the results of running the tests for disjointedness and compatibility, both in the full and the structurally-respecting variations. 
+
+18 timeout
 \\
 \begin{center}
  \begin{tabular} { ||c|c|c|c|| }
    \hline Predicate & True & False  \\
    \hline
    \hline Disjoint & 32 & 84 \\
-   \hline Structurally-Disjoint & 0 & 0 \\
-   \hline Compatible & 0 & 0 \\
+   \hline Structurally-Disjoint & 88 & 0 \\
+   \hline Compatible & 42 & 0 \\
    \hline Structurally-Compatible & 97 & 19 \\
    \hline
  \end{tabular}

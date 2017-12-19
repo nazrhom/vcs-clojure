@@ -10,6 +10,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE BangPatterns #-}
 
 
 module VCS.Multirec where
@@ -33,25 +34,25 @@ import Language.Clojure.Lang
 
 data Spine (at :: U -> *)(al :: [U] -> [U] -> *) :: U -> * where
   Scp  :: Spine at al u
-  Scns :: ConstrFor u s -> All at (TypeOf s) -> Spine at al u
+  Scns :: ConstrFor u s -> !(All at (TypeOf s)) -> Spine at al u
   Schg :: ConstrFor u s -> ConstrFor u r
-       -> al (TypeOf s) (TypeOf r)
+       -> !(al (TypeOf s) (TypeOf r))
        -> Spine at al u
 
 data Al (at :: U -> *) :: [U] -> [U] -> * where
   A0   :: Al at '[] '[]
-  Ains :: Usingl u -> Al at xs ys -> Al at xs (u ': ys)
-  Adel :: Usingl u -> Al at xs ys -> Al at (u ': xs) ys
-  Amod :: at u -> Al at xs ys -> Al at (u ': xs) (u ': ys)
+  Ains :: Usingl u -> !(Al at xs ys) -> Al at xs (u ': ys)
+  Adel :: Usingl u -> !(Al at xs ys) -> Al at (u ': xs) ys
+  Amod :: at u -> !(Al at xs ys) -> Al at (u ': xs) (u ': ys)
 
 data At (recP :: U -> *) :: U -> * where
-  Ai :: (IsRecEl u) => recP u -> At recP u
+  Ai :: (IsRecEl u) => !(recP u) -> At recP u
   As :: TrivialA u -> At recP u
 
 data Almu :: U -> U -> * where
-  Alspn :: Spine (At AlmuH) (Al (At AlmuH)) u -> Almu u u
-  Alins :: ConstrFor v s -> Ctx (AtmuPos u) (TypeOf s) -> Almu u v
-  Aldel :: ConstrFor u s -> Ctx (AtmuNeg v) (TypeOf s) -> Almu u v
+  Alspn :: !(Spine (At AlmuH) (Al (At AlmuH)) u) -> Almu u u
+  Alins :: ConstrFor v s -> !(Ctx (AtmuPos u) (TypeOf s)) -> Almu u v
+  Aldel :: ConstrFor u s -> !(Ctx (AtmuNeg v) (TypeOf s)) -> Almu u v
 
 data PartialAlmu :: U -> U -> * where
   TSpn :: Spine (At (AlmuP)) (Al (At (AlmuP))) u
@@ -66,7 +67,7 @@ data AlmuP :: U -> * where
   AlmuF :: f (PartialAlmu u u) -> AlmuP u
 
 data AlmuH :: U -> * where
-  AlmuH :: Almu u u -> AlmuH u
+  AlmuH :: !(Almu u u) -> AlmuH u
   deriving (Show, Generic)
 
 unH :: AlmuH u -> Almu u u
@@ -80,22 +81,22 @@ data PartialNeg (v :: U) :: U -> * where
 
 -- Atmu positive and negative variations
 data AtmuPos (v :: U) :: U -> * where
-  FixPos :: Almu v u -> AtmuPos v u
+  FixPos :: !(Almu v u) -> AtmuPos v u
   deriving (Show, Generic)
 
 unPos :: AtmuPos v u -> Almu v u
 unPos (FixPos p) = p
 
 data AtmuNeg (v :: U) :: U -> * where
-  FixNeg :: Almu u v -> AtmuNeg v u
+  FixNeg :: !(Almu u v) -> AtmuNeg v u
   deriving (Show, Generic)
 
 unNeg :: AtmuNeg u v -> Almu v u
 unNeg (FixNeg n) = n
 
 data Ctx (r :: U -> *) :: [U] -> * where
-  Here :: (IsRecEl u) => r u -> All Usingl l  -> Ctx r (u ': l)
-  There :: Usingl u -> Ctx r l -> Ctx r (u ': l)
+  Here :: (IsRecEl u) => r u -> !(All Usingl l)  -> Ctx r (u ': l)
+  There :: Usingl u -> !(Ctx r l) -> Ctx r (u ': l)
 
 
 -- Library stuff

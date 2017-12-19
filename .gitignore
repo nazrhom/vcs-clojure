@@ -42,3 +42,7 @@ report/*.gz
 report/*.blg
 report/*.out
 report/old/*
+
+#Visualiser
+Visualiser/patch.json
+Visualiser/main.js
