@@ -82,6 +82,7 @@ executable th-vcs-clojure-tester
                      , filepath
                      , split
                      , time
+                     , optparse-applicative >= 0.13.0.0
   default-language:    Haskell2010
 
 test-suite th-vcs-clojure-test

@@ -5,6 +5,8 @@ import System.Process
 import System.Directory
 import System.Exit
 import Control.Monad
+import Options.Applicative
+import Data.Monoid
 import System.Timeout
 import System.FilePath
 import Data.List
@@ -45,11 +47,14 @@ minutesToMicro i = i * (6 * 10 ^ 7)
 
 main :: IO ()
 main = do
+  opts <- execParser optsHelper
+
   dirs <- listDirectory testPath
   let dirsP = map (\d -> testPath ++ "/" ++ d) dirs
   actual_dirs <- filterM doesDirectoryExist dirsP
   results <- mapM (flip withCurrentDirectory checkPredicates) actual_dirs
-  writeResults results
+
+  when (not (dry opts)) (writeResults results)
   let timeouts = filter isTimeout results
   let completed = filter (\b -> not (isTimeout b)) results
 
@@ -239,3 +244,21 @@ parseFile :: String -> String -> IO Expr
 parseFile name src = case parse parseTop name src of
   Left err -> error $ show err
   Right s' -> return s'
+
+
+
+data Opts = Opts {
+  dry :: Bool
+}
+
+opts :: Parser Opts
+opts = Opts <$> switch
+    ( long "dry"
+    <> short 'd'
+    <> help "Dry run")
+
+optsHelper :: ParserInfo Opts
+optsHelper = info (helper <*> opts)
+  ( fullDesc
+  <> progDesc "Clojure parser in Haskell"
+  )

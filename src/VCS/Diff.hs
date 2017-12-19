@@ -31,16 +31,17 @@ diffAt :: (MonadOracle o m) => forall rec . DiffAlMu o m rec
 diffAt diffR orc maxCost x =
   onRecursiveGuy
     (\y -> Ai <$> (diffR orc maxCost x y))
-    (\ny -> return $ As (Contract (x, ny)))
+    (\ny -> do
+      cost <- getCurrentCost
+      let costC = costK (Contract (x, ny))
+      guardCost costC maxCost (return $ As (Contract (x, ny))))
 
 diffS :: (IsRecEl a, MonadOracle o m) => forall rec . DiffAlMu o m rec
       -> (forall a . rec a -> Int)
       -> o -> Int -> Usingl a -> Usingl a -> HistoryM m (Spine (At rec) (Al (At rec)) a)
 diffS diffR costR orc maxCost s1 s2 =
-  mapSpineH (uncurry (diffAt diffR orc maxCost) . unContract)
+  mapSpineM (uncurry (diffAt diffR orc maxCost) . unContract)
             (uncurryPair $ alignP diffR costR orc maxCost)
-            (costAt costR)
-            (maxCost)
             (spine s1 s2)
   where
     alignP :: (MonadOracle o m)
@@ -50,54 +51,8 @@ diffS diffR costR orc maxCost s1 s2 =
     alignP diffR costR orc maxCost p1 p2 = do
       cost <- getCurrentCost
       (al, cost) <- liftH $ align orc maxCost cost p1 p2
-      -- updateCost cost
-      (mapAlH (uncurry (diffAt diffR orc maxCost) . unContract)
-              (costAt costR)
-              (maxCost)
-              al)
-
-mapAlH :: (MonadPlus m)
-        => (forall a . at1 a -> HistoryM m (at2 a))
-        -> (forall a . at2 a -> Int)
-        -> Int
-        -> Al at1 s d -> HistoryM m (Al at2 s d)
-mapAlH f costAt maxCost A0           = return A0
-mapAlH f costAt maxCost (Adel at al) = do
-  cost <- getCurrentCost
-  let costA = costUsingl at
-  guardCost costA maxCost (Adel at <$> mapAlH f costAt maxCost al)
-
-mapAlH f costAt maxCost (Ains at al) = do
-  cost <- getCurrentCost
-  let costA = costUsingl at
-  guardCost costA maxCost (Ains at <$> mapAlH f costAt maxCost al)
-
-mapAlH f costAt maxCost (Amod at al) = do
-  cost <- getCurrentCost
-  at' <- f at
-  let costat = costAt at'
-  guardCost costat maxCost (Amod <$> pure at' <*> mapAlH f costAt maxCost al)
-
-mapSpineH :: (MonadPlus m) => (forall a . at1 a -> HistoryM m (at2 a))
-     -> (forall s d . al1 s d -> HistoryM m (al2 s d))
-     -> (forall a . at2 a -> Int)
-     -> Int
-     -> Spine at1 al1 u -> HistoryM m (Spine at2 al2 u)
-mapSpineH f g  _      _       Scp
-  = return Scp
-mapSpineH f g costAt maxCost (Scns c ps)
-  = Scns c <$> mapAllH f costAt maxCost ps
-mapSpineH f g costAt _       (Schg c1 c2 al)
-  = Schg c1 c2 <$> g al
-
-mapAllH :: (MonadPlus m) => (forall a . p a -> HistoryM m (q a))
-        -> (forall a . q a -> Int)
-        -> Int -> All p xs -> HistoryM m (All q xs)
-mapAllH f _  _ An = return An
-mapAllH f costAt maxCost (px `Ac` pxs) = do
-  k <- f px
-  let costPx = costAt k
-  guardCost costPx maxCost (Ac <$> pure k <*> mapAllH f costAt maxCost pxs)
+      updateCost cost
+      (mapAlM (uncurry (diffAt diffR orc maxCost) . unContract) al)
 
 costPair :: Usingl u -> Usingl u -> Int
 costPair x y = onRecursiveGuy (const 0) (\nr -> costK (Contract (x,nr))) y
@@ -241,8 +196,8 @@ followPath M orc maxCost x y = alignMod orc maxCost x y
 liftPath :: ([Path] -> [Path]) -> History -> History
 liftPath f = liftHistory (f,id)
 
-liftCost :: (Int -> Int) -> History -> History
-liftCost f = liftHistory (id,f)
+-- liftCost :: (Int -> Int) -> History -> History
+-- liftCost f = liftHistory (id,f)
 
 liftHistory :: (([Path] -> [Path], Int -> Int)) -> History -> History
 liftHistory (fp, fc) h = fp h
@@ -250,23 +205,29 @@ liftHistory (fp, fc) h = fp h
 alignIns :: (MonadOracle o m)
            => o -> Int -> All Usingl p1 -> All Usingl p2
            -> HistoryM m (Al TrivialA p1 p2)
-alignIns orc maxCost p1 (a `Ac` p) =
-  Ains a <$> local (I:) (alignO orc maxCost p1 p)
+alignIns orc maxCost p1 (a `Ac` p) = do
+  cost <- getCurrentCost
+  let costA = costUsingl a
+  guardCost costA maxCost (Ains a <$> local (I:) (alignO orc maxCost p1 p))
 
 alignDel :: (MonadOracle o m)
            => o -> Int -> All Usingl p1 -> All Usingl p2
            -> HistoryM m (Al TrivialA p1 p2)
-alignDel orc maxCost (a `Ac` p) p2 =
-  Adel a <$> local (D:) (alignO orc maxCost p p2)
+alignDel orc maxCost (a `Ac` p) p2 = do
+  cost <- getCurrentCost
+  let costA = costUsingl a
+  guardCost costA maxCost (Adel a <$> local (D:) (alignO orc maxCost p p2))
 
 alignMod :: (MonadOracle o m)
            => o -> Int -> All Usingl p1 -> All Usingl p2
            -> HistoryM m (Al TrivialA p1 p2)
 alignMod orc maxCost (a1 `Ac` p1) (a2 `Ac` p2) =
   case testEquality a1 a2 of
-    Just Refl -> Amod (Contract (a1, a2)) <$> local (M:) (alignO orc maxCost p1 p2)
+    Just Refl -> do
+      cost <- getCurrentCost
+      let costP = costPair a1 a2
+      guardCost costP maxCost (Amod (Contract (a1, a2)) <$> local (M:) (alignO orc maxCost p1 p2))
     Nothing -> empty
-
 
 
 --- Utility
