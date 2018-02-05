@@ -6,11 +6,12 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Oracle.Internal where
 
 import Control.Monad.Reader
-import Control.Monad.State
+import Control.Monad.State.Strict
 import Control.Applicative
 import Data.List
 import Data.Type.Equality
@@ -44,25 +45,20 @@ initialHistory = [I,M,D]
 -- }
 
 liftH :: (Monad m) => m a -> HistoryM m a
+{-# INLINE liftH #-}
 liftH = HistoryM . (lift . lift)
 
 getCurrentCost :: (Monad m) => HistoryM m Int
+{-# INLINE getCurrentCost #-}
 getCurrentCost = get
 
 updateCost :: (Monad m) => Int -> HistoryM m Int
+{-# INLINE updateCost #-}
 updateCost i = do
   c <- get
   put (i + c)
   return $ i+c
 
-guardCost :: (MonadPlus m) => Int -> Int -> HistoryM m a -> HistoryM m a
-guardCost incr maxCost k = do
-  c <- getCurrentCost
-  if c+incr <= maxCost
-  then do
-    updateCost incr
-    k
-  else empty
 -- * The Oracle will have access to it's previously issued history
 --   ON THE CURRENT BRANCH.
 --
@@ -70,8 +66,6 @@ newtype HistoryM m a = HistoryM {
     runH :: ReaderT History (StateT Int m) a
 } deriving (Monad, MonadReader History, MonadState Int, Applicative, Functor, Alternative)
 
--- instance MonadTrans (HistoryM m a) where
---   lift =
 runHistory :: (Monad m) => History -> Int -> HistoryM m a -> m (a, Int)
 runHistory h i k = runStateT (runReaderT (runH k) h) i
 

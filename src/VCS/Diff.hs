@@ -4,6 +4,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE BangPatterns #-}
 module VCS.Diff where
 
 import Control.Applicative
@@ -28,13 +29,15 @@ type DiffAlMu o m rec
 
 diffAt :: (MonadOracle o m) => forall rec . DiffAlMu o m rec
        -> o -> Int -> Usingl a -> Usingl a -> HistoryM m (At rec a)
-diffAt diffR orc maxCost x =
+diffAt diffR orc maxCost x y = do
+  cost <- getCurrentCost
+  let costP = costPair x y
+  guard (cost+costP <= maxCost)
+  updateCost costP
   onRecursiveGuy
     (\y -> Ai <$> (diffR orc maxCost x y))
-    (\ny -> do
-      cost <- getCurrentCost
-      let costC = costK (Contract (x, ny))
-      guardCost costC maxCost (return $ As (Contract (x, ny))))
+    (\ny -> return $ As (Contract (x, ny)))
+    y
 
 diffS :: (IsRecEl a, MonadOracle o m) => forall rec . DiffAlMu o m rec
       -> (forall a . rec a -> Int)
@@ -50,8 +53,8 @@ diffS diffR costR orc maxCost s1 s2 =
            -> o -> Int -> All Usingl s -> All Usingl d -> HistoryM m (Al (At rec) s d)
     alignP diffR costR orc maxCost p1 p2 = do
       cost <- getCurrentCost
-      (al, cost) <- liftH $ align orc maxCost cost p1 p2
-      updateCost cost
+      (al, cost') <- liftH $ align orc maxCost cost p1 p2
+      updateCost (cost' - cost)
       (mapAlM (uncurry (diffAt diffR orc maxCost) . unContract) al)
 
 costPair :: Usingl u -> Usingl u -> Int
@@ -79,8 +82,11 @@ diffInsCtx orc maxCost x (y `Ac` ay)
            => o -> Int -> Usingl v -> All Usingl p -> Usingl u
            -> HistoryM m (Ctx (AtmuPos v) (u ': p))
     nonrec orc maxCost x ys y = do
+      cost <- getCurrentCost
       let next = costUsingl y
-      guardCost next maxCost (There y <$> (diffInsCtx orc maxCost x ys))
+      guard (cost+next <= maxCost)
+      updateCost next
+      There y <$> (diffInsCtx orc maxCost x ys)
 
 diffDelCtx :: (IsRecEl v, MonadOracle o m)
            => o -> Int -> All Usingl p -> Usingl v -> HistoryM m (Ctx (AtmuNeg v) p)
@@ -104,8 +110,11 @@ diffDelCtx orc maxCost (y `Ac` ay) x
            => o -> Int -> Usingl v -> All Usingl p -> Usingl u
            -> HistoryM m (Ctx (AtmuNeg v) (u ': p))
     nonrec orc maxCost x ys y = do
+      cost <- getCurrentCost
       let next = costUsingl y
-      guardCost next maxCost (There y <$> (diffDelCtx orc maxCost ys x))
+      guard (cost+next <= maxCost)
+      updateCost next
+      There y <$> (diffDelCtx orc maxCost ys x)
 
 diffAlmu :: (IsRecEl u, IsRecEl v, MonadOracle o m)
          => o -> Int -> Usingl u -> Usingl v -> m (Almu u v)
@@ -129,9 +138,9 @@ diffAlmuO o maxCost x y = callF o x y >>= pursue o maxCost x y
 
 diffMod :: (IsRecEl u, IsRecEl v, MonadOracle o m)
         => o -> Int -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
-diffMod orc maxCost s1 s2 = case testEquality s1 s2 of
-  Just Refl -> Alspn <$> (diffS diffAlmuH costAlmuH orc maxCost s1 s2)
-  Nothing -> empty
+diffMod orc maxCost s1 s2 = case (testEquality s1 s2, sameDepth s1 s2) of
+  (Just Refl, True) -> Alspn <$> (diffS diffAlmuH costAlmuH orc maxCost s1 s2)
+  (_, _) -> empty
   where
     diffAlmuH :: (IsRecEl u, MonadOracle o m)
         => o -> Int -> Usingl u -> Usingl u -> HistoryM m (AlmuH u)
@@ -141,13 +150,19 @@ diffIns :: (IsRecEl u, IsRecEl v, MonadOracle o m)
         => o -> Int -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
 diffIns orc maxCost x s = case view s of
   (Tag c p) -> do
-    guardCost 1 maxCost (Alins c <$> local (I:) (diffInsCtx orc maxCost x p))
+    cost <- getCurrentCost
+    guard (cost+1 <= maxCost)
+    updateCost 1
+    Alins c <$> local (I:) (diffInsCtx orc maxCost x p)
 
 diffDel :: (IsRecEl u, IsRecEl v, MonadOracle o m)
         => o -> Int -> Usingl u -> Usingl v -> HistoryM m (Almu u v)
 diffDel orc maxCost s x = case (view s) of
   (Tag c p) -> do
-    guardCost 1 maxCost (Aldel c <$> local (D:) (diffDelCtx orc maxCost p x))
+    cost <- getCurrentCost
+    guard (cost+1 <= maxCost)
+    updateCost 1
+    Aldel c <$> local (D:) (diffDelCtx orc maxCost p x)
 
 spine :: IsRecEl r => Usingl r -> Usingl r -> Spine TrivialA TrivialP r
 spine x y | x == y = Scp
@@ -208,7 +223,9 @@ alignIns :: (MonadOracle o m)
 alignIns orc maxCost p1 (a `Ac` p) = do
   cost <- getCurrentCost
   let costA = costUsingl a
-  guardCost costA maxCost (Ains a <$> local (I:) (alignO orc maxCost p1 p))
+  guard (cost+costA <= maxCost)
+  updateCost costA
+  Ains a <$> local (I:) (alignO orc maxCost p1 p)
 
 alignDel :: (MonadOracle o m)
            => o -> Int -> All Usingl p1 -> All Usingl p2
@@ -216,7 +233,9 @@ alignDel :: (MonadOracle o m)
 alignDel orc maxCost (a `Ac` p) p2 = do
   cost <- getCurrentCost
   let costA = costUsingl a
-  guardCost costA maxCost (Adel a <$> local (D:) (alignO orc maxCost p p2))
+  guard (cost+costA <= maxCost)
+  updateCost costA
+  Adel a <$> local (D:) (alignO orc maxCost p p2)
 
 alignMod :: (MonadOracle o m)
            => o -> Int -> All Usingl p1 -> All Usingl p2
@@ -226,7 +245,9 @@ alignMod orc maxCost (a1 `Ac` p1) (a2 `Ac` p2) =
     Just Refl -> do
       cost <- getCurrentCost
       let costP = costPair a1 a2
-      guardCost costP maxCost (Amod (Contract (a1, a2)) <$> local (M:) (alignO orc maxCost p1 p2))
+      guard (cost+costP <= maxCost)
+      updateCost costP
+      (Amod (Contract (a1, a2)) <$> local (M:) (alignO orc maxCost p1 p2))
     Nothing -> empty
 
 

@@ -2,6 +2,7 @@ module Util.DiffParser where
 
 import Control.Monad.State
 import Control.Monad
+import Control.Exception (Exception, throw, onException)
 import Data.Char hiding (Space)
 import Text.Parsec
 import System.Directory
@@ -14,14 +15,27 @@ import Language.Clojure.AST
 
 import Debug.Trace
 
-testPath = "test/conflicts/mined"
+data ConflictException = ConflictException String deriving Show
 
-runMinify :: IO ()
-runMinify = do
-  dirs <- listDirectory testPath
-  let dirsP = map (\d -> testPath ++ "/" ++ d) dirs
-  actual_dirs <- filterM doesDirectoryExist dirsP
-  mapM_ (flip withCurrentDirectory processDir) actual_dirs
+instance Exception ConflictException
+
+runMinify :: String -> IO ()
+runMinify path = do
+  withCurrentDirectory path processDir
+  -- processDir `onException` deleteDir
+  -- dirs <- listDirectory path
+  -- let dirsP = map (\d -> path ++ "/" ++ d) dirs
+  -- actual_dirs <- filterM doesDirectoryExist dirsP
+  -- mapM_
+  --   (flip withCurrentDirectory
+  --     $ processDir `onException` deleteDir)
+  --   actual_dirs
+
+
+deleteDir :: IO ()
+deleteDir = do
+  dir <- getCurrentDirectory
+  putStrLn dir
 
 processDir :: IO ()
 processDir = do
@@ -47,9 +61,8 @@ writeSelectedLines f tgt lrs = do
       extractLines l ((Range start end):rest) =
         (extractRange start end l):(extractLines l rest)
 
-      extractRange s e l | s < e = (l !! (s - 1)):(extractRange (s+1) e l)
+      extractRange s e l | s <= e = (l !! (s - 1)):(extractRange (s+1) e l)
       extractRange s e l | otherwise = []
-
 
 
 readFiles :: IO (String, String, String)
@@ -61,22 +74,23 @@ readFiles = do
 
 parseFiles :: (String, String, String) -> IO ([Expr], [Expr], [Expr])
 parseFiles (a, o, b) = do
-  a1 <- parseFile a
-  o1 <- parseFile o
-  b1 <- parseFile b
+  a1 <- parseFileAsExprList a
+  o1 <- parseFileAsExprList o
+  b1 <- parseFileAsExprList b
   return (a1, o1, b1)
 
-parseFile :: String -> IO [Expr]
-parseFile a = do
+parseFileAsExprList :: String -> IO [Expr]
+parseFileAsExprList a = do
   cwd <- getCurrentDirectory
   case parse parseAsExprList cwd a of
-    Left err -> error $ show err
+    Left err -> throw $ ConflictException (show err)
     Right f  -> return f
 
 data FileTarget = FileTarget
   { mine :: Handle
   , yours :: Handle
   , parent :: Handle
+  , inclusion :: Bool
   , current :: [Handle]
   }
 
@@ -86,14 +100,16 @@ defaultTarget m p y = FileTarget
   , yours = y
   , parent = p
   , current = [m, y, p]
+  , inclusion = False
   }
 
-data Phase = Mine | Yours | Parent | Reset
+data Phase = Mine | Flip | Parent | Reset | Inclusion
 type MyState = StateT FileTarget IO
 
 mineStart   = Mine <$ string "<<<<<<< A.clj"
-parentStart = Parent <$ string "||||||| O.clj"
-yoursStart  = Yours <$ string "======="
+parentStart = Parent <$ string "<<<<<<< O.clj"
+parentIncluded = Inclusion <$ string "||||||| O.clj"
+flipParse  = Flip <$ string "======="
 yoursEnd    = Reset <$ string ">>>>>>> B.clj"
 
 process :: FilePath -> FilePath -> FilePath -> String -> IO ()
@@ -126,16 +142,18 @@ getTarget l = runParserT checkModifiers () "" l
 
 setTarget :: Phase -> MyState ()
 setTarget Mine = setMine
-setTarget Yours = setYours
+setTarget Flip = setFlip
 setTarget Parent = setParent
+setTarget Inclusion = setInclusion
 setTarget Reset = resetState
 
 checkModifiers :: ParsecT String () MyState Phase
 checkModifiers = choice
   [ try mineStart
-  , try yoursStart
+  , try flipParse
   , try parentStart
-  , try yoursEnd ]
+  , try yoursEnd
+  , try parentIncluded ]
 
 writeLine :: String -> MyState ()
 writeLine l = do
@@ -147,15 +165,31 @@ setMine = do
   s <- get
   put (s {current = [mine s] })
 
-setYours :: MyState ()
-setYours = do
+setFlip :: MyState ()
+setFlip = do
   s <- get
-  put (s {current = [yours s] })
+  flipState
+
+flipState :: MyState ()
+flipState = do
+  s <- get
+  if inclusion s
+  then do
+    put (s {current = [ yours s] })
+  else do
+    let curr = current s
+    put (s {current = [ mine s, yours s, parent s] \\ curr })
 
 setParent :: MyState ()
 setParent = do
   s <- get
   put (s {current = [parent s] })
+
+setInclusion :: MyState ()
+setInclusion = do
+  s <- get
+  put (s {inclusion = True})
+  setParent
 
 resetState :: MyState ()
 resetState = do
