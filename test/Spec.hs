@@ -1,5 +1,5 @@
-import Clojure.Parser
-import Clojure.PrettyPrint
+import Language.Clojure.Parser
+import Language.Clojure.PrettyPrint
 import System.FilePath.Find
 import System.Directory
 
