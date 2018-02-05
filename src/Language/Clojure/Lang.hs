@@ -150,7 +150,7 @@ instance {-# OVERLAPPABLE #-} (TypeError (Text "Not a recursive guy: " :<>: Show
          => IsRecEl s
 
 -- Library stuff
-inj :: (IsRecEl r) => ConstrFor r c -> All Usingl (TypeOf c) -> Usingl r
+inj :: IsRecEl r => ConstrFor r c -> All Usingl (TypeOf c) -> Usingl r
 inj C1NilProof An = USepExprList (Nil emptyRange)
 inj C1ConsProof (e `Ac` sep `Ac` sl `Ac` An) = USepExprList (Cons (eval e) (eval sep) (eval sl) emptyRange)
 
@@ -211,7 +211,6 @@ instance Eq (Usingl a) where
   (USepExprList a) == (USepExprList b) = a == b
   (UExpr a) == (UExpr b) = a == b
   (UTerm a) == (UTerm b) = a == b
-  _ == _ = True
 
 ----------- View ----------------
 

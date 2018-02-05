@@ -2,6 +2,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Language.Clojure.AST where
 
@@ -11,29 +12,29 @@ import Data.Text
 
 data SepExprList =
    Nil LineRange
- | Cons Expr Sep SepExprList LineRange
+ | Cons Expr !Sep SepExprList LineRange
  deriving (Show, Generic)
 
 data Sep = Space | Comma | NewLine | EmptySep deriving (Show, Eq)
 
-data Expr = Special FormTy Expr LineRange
+data Expr = Special !FormTy Expr LineRange
           | Dispatch Expr LineRange
-          | Collection CollTy SepExprList LineRange
+          | Collection !CollTy SepExprList LineRange
           | Term Term LineRange
-          | Comment Text LineRange
+          | Comment !Text LineRange
           | Seq Expr Expr LineRange
           | Empty LineRange
           deriving (Show, Generic)
 -- ref: https://8thlight.com/blog/colin-jones/2012/05/22/quoting-without-confusion.html
 
-data FormTy = Quote | SQuote | UnQuote | DeRef deriving (Show, Eq)
+data FormTy = Quote | SQuote | UnQuote | DeRef | Meta deriving (Show, Eq)
 
 data CollTy = Vec | Set | Parens deriving (Show, Eq)
 
-data Term = TaggedString Tag Text LineRange
+data Term = TaggedString !Tag !Text LineRange
   deriving (Show, Generic)
 
-data Tag = String | Metadata | Var  deriving (Show, Eq)
+data Tag = String | Var  deriving (Show, Eq)
 
 data SubTree = Exp Expr | Sel SepExprList
   deriving (Show)

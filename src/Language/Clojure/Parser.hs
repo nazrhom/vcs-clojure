@@ -41,13 +41,21 @@ parseSeq = do
   end <- getPosition
   return $ Seq p1 p2 (mkRange start end)
 
-parseTop = whiteSpace lexer *> (try parseSeq <|> parseEmptyProgram) <* whiteSpace lexer <* eof
+parseTop = whiteSpace lexer *> (try parseSeq <|> parseEmptyProgram) <* eof
 
-parseAsExprList = whiteSpace lexer *> (many parseExpr) <* whiteSpace lexer <* eof
+parseAsExprList = do
+  top <- parseTop
+  return $ walkSeq top
+  -- whiteSpace lexer *> (many parseSingleExpr) <* whiteSpace lexer <* eof
+
+walkSeq (Seq a (Empty _) _) = a : []
+walkSeq (Seq a b _) = a : walkSeq b
+walkSeq (Empty lr) = [Empty lr]
+walkSeq e = error $ "nowalk" ++ show e
 
 parseExpr = choice
-  [ parseSpecial
-  , parseDispatch
+  [ try parseSpecial
+  , try parseDispatch
   , parseCollection
   , parseComment
   , parseTerm
@@ -70,6 +78,7 @@ parseSpecial = do
   ident <- parseSpecialIdent
   expr <- parseExpr
   end <- getPosition
+  whiteSpace lexer
   return $ Special ident expr (mkRange start end)
 
 parseSpecialIdent = choice
@@ -77,23 +86,23 @@ parseSpecialIdent = choice
   , SQuote <$ char '`'
   , UnQuote <$ char '~'
   , DeRef <$ char '@'
+  , Meta <$ char '^'
   ]
 
-parseTaggedString = choice [parseString, parseVar, parseMetadata]
+parseTaggedString = choice [parseString, parseVar]
 
 parseDispatch = do
   start <- getPosition
   char '#'
   disp <- parseDispatchable
   end <- getPosition
+  whiteSpace lexer
   return $ Dispatch disp (mkRange start end)
   where
     parseDispatchable = choice
-      [ parseSet
-      , parseRegExp
-      , parseParens
+      [ parseRegExp
       , parseTaggedLit
-      , parseMeta
+      , parseExpr
       ]
     --- ref: https://yobriefca.se/blog/2014/05/19/the-weird-and-wonderful-characters-of-clojure/
     -- parseParens covers the function marco
@@ -110,18 +119,22 @@ parseDispatch = do
       end <- getPosition
       return $ Term tLit (mkRange start end)
 
-    parseMeta = do
-      start <- getPosition
-      meta <- parseMetadata
-      end <- getPosition
-      return $ Term meta (mkRange start end)
+    -- parseMeta = do
+    --   start <- getPosition
+    --   meta <- parseMetadata
+    --   end <- getPosition
+    --   return $ Term meta (mkRange start end)
 
 parseComment = do
   start <- getPosition
   char ';'
-  comment <- manyTill anyChar (string "\n")
+  comment <- manyTill anyChar (newline <|> eofS)
   -- single line comment, if we parse end here we have parsed newline as well
   return $ Comment (T.pack comment) (mkRange start start)
+
+eofS = do
+  eof
+  return '\n'
 
 parens p = between (symbol lexer "(") (string ")") p
 braces p = between (symbol lexer "{") (string "}") p
@@ -164,7 +177,7 @@ parseSep = choice
   [ Comma <$ lexeme lexer (char ',')
   , NewLine <$ lexeme lexer (many1 endOfLine)
   , Space <$ lexeme lexer (many1 (space <|> tab))
-  , EmptySep <$ lookAhead (anyChar)
+  , EmptySep <$ (lookAhead (anyChar) <|> eofS)
   ]
 parseString = do
   start <- getPosition
@@ -181,23 +194,18 @@ parseString = do
 
 parseVar = do
   start <- getPosition
-  vstring <- (identifier <|> operator)
+  vstring <- (identifier)
   end <- getPosition
   return $ TaggedString Var (T.pack vstring) (mkRange start end)
 
 identifier = do
-  c <- alphaNum <|> oneOf "_':*-&\\,."
-  cs <- many (alphaNum <|> oneOf ":_.,'-/^?!><*#\"\\" <|> satisfy isSymbol)
+  c <- alphaNum <|> oneOf ":!#$%&*+./<=>?@\\^|-~_',"
+  cs <- many (alphaNum <|> oneOf ":!?#$%&*+-/.<=>'?@^|~_,'^\"\\" <|> satisfy isSymbol)
   return (c:cs)
 
-operator = do
-  o <- oneOf ":!#$%&*+./<=>?@\\^|-~"
-  os <- many (oneOf ":!#$%&*+./<=>?@\\^|-~")
-  return (o:os)
-
-parseMetadata = do
-  start <- getPosition
-  char '^'
-  meta <- identifier
-  end <- getPosition
-  return $ TaggedString Metadata (T.pack meta) (mkRange start end)
+-- parseMetadata = do
+--   start <- getPosition
+--   char '^'
+--   meta <- identifier
+--   end <- getPosition
+--   return $ TaggedString Metadata (T.pack meta) (mkRange start end)

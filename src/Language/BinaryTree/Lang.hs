@@ -51,7 +51,7 @@ onRecursiveGuy :: ((IsRecEl v) => Usingl v -> a) -> (Usingl v -> a) -> Usingl v 
 onRecursiveGuy rec nonrec at@(UInt _) = nonrec at
 onRecursiveGuy rec nonrec at@(UIntTree _) = rec at
 
-inj :: ConstrFor r c -> All Usingl (TypeOf c) -> Usingl r
+inj :: IsRecEl r => ConstrFor r c -> All Usingl (TypeOf c) -> Usingl r
 inj NodeProof (t1 `Ac` t2 `Ac` An) = UIntTree (Node (fromSing t1) (fromSing t2))
 inj LeafProof (i `Ac` An) = UIntTree (Leaf (fromSing i))
 
@@ -103,5 +103,3 @@ instance Eq (Usingl a) where
   (UInt a) == (UInt b) = a == b
   (UIntTree a) == (UIntTree b) = a == b
   _ == _ = True
-
-

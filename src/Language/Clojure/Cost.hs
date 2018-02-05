@@ -31,3 +31,4 @@ costSepExprList :: SepExprList -> Int
 {-# INLINE costSepExprList #-}
 costSepExprList (Nil _) = 0
 costSepExprList (Cons e sep sel _) = 1 + costExpr e + costSepExprList sel
+

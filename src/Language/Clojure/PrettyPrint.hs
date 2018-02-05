@@ -42,10 +42,11 @@ ppFormTy Quote   = char '\''
 ppFormTy SQuote  = char '`'
 ppFormTy UnQuote = char '~'
 ppFormTy DeRef   = char '@'
+ppFormTy Meta    = char '^'
 
 ppTerm :: Term -> Doc
 ppTerm (TaggedString String s _) = dquotes $ text (T.unpack s)
-ppTerm (TaggedString Metadata s _) = char '^' <> text (T.unpack s)
+-- ppTerm (TaggedString Metadata s _) = char '^' <> text (T.unpack s)
 ppTerm (TaggedString Var s _) = text (T.unpack s)
 
 ppSepExprList :: SepExprList -> Doc
