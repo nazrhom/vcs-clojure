@@ -30,17 +30,18 @@ import Util.UnixDiff
 import Debug.Trace
 
 testPath :: FilePath
-testPath = "test/conflicts/mined"
+testPath = "test/conflicts2"
 
+resultPath :: FilePath
 resultPath = "/Users/giovannigarufi/Developement/thesis/th-vcs-clojure/test/results/"
+
 executablePathRoot :: FilePath
 executablePathRoot = ".stack-work/dist/x86_64-osx/Cabal-1.24.2.0/build/th-vcs-clojure-exe/th-vcs-clojure-exe"
 
-
-executablePath = "../../../../" ++ executablePathRoot
+executablePath = "/Users/giovannigarufi/Developement/thesis/th-vcs-clojure/.stack-work/dist/x86_64-osx/Cabal-1.24.2.0/build/th-vcs-clojure-exe/th-vcs-clojure-exe"
 
 timeout_time :: Int
-timeout_time = 600000000
+timeout_time = (minutesToMicro 1)
 
 minutesToMicro :: Int -> Int
 minutesToMicro i = i * (6 * 10 ^ 7)
@@ -54,7 +55,6 @@ main = do
   actual_dirs <- filterM doesDirectoryExist dirsP
   results <- mapM (flip withCurrentDirectory checkPredicates) actual_dirs
 
-  when (not (dry opts)) (writeResults results)
   let timeouts = filter isTimeout results
   let completed = filter (\b -> not (isTimeout b)) results
 
@@ -63,12 +63,15 @@ main = do
       comp_  = filter (\t -> comp t == True) completed
       sComp_ = filter (\t -> sComp t == True) completed
 
+  putStrLn $ "Number of Tests " ++ show (length results)
   putStrLn $ "Number of Timeouts " ++ show (length timeouts)
 
   putStrLn $ "Disjoint: " ++ show (length disj_)
   putStrLn $ "Structurally-Disjoint: " ++ show (length sDisj_)
   putStrLn $ "Compatible: " ++ show (length comp_)
   putStrLn $ "Structurally-Compatible: " ++ show (length sComp_)
+  when (not (dry opts)) (writeResults results)
+
 
 isTimeout :: TestResult -> Bool
 isTimeout (Timeout _) = True
@@ -155,7 +158,7 @@ mkTableFor takeRes res = headers ++ "\n" ++ border ++ "\n" ++ values
 runDiff :: IO Bool
 runDiff = do
   cwd <- getCurrentDirectory
-  putStrLn $ "Running in " ++ cwd
+  putStrLn $ "Running in diff " ++ cwd
   ph <- spawnProcess executablePath ["-s", "O1.clj", "-d", "B1.clj"]
   result <- timeout timeout_time (waitForProcess ph)
   case result of
@@ -186,8 +189,8 @@ checkPredicates = do
       terminateProcess ph
       putStrLn $ "Process Timed out"
       return $ Timeout cwd
+    Just (ExitFailure 0) -> return $ Timeout cwd -- errors count as timeouts
     Just (ExitFailure c) -> return $ decode c cwd
-    Just _     -> error "Unexpected Exitcode"
 
 decode :: Int -> FilePath -> TestResult
 decode i p = TestResult {

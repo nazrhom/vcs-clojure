@@ -6,7 +6,9 @@ import System.IO
 import System.Exit
 import Options.Applicative
 import Data.Monoid
-import Data.Proxy()
+import Data.Proxy ()
+import Data.Foldable (toList)
+import qualified Data.Sequence as S
 import Data.Aeson.Encode.Pretty
 import qualified Data.ByteString.Lazy as B
 
@@ -14,6 +16,8 @@ import Debug.Trace
 
 import Language.Clojure.Parser
 import Language.Clojure.Lang
+import Language.Clojure.Cost
+
 
 import VCS.Diff
 import VCS.Multirec
@@ -21,8 +25,9 @@ import VCS.Cost
 import VCS.Disjoint
 import VCS.Compatible
 
-import Util.ToJSON()
+import Util.ToJSON
 import Util.UnixDiff
+import Util.DiffParser
 
 import Oracle.Oracle
 
@@ -32,6 +37,7 @@ main = do
   case op of
     Conflict f -> processConflictFolder f
     Patch s d j _ -> patchFiles s d j
+    Preprocess f  -> runMinify f
 
 printPatchesWithCost :: [Almu u v] -> IO ()
 printPatchesWithCost almus = mapM_ printPatchWithCost almus
@@ -40,6 +46,11 @@ printPatchWithCost :: Almu u v -> IO ()
 printPatchWithCost almu = do
   putStrLn $ "Cost: " ++ show (costAlmu almu)
   putStrLn (show $ almu)
+
+estimateParams :: Expr -> Expr -> (Int, Int)
+estimateParams e1 e2 = (initialCost, initialCost `div` 5)
+  where
+    initialCost = abs (costExpr e1 - costExpr e2)
 
 patchFiles :: String -> String -> Maybe String -> IO ()
 patchFiles srcFile dstFile jsonOut = do
@@ -52,13 +63,15 @@ patchFiles srcFile dstFile jsonOut = do
   -- putStrLn $ show src
   -- putStrLn $ show dst
   let diff3 = preprocessGrouped s d
-      delInsMap = buildDelInsMap diff3
-      diff3_plain = preprocess s d
-      copyMaps = buildCopyMaps diff3_plain
-      gdiff = solveConflicts delInsMap copyMaps src dst
-      oracle = (DiffOracle gdiff <°> NoDupBranches)
+  let delInsMap = buildDelInsMap diff3
+  let diff3_plain = preprocess s d
+  let copyMaps = buildCopyMaps diff3_plain
+  let gdiff = solveConflicts delInsMap copyMaps src dst
+  let oracle = (DiffOracle gdiff <°> NoDupBranches)
+  let (initialCost, incr) = estimateParams src dst
+  putStrLn $ show initialCost
       -- oracle = (OldDiffOracle diff3 <°> NoDupBranches)
-      almu = computePatchesBounded oracle 28 5 src dst
+  let almu = computePatchesBounded oracle initialCost incr src dst
   -- putStrLn $ show $ diff3
   -- putStrLn $ show $ copyMaps
   -- putStrLn $ show $ diff3_plain
@@ -111,7 +124,7 @@ processConflictFolder folder = do
   putStrLn $ show sComp
 
   let res = encode disj sDisj comp sComp
-  -- We encode the results in an binary number
+  -- We encode the results in a binary number
   exitWith (ExitFailure res)
   -- putStrLn $ "Patch O-A: " ++ show almuOA
   -- putStrLn $ "Patch O-B: " ++ show almuOB
@@ -143,15 +156,15 @@ computePatches :: (MonadOracle o m) =>
       o -> Expr -> Expr -> m (Almu (ToSing Expr) (ToSing Expr))
 computePatches o x y = diffAlmu o 10000 (toSing x) (toSing y)
 
-computePatchBounded :: (MonadOracle o []) =>
+computePatchBounded :: (MonadOracle o S.Seq) =>
       o -> Int -> Int -> Int -> Expr -> Expr -> (Almu (ToSing Expr) (ToSing Expr))
-computePatchBounded o start incr r x y = case almus of
-    [] ->
-      trace ("empty" ++ show start) recur
-    some_ ->
-      if anyBounded start some_
-      then trace ("found " ++ show (length some_)) (choose some_)
-      else trace ("greater" ++ (show $ length some_)) recur
+computePatchBounded o start incr r x y =
+  if (S.null almus)
+  then trace ("empty" ++ show start) recur
+  else
+    if anyBounded start (toList almus)
+    then trace ("found " ++ show (S.length almus)) (choose (toList almus))
+    else trace ("greater" ++ (show $ S.length almus)) recur
   where
     anyBounded :: Int -> [Almu u v] -> Bool
     anyBounded _ [] = False
@@ -160,7 +173,7 @@ computePatchBounded o start incr r x y = case almus of
     almus = diffAlmu o start (toSing x) (toSing y)
     recur = computePatchBounded o (start+(incr*r)) incr (r+1) x y
 
-computePatchesBounded :: (MonadOracle o []) =>
+computePatchesBounded :: (MonadOracle o S.Seq) =>
       o -> Int -> Int -> Expr -> Expr -> (Almu (ToSing Expr) (ToSing Expr))
 computePatchesBounded o s i x y = computePatchBounded o s i 1 x y
 
@@ -216,6 +229,9 @@ data Opts =
   , dstFile :: String
   , jsonOutput :: Maybe String
   , printAll :: Bool
+  } |
+  Preprocess {
+    prepFolder :: String
   }
 
 setHandle :: Maybe String -> (Handle -> IO a) -> IO a
@@ -253,6 +269,13 @@ opts = (
     <> metavar "FOLDER"
     <> help "Folder to process"
     )
+  ) <|> (
+   Preprocess <$> strOption
+     ( long "preprocess"
+     <> short 'p'
+     <> metavar "PREPROCESS"
+     <> help "Folder to preprocess"
+     )
   )
 
 optsHelper :: ParserInfo Opts
