@@ -16,7 +16,7 @@ if not which 'git'
 
 cd(__dirname)
 
-repos = _.take(JSON.parse(fs.readFileSync('./repos.json')), 10)
+repos = _.take(JSON.parse(fs.readFileSync('./repos.json')), 20)
 
 cd("../test/repos")
 
@@ -25,8 +25,10 @@ async.eachSeries repos, (repo, cb) ->
     exec('git clone ' + repo.url)
   else
     cd(repo.name)
+    exec('git reset -q --hard && git clean -fdxq && git checkout master')
     exec('git pull')
     cd('..')
   cb()
 , (err) ->
   console.log('Done')
+

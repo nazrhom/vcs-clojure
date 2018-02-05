@@ -5,9 +5,17 @@
 # attempt to extract all the files which give rise to a conflict in a 3-way merge.                          #
 #############################################################################################################
 
+# Useful for testing
+function earlyexit {
+  # get rid of changes so the next checkout doesnt complain
+  git merge --abort
+  git reset -q --hard
+  git clean -fdxq
+  git checkout master
+  exit 1
+}
 
 cd ../test/repos
-
 
 for D in ./*; do
   if [ -d "$D" ]; then
@@ -29,20 +37,21 @@ for D in ./*; do
       # check for conflicting files
       if git ls-files --unmerged | grep -q '^'; then
         echo "Found conflict in $D - $commit"
+        unmerged=$(git ls-files --unmerged | cut -d' ' -f2,3 | paste -d'\n' -s)
         # We parse the list of git objects representing the conflicting files. This representation is fixed
         # with a 40 character objId and an identifier which represents the role. We restrict to merges between 2 parents.
-        for objID in `git ls-files --unmerged | sed -E 's/.+(([a-z]|[0-9]){40}) ([1|2|3]).+/\1-\3/'`
-          do
-            echo "$objID"
-            obj=${objID:0:39}
-            role=${objID:41:42}
+        while read -r objID; do
+          obj=${objID:0:40}
+          role=${objID:41:1}
+          extension=${objID: -3}
+          if [ "$extension" == "clj" ]; then
             # The role represents which version of the git object we are dealing with.
             # 1 -> Is the common parent for both branches (The origin)
             # 2 -> Version on branch A
             # 3 -> Version on branch B
             if [ "$role" -eq "1" ]; then
               # N.B. obj appear ordered by role. Role 1 will always be the first.
-              targetDir="../../conflicts/mined/$D-$commit-$obj"
+              targetDir="../../conflicts2/$D-$commit-$obj"
               mkdir -p "$targetDir"
               fname="O.clj"
             fi
@@ -55,8 +64,8 @@ for D in ./*; do
 
             # Output the git object as a file according to our identification
             git cat-file -p $obj > "$targetDir/$fname"
-
-          done
+          fi
+        done <<< "$unmerged"
         # Abort the merge to restore initial state
         git merge --abort
       fi
@@ -69,13 +78,4 @@ for D in ./*; do
   fi
 done
 
-# Useful for testing
-function earlyexit {
-  # get rid of changes so the next checkout doesnt complain
-  git merge --abort
-  git reset -q --hard
-  git clean -fdxq
-  git checkout master
-  exit 1
-}
 
