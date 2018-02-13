@@ -1,32 +1,32 @@
 \select@language {english}
 \contentsline {section}{\numberline {1}Introduction}{2}{section.1}
-\contentsline {subsection}{\numberline {1.1}Overview}{3}{subsection.1.1}
+\contentsline {subsection}{\numberline {1.1}Overview}{4}{subsection.1.1}
 \contentsline {section}{\numberline {2}Background}{5}{section.2}
-\contentsline {subsection}{\numberline {2.1}Sum of Products}{7}{subsection.2.1}
-\contentsline {subsection}{\numberline {2.2}Building our Universe}{8}{subsection.2.2}
-\contentsline {section}{\numberline {3}Type-directed diff}{10}{section.3}
+\contentsline {subsection}{\numberline {2.1}Sum of Products}{8}{subsection.2.1}
+\contentsline {subsection}{\numberline {2.2}Building our Universe}{9}{subsection.2.2}
+\contentsline {section}{\numberline {3}Type-directed diff}{11}{section.3}
 \contentsline {subsection}{\numberline {3.1}Spine}{12}{subsection.3.1}
-\contentsline {subsection}{\numberline {3.2}Alignment}{14}{subsection.3.2}
-\contentsline {subsection}{\numberline {3.3}Atoms}{16}{subsection.3.3}
-\contentsline {subsection}{\numberline {3.4}Recursive alignments}{17}{subsection.3.4}
-\contentsline {subsection}{\numberline {3.5}Putting everything together}{18}{subsection.3.5}
-\contentsline {subsection}{\numberline {3.6}Applying Patches}{19}{subsection.3.6}
-\contentsline {subsection}{\numberline {3.7}Disjointedness}{21}{subsection.3.7}
-\contentsline {subsection}{\numberline {3.8}Visualization}{24}{subsection.3.8}
-\contentsline {subsection}{\numberline {3.9}Optimisation}{25}{subsection.3.9}
-\contentsline {section}{\numberline {4}Clojure}{26}{section.4}
-\contentsline {section}{\numberline {5}Heuristics}{27}{section.5}
-\contentsline {subsection}{\numberline {5.1}Basic Oracles}{28}{subsection.5.1}
-\contentsline {subsubsection}{\numberline {5.1.1}NoOracle}{29}{subsubsection.5.1.1}
-\contentsline {subsubsection}{\numberline {5.1.2}NoDupBranches}{30}{subsubsection.5.1.2}
-\contentsline {subsection}{\numberline {5.2}Oracle composition}{30}{subsection.5.2}
-\contentsline {subsection}{\numberline {5.3}DiffOracle}{31}{subsection.5.3}
-\contentsline {subsubsection}{\numberline {5.3.1}Shortcomings}{34}{subsubsection.5.3.1}
-\contentsline {subsubsection}{\numberline {5.3.2}Further Shortcomings}{36}{subsubsection.5.3.2}
-\contentsline {subsection}{\numberline {5.4}Cost}{38}{subsection.5.4}
-\contentsline {subsection}{\numberline {5.5}Bounded Search}{41}{subsection.5.5}
-\contentsline {section}{\numberline {6}Experimentation}{41}{section.6}
-\contentsline {subsection}{\numberline {6.1}Domain specific improvements}{41}{subsection.6.1}
-\contentsline {subsection}{\numberline {6.2}Results}{43}{subsection.6.2}
-\contentsline {section}{\numberline {7}Conclusion}{44}{section.7}
-\contentsline {subsection}{\numberline {7.1}Related Work}{44}{subsection.7.1}
+\contentsline {subsection}{\numberline {3.2}Alignment}{15}{subsection.3.2}
+\contentsline {subsection}{\numberline {3.3}Atoms}{17}{subsection.3.3}
+\contentsline {subsection}{\numberline {3.4}Recursive alignments}{18}{subsection.3.4}
+\contentsline {subsection}{\numberline {3.5}Putting everything together}{19}{subsection.3.5}
+\contentsline {subsection}{\numberline {3.6}Applying Patches}{22}{subsection.3.6}
+\contentsline {subsection}{\numberline {3.7}Disjointedness}{24}{subsection.3.7}
+\contentsline {subsection}{\numberline {3.8}Clojure}{27}{subsection.3.8}
+\contentsline {section}{\numberline {4}Heuristics}{29}{section.4}
+\contentsline {subsection}{\numberline {4.1}Basic Oracles}{30}{subsection.4.1}
+\contentsline {subsubsection}{\numberline {4.1.1}NoOracle}{31}{subsubsection.4.1.1}
+\contentsline {subsubsection}{\numberline {4.1.2}NoDupBranches}{31}{subsubsection.4.1.2}
+\contentsline {subsection}{\numberline {4.2}Oracle composition}{32}{subsection.4.2}
+\contentsline {subsection}{\numberline {4.3}DiffOracle}{33}{subsection.4.3}
+\contentsline {subsubsection}{\numberline {4.3.1}Shortcomings}{36}{subsubsection.4.3.1}
+\contentsline {subsubsection}{\numberline {4.3.2}Further Shortcomings}{38}{subsubsection.4.3.2}
+\contentsline {subsection}{\numberline {4.4}Cost}{40}{subsection.4.4}
+\contentsline {subsection}{\numberline {4.5}Bounded Search}{43}{subsection.4.5}
+\contentsline {subsection}{\numberline {4.6}Visualization}{43}{subsection.4.6}
+\contentsline {section}{\numberline {5}Experimentation}{45}{section.5}
+\contentsline {subsection}{\numberline {5.1}Domain specific improvements}{45}{subsection.5.1}
+\contentsline {subsection}{\numberline {5.2}Results}{46}{subsection.5.2}
+\contentsline {section}{\numberline {6}Conclusion}{48}{section.6}
+\contentsline {subsection}{\numberline {6.1}Related Work}{48}{subsection.6.1}
+\contentsline {subsection}{\numberline {6.2}Future Work}{49}{subsection.6.2}
