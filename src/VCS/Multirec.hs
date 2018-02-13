@@ -160,11 +160,7 @@ sameDepth u v = hasRecursiveArgument u == hasRecursiveArgument v
 
 hasRecursiveArgument :: (IsRecEl u) => Usingl u -> Bool
 hasRecursiveArgument u = case view u of
-  (Tag c p) -> anyRec p
-  where
-    anyRec :: All Usingl p -> Bool
-    anyRec An = False
-    anyRec (a `Ac` as) = onRecursiveGuy (const True) (const $ anyRec as) a
+  (Tag c p) -> foldAll (onRecursiveGuy_ (const True) id) False p
 
 -- useful wrappers for instances
 data Predicate (a :: * -> Constraint) = Predicate
@@ -220,12 +216,12 @@ equality = Predicate
 withEqualityOf e p = e \\ instF_ equality (proxy p)
 
 -- deriving instance Eq (Ctx (AtmuPos u) p)
+-- deriving instance Eq (Ctx (AtmuNeg u) p)
 instance (ForallF Eq almu) => Eq (Ctx almu p) where
   (Here al1 rest1) == (Here al2 rest2)
     = (al1 == al1 \\ instF_ equality (proxy al1)) && rest1 == rest2
   (There u1 ctx1)  == (There u2 ctx2)
     = (u1 == u2 && ctx1 == ctx2)
--- deriving instance Eq (Ctx (AtmuNeg u) p)
 instance (ForallF Eq u) => Eq (All u l) where
   (u1 `Ac` us1) == (u2 `Ac` us2)
     = (u1 == u2 \\ instF_ equality (proxy u1)) && us1 == us2
@@ -239,7 +235,6 @@ instance (ForallF Eq p) => Eq (Al p p1 p2) where
   (Amod m1 rest1) == (Amod m2 rest2)
     = (m1 == m2 \\ instF_ equality (proxy m1)) && rest1 == rest2
 
--- deriving instance Eq (All (At AlmuH) l)
 deriving instance Eq (At AlmuH u)
 deriving instance Eq (TrivialA u)
 

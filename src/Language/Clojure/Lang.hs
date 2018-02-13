@@ -248,6 +248,8 @@ onRecursiveGuy rec nonrec at@(USepExprList _) = rec at
 onRecursiveGuy rec nonrec at@(UExpr _) = rec at
 onRecursiveGuy rec nonrec at@(UTerm _) = rec at
 
+onRecursiveGuy_ :: ((IsRecEl v) => a) -> a -> Usingl v -> a
+onRecursiveGuy_ rec nonrec at = onRecursiveGuy (const rec) (const nonrec) at
 
 -- Utility
 type family ToSing (k :: *) :: U where
