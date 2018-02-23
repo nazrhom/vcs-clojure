@@ -27,6 +27,7 @@
 \AtBeginEnvironment{minted}{%
   \renewcommand{\fcolorbox}[4][]{#4}}
 
+
 \title{Version Control Systems: Diffing with Structure
 \\ Thesis}
 \author{Giovanni Garufi\\5685109\\[1cm]{Supervisors: \\
@@ -81,9 +82,8 @@ Suppose we have the following function in any lisp-like language:
   (first l))
 \end{minted}
 
-Suppose we make two independent modifications, the first of which adds a default 
-parameter to be returned in case the list is empty, and the second one that 
-changes the name of the function from \toClojure{head} to \toClojure{fst}.
+Suppose we make two independent modifications to this function obtaining two distinct versions.
+The first adds a default parameter to be returned in case the list is empty
 
 \begin{minted}{clojure}
 (defn head [l, d]
@@ -92,6 +92,7 @@ changes the name of the function from \toClojure{head} to \toClojure{fst}.
     (first l)))
 \end{minted}
 
+The second one changes the name of the function from \toClojure{head} to \toClojure{fst}.
 \begin{minted}{clojure}
 (defn fst [l]
   (first l))
@@ -132,16 +133,15 @@ The following section starts with an introduction to dependent types in Haskell 
 Essentially we want to characterize patches by the transformation they operate on the source code (e.g. the patch that adds an extra argument to a function) as such, we need dependent types to reflect onto the type system the action of a patch on a certain value. This will assure that any code produced by the algorithm is structurally valid by construction.
 
 Following dependent types we will need to introduce sums of products: these give us a general way to view types and will allow us to define an algorithm that is independent of the representation of the AST for the language we are treating. In this regard there is a fine balance between having a core algorithm which is generic and can be applied to any language, and the use of domain-specific strategies to guide the generation of patches by using knowledge specific to the language in question.
-Despite the generality of the algorithm, we have instantiated it for the Clojure programming language \cite{clojure}; this choice is motivated by the general simplicity of parsing languages that derive from LISP and by the need to select a language that is popular enough to have large 
-active projects, available on Github, that will provide us a good sample of data to test.
+Despite the generality of the algorithm, we have instantiated it for the Clojure programming language \cite{clojure}; this choice is motivated by the general simplicity of parsing languages that derive from LISP and by the need to select a language that is popular enough to have large active projects, available on Github, that will provide us a good sample of data to test.
 
-After presenting the algorithm for a type-directed diff, alongside its Haskell implementation, we will analyze the performance of the non-deterministic specification and conclude that it is still to slow for real-world data. 
+After presenting the algorithm for a type-directed diff, alongside its Haskell implementation, we will analyze the performance of the non deterministic specification and conclude that it is still to slow for real-world data. 
 To solve this problem we will introduce different heuristics to guide the process of patch generation and analyze their performance and shortcomings.
 Finally we will introduce the notion of \emph{disjointedness}, a predicate that attempts to capture the intuition that two patches that are not "overlapping" should be mergeable. We will use this predicate to run experiments on conflicts gathered from public repositories on Github and compare the amount of merge conflicts obtained by our approach compared to \diff3.
 
 \section{Background}\label{dependent-types-in-haskell}
 
-With time, Haskell's type system has kept evolving from its Hindley-Miller origins and through the use of different language extensions it has gained the ability to express more complex types. In particular, many efforts have gone to add support for dependently typed programming in the latest years. A dependent type is a type whose definition depends on a value. For example, a list of \toHaskell{Int} is a standard type, but a list of \toHaskell{Int} of a fixed length \toHaskell{n} is a dependent type, as the static type depends on the dynamic information about how many elements are actually in the list.
+With time, Haskell's type system has kept evolving from its Hindley-Miller origins and through the use of different language extensions it has gained the ability to express more complex types. In particular, many efforts have gone to add some support for dependently typed programming in the latest years. A dependent type is a type whose definition depends on a value. For example, a list of \toHaskell{Int} is a standard type, but a vector of \toHaskell{Int} of a fixed length \toHaskell{n} is a dependent type, as the static type depends on the dynamic information about how many elements are actually in the list.
 
 One major stepping stone in this direction is the \toHaskell{DataKinds} \cite{datakinds} extension which duplicates an ordinary data type, such as
 
@@ -244,29 +244,35 @@ split (Sn n) (x `Vc` xs) = (x `Vc` ys, zs)
 \end{minted}
 
 With these three tricks up our sleeve (data kind promotion, type level functions and singletons) we can emulate some of the features that are present in dependently typed languages such as Agda. These features allow us to emulate explicit dependent quantification. We can actually go even further in Haskell: Lindley et McBride \cite{hasochism} show us how to emulate implicit types via type classes and ultimately how all kinds of quantification, modulo some boilerplate, are possible in Haskell.
+Much like the encoding of a dynamic property such as the length of a vector in its type, we will use the same techniques to represent values of the data type we construct patches on. This extra information encoded in the type will be crucial in guaranteeing the transformations to be structurally and type preserving.
 
 \subsection{Sum of Products}\label{SOP}
 
 The basic idea of the Sum of Products (SOP) approach is to define a ``normal form'' for all generic representations of data types and 
 to define generic functions by induction on this form. It is, in some sense, similar to the Disjunctive Normal Form for propositional logic in the sense that every proposition can be expressed in DNF and we can write theorems (functions) which assume the expression is represented in DNF.
-The bulk idea is to view each type as a choice between a constructor and all the arguments that are passed to that constructor. It is useful to think about the two different levels: on the first level we make a choice about which constructor to pick; this corresponds to a sum
-over all the constructors of the type. On the second level, we are choosing a certain number of arguments to feed to that constructor and this can be viewed as a list, or product, of 
-those arguments. Clearly the products will depend on the choice of constructor, 
-each of which could take a different number of arguments of possibly 
-different types. This motivates the need to represent the product as some sort 
-of heterogeneous list. A constructor can also take no arguments, in which case we 
-can simply use an empty list to represent that, but can also take an argument of the same type it is trying to construct (like the \mintinline{haskell}{S} constructor from the previous section). 
+The bulk idea is to view each type as a choice between a constructor and all the arguments that are passed to that constructor. It is useful to think about the two different levels: on the first level we make a choice about which constructor to pick; this corresponds to a sum over all the constructors of the type. On the second level, we are choosing a certain number of arguments to feed to that constructor and this can be viewed as a list, or product, of those arguments. 
+Clearly the products will depend on the choice of constructor, each of which could take a different number of arguments of possibly 
+different types. This motivates the need to represent the product as some sort of heterogeneous list. 
+A constructor can also take no arguments, in which case we can simply use an empty list to represent that, but can also take an argument of the same type it is trying to construct (like the \mintinline{haskell}{S} constructor from the previous section). 
 In this case, the recursive argument can itself be encoded as an SOP and the same encoding can be used all the way down to the leaves. 
 
-Since every data type can be encoded as an SOP, we can write functions 
-that act on this representation. For each data type 
-we can first convert it to the SOP representation and then pass it to 
-the desired function. Since the SOP representation is isomorphic to the original type, we can eventually reconstruct the 
-desired term after we are done working with the representation. This encoding is 
-presented by Loh et al. \cite{true-sop} and represents one of the numerous different ways to 
-approach generic programming in Haskell. 
-In the remainder of this section we will try to formalize the intuition presented 
-above by building the SOP representation of a data type. 
+For example, given the simple data type
+
+\begin{minted}{haskell}
+data T = A Int Int | B String | C String Bool
+\end{minted}
+
+We can view a value of type \toHaskell{T} as a choice between one of the three constructors, together with the list of arguments the constructor requires.
+
+\begin{itemize}
+\item \toHaskell{A} x \toHaskell{[Int, Int]}
+\item \toHaskell{B} x \toHaskell{[String]}
+\item \toHaskell{C} x \toHaskell{[String, Bool]}
+\end{itemize}
+
+
+Since every data type can be encoded as an SOP, we can write functions that act on this representation. For each data type we can first convert it to the SOP representation and then pass it to the desired function. Since the SOP representation is isomorphic to the original type, we can eventually reconstruct the desired term after we are done working with the representation. This encoding is presented by Loh et al. \cite{true-sop} and represents one of the numerous different ways to approach generic programming in Haskell. 
+In the remainder of this section we will try to formalize the intuition presented above by building the SOP representation of a data type. 
 
 \subsection{Building our Universe}\label{universe}
 
@@ -282,12 +288,20 @@ can be applied to a family of mutually recursive data types.
 data IntTree = Node IntTree IntTree | Leaf Int
 \end{minted}
 
-For each type that appears as an argument to a constructor in our family
-of data types, we will construct an atom representing that type.
-Following the example above, we will define
+For each type in our family of data types, or any type appearing as an argument to the constructors in our family of data types, we want to introduce a kind representing that type. 
+
+Following the example above, we will define the following data type. Keep in mind we only define the type so that the DataKinds extension will automatically generate the corresponding kinds we are interested in.
 
 \begin{minted}{haskell}
 data U = KInt | KIntTree 
+\end{minted}
+
+We will also need to associate each type with a singleton, which will allow us to relate terms of our language to their type level representation. 
+
+\begin{minted}{haskell}
+data Usingl :: U -> * where
+  UInt :: Int -> Usingl KInt
+  UIntTree :: IntTree -> Usingl KIntTree
 \end{minted}
 
 Now, we can group all the constructors appearing in our original
@@ -295,9 +309,7 @@ data types under the \mintinline{haskell}{Constr} type in a similar way as we
 did for the atoms. 
 
 \begin{minted}{haskell}
-data Constr :: * where
-  CNode :: Constr
-  CLeaf :: Constr
+data Constr = CNode | CLeaf
 \end{minted}
 
 We have now deconstructed our original data type into two levels: \mintinline{haskell}{Constr} corresponding to the level of sums (the constructor) 
@@ -329,15 +341,6 @@ type family TypeOf (c :: Constr) :: [U] where
   TypeOf CLeaf = '[KInt]
 \end{minted}
 
-We will also need to associate each atom with a singleton, which will
-allow us to relate terms of our language to their type level representation. 
-
-\begin{minted}{haskell}
-data Usingl :: U -> * where
-  UInt :: Int -> Usingl KInt
-  UIntTree :: IntTree -> Usingl KIntTree
-\end{minted}
-
 Since \toHaskell{TypeOf} returns something of kind \toHaskell{[U]} we will define another GADT named \toHaskell{All}, that maps a type constructor \toHaskell{k -> *} over an argument of kind \mintinline{haskell}{[k]} giving us something of kind \mintinline{haskell}{*} to quantify over a list of singletons.
 
 The definition for \mintinline{haskell}{All} is straightforward:
@@ -366,16 +369,18 @@ Finally, we want to define a pair of functions that allow us to move from an \to
 
 The \toHaskell{view} function, defined only for the recursive elements of the language can be implemented as follows.
 
-\begin{minted}[breaklines]{haskell}
+\begin{minted}{haskell}
 view :: IsRecEl r => Usingl r -> View r
 view (UIntTree t) = viewTree t
 
 viewTree :: IntTree -> View KIntTree
-viewTree (Node t1 t2) = Tag NodeProof (UIntTree t1 `Ac` UIntTree t2 `Ac` An)
-viewTree (Leaf i)     = Tag LeafProof (UInt i `Ac` An)
+viewTree (Node t1 t2) 
+  = Tag NodeProof (UIntTree t1 `Ac` UIntTree t2 `Ac` An)
+viewTree (Leaf i)     
+  = Tag LeafProof (UInt i `Ac` An)
 \end{minted}
 
-We parametrize this function by the \toHaskell{IsRecEl} constraint, as atomic elements can not be deconstructed into a pair of constructor and arguments.
+We parametrize this function by the \toHaskell{IsRecEl} constraint which is an empty type-class used to distinguish recursive atoms from non-recursive one. We need this distinction as there is no way to make a \toHaskell{ConstrFor KInt}, hence the type family would not reduce and we would be stuck.
 
 The same holds for the inverse function \toHaskell{inj}: it will take as arguments the constructor, the list of arguments for that constructor and produce the corresponding \toHaskell{Usingl}.
 
@@ -426,8 +431,8 @@ the two trees which captures the parts that do not change under the transformati
 
 \subsection{Spine}\label{spine}
 
-We will define Spines only between two elements of the same sum-type, and defer to later the discussion on how
-to perform transformation between elements of different sum-types. Calculating a spine for two elements of the same sum-type 
+We will define Spines only between two elements of the same family, and defer to later the discussion on how
+to perform transformation between elements of different families. Calculating a spine for two elements of the same family
 loosely corresponds to calculating the longest common prefix between two strings. Recall that the two 
 elements \emph{x} and \emph{y} are viewed as SOP, in this sense calculating the
 spine between \emph{x} and \emph{y} corresponds to capturing the common
@@ -453,12 +458,12 @@ data Spine (at :: U -> *)(al :: [U] -> [U] -> *) :: U -> * where
        -> Spine at al u
 \end{minted}
 
-If the two
-elements are the same, the spine is a copy. If the top level
-constructors match, the spine consists of this information and a function to
-transform the constructor fields pairwise. Lastly, if two constructors
-don't match, the spine must record this and also contain a function to
-transform the list of source fields into the list of destination fields.
+
+Let's not worry about the \mintinline{haskell}{al} and \mintinline{haskell}{at} parameters for the time 
+being, these will later be used to close the recursive knot and generate the full patch by interleaving
+the construction showed here and in the following sections. 
+
+If the two elements are the same, the spine is a copy. If the top level constructors match, the spine consists of this information and a function to transform the constructor fields pairwise. Lastly, if two constructors don't match, the spine must record this and also contain a description of a transformation the list of source fields into the list of destination fields.
 
 %TODO Explain Kind?
 The \mintinline{haskell}{Scp} constructor corresponds to the first case, in which we need
@@ -468,22 +473,17 @@ Before looking at the other two constructors, let us focus our attention for a m
 the third parameter of the spine (the \mintinline{haskell}{U}) represents the
 underlying type for which we are trying to compute a patch, the sum-type to which $x$ and $y$ both belong.
 The other two, \mintinline{haskell}{al} and \mintinline{haskell}{at} are respectively a
-function between products that describes what to do with the different
-constructor fields and a function between atoms which describes what to
+description of a transformation between products -- that describes what to do with the different
+constructor fields -- and a transformation between atoms, which describes what to
 do with the paired fields in case we have the same constructor.
-These functions are needed for the remaining constructors: the \mintinline{haskell}{Scns} constructor corresponds to the 
-case where the constructor is left untouched but some of the arguments have changed.
-For this reason its second argument consists of the predicate \mintinline{haskell}{at} applied to the list of arguments which describes
-how to transform them. 
+These parameters are needed for the remaining constructors: the \mintinline{haskell}{Scns} constructor corresponds to the  case where the constructor is left untouched but some of the arguments have changed.
+For this reason its second argument consists of the predicate \mintinline{haskell}{at} applied to the list of arguments which describes how to transform them. 
 
 Finally, \mintinline{haskell}{Schg} represents a change of constructor on the sum level: the first two arguments record the
 source and destination constructors, the third argument is the
 \mintinline{haskell}{al} function applied to the constructor fields of the source and
 destination constructor respectively.
 
-Let's not worry about the \mintinline{haskell}{al} and \mintinline{haskell}{at} parameters for the time 
-being, these will later be used to close the recursive knot and generate the full patch by interleaving
-the construction showed here and in the following sections. 
 For now we can simply observe that if we were to calculate a spine between the 
 two programs introduced above we would proceed by constructing their view as 
 presented in \ref{SOP} obtaining the following
@@ -493,8 +493,7 @@ v1 = Tag NodeProof (UIntTree (Leaf 1) `Ac` UIntTree (Node (Leaf 1) (Leaf 1)))
 v2 = Tag NodeProof (UIntTree (Leaf 1) `Ac` UIntTree (Leaf 2))
 \end{minted}
 
-These views are not completely equal, but their first argument is. This represents the outer choice 
-of constructor and we are after all ultimately transforming an \mintinline{haskell}{Node} into another one. The spine produced
+These views are not completely equal, but the choice of constructor is, this makes sense as we are transforming a \mintinline{haskell}{Node} into another one. The spine produced
 by these two views will then start with an \mintinline{haskell}{Scns} recording the fact that 
 the outer constructor has stayed the same but there are some changes in its 
 arguments.
@@ -529,20 +528,11 @@ motivates the following definition of alignments.
 
 \subsection{Alignment}\label{alignment}
 
-The spine takes care of matching
-the constructors of two trees, alignments handle the products packed within the constructors.
-Recall that this alignment has to work between two heterogeneous lists
-corresponding to the fields associated with two distinct constructors.
-The approach presented below is inspired by the existing algorithms
-based on the edit distance between two strings. The problem of finding
-an alignment of two lists of constructor fields can be viewed as the
-problem of finding an edit script between them. An edit script is
-simply a sequence of operations which describes how to change the source
-list into the destination. In the case of \diff the source and destination lists are the lists of lines in the source and destination files; in our context
-the source and destination lists are the products of fields of the source and destination constructors respectively. 
-To compute an edit script we simply
-traverse the lists, from left to right, considering one element from each
-list. At each step we are presented with three choices:
+The spine takes care of matching the constructors of two trees, alignments handle the products packed within the constructors.
+Recall that this alignment has to work between two heterogeneous lists corresponding to the fields associated with two distinct constructors.
+The approach presented below is inspired by the existing algorithms based on the edit distance between two strings. 
+The problem of finding an alignment of two lists of constructor fields can be viewed as the problem of finding an edit script between them. An edit script is simply a sequence of operations which describes how to change the source list into the destination. In the case of \diff the source and destination lists are the lists of lines in the source and destination files; in our context the source and destination lists are the products of fields of the source and destination constructors respectively. 
+To compute an edit script we simply traverse the lists, from left to right, considering one element from each list. At each step we are presented with three choices:
 
 \begin{itemize}
 \item
@@ -563,13 +553,13 @@ alignment.
 
 \begin{minted}{haskell}
 data AL (at :: U -> *) :: [U] -> [U] -> * where
-  A0   :: Al at '[] '[]
+  A0   :: AL at '[] '[]
   Ains :: Usingl u -> AL at xs ys -> AL at xs (u : ys)
   Adel :: Usingl u -> AL at xs ys -> AL at (u : xs) ys
   Amod :: at u -> AL at xs ys -> AL at (u : xs) (u : ys)
 \end{minted}
 
-\mintinline{haskell}{AL} is parametrised by the same type-level function introduced in the spine. 
+For alignments, the \toHaskell{at} parameter plays the same role as in the spine. 
 \mintinline{haskell}{A0} represents the empty alignment, \mintinline{haskell}{Ains} and \mintinline{haskell}{Adel} take as first argument
 a singleton representing the element being inserted or deleted. These two, together
 with an alignment for the rest of the list, give us the alignment with
@@ -585,12 +575,11 @@ However, in our case, the elements we are inserting or deleting are
 sub-trees of arbitrary size, therefore it is not obvious if we should try and prune
 insertions or deletions.
 
-This poses the problem that when enumerating alignments we have no guiding heuristic to cut the number
-of solutions, for the time being we will simply ignore the problem and resort to enumerate
+This poses the problem that when enumerating alignments we have no guiding heuristic to cut the number of solutions, for the time being we will simply ignore the problem and resort to enumerate
 all possible alignments, to not skew the algorithm into preferring
 insertions over deletions or viceversa.
 
-Let's walk through calculating the alignment for our running example: we have to 
+Let us walk through calculating the alignment for our running example: we have to 
 produce an alignment between \mintinline{haskell}{[KSExpr, KSExpr]} and \mintinline{haskell}{[Kint]} (recall that these are the shapes of the 
 \mintinline{haskell}{Node} and \mintinline{haskell}{Leaf} constructors). Because of the way we 
 define the \mintinline{haskell}{Amod} constructor, more precisely because of the \mintinline{haskell}{at} 
@@ -634,7 +623,7 @@ Once again, borrowing the language definition from the previous section, we will
 class and instances defined
 \begin{minted}{haskell}
 class IsRecEl (u :: U) where
-instance IsRecEl KSExpr where
+instance IsRecEl KIntTree where
 \end{minted}
 
 With this we can define the following datatype to represent diffs between atoms of our language.
@@ -650,9 +639,7 @@ The first constructor, \mintinline{haskell}{Ai}, which represents the recursive 
 parametrised by this predicate, the constraint is added to ensure by construction 
 that when we build an \mintinline{haskell}{Ai} we can only do so for the elements of the 
 language that actually are recursive.
-The other case is covered by the \mintinline{haskell}{As} constructor, recall that in this case \mintinline{haskell}{Diagonal} simply lifts 
-\mintinline{haskell}{Usingl} to a pair of elements of type \emph{u}, so the first parameter 
-can be read as: a pair of \mintinline{haskell}{Usingl u}.
+The other case is covered by the \mintinline{haskell}{As} constructor, recall that in this case \mintinline{haskell}{Diagonal} simply lifts \mintinline{haskell}{Usingl} to a pair of elements of type \emph{u}, so the first parameter can be read as: a pair of \mintinline{haskell}{Usingl u} where the first element is the source and the other is the destination.
 
 In our example we have already seen the case for \mintinline{haskell}{Ai}, the atoms paired 
 by the first spine were all \mintinline{haskell}{Kexpr}s which we recursively calculated spines on. 
@@ -668,9 +655,9 @@ be seen from the following simple example between lists:
 \begin{minted}{haskell}
   [ 1, 2, 3, 4 ] -> [ 2, 3, 4 ]
 \end{minted}
-Clearly the optimal patch will proceed to delete the first element and then 
+Intuitively the optimal patch will proceed to delete the first element and then 
 copy over any remaining one. Our definition, however, does not allow for such 
-deletions. Deletions (resp. insertions) are only handled by alignments. To 
+deletions. Deletions (resp. insertions) are only handled by alignments at the product level. To 
 handle such cases we can extend our spines and alignments with the datatype 
 \mintinline{haskell}{Almu} that allows insertions or deletions to happen on the sum level.
 
@@ -700,7 +687,7 @@ data Almu :: U -> U -> * where
 The \toHaskell{AlmuH}, \toHaskell{AtmuPos} and \toHaskell{AtmuNeg} are wrappers around \toHaskell{Almu}s to make source and destination types line up correctly.
 This gives rise to another occasion for non-determinism, as \mintinline{haskell}{Almu} has 
 the same shortcomings of \mintinline{haskell}{AL} meaning that we have no obvious choice of 
-what operation should be maximized over the others. As for alignments we decide to proceed non-deterministically
+what operation should be maximized over the others. As for alignments, we decide to proceed non-deterministically
 and compute every possibly choice. 
 
 \subsection{Putting everything together}\label{putting everything together}
@@ -709,7 +696,7 @@ Now that we have defined all the types we need to represent our patches we are r
 We can write this function from the ``bottom up'', starting from the atoms and working our way up through spines and recursive alignments. 
 Notice how all these functions return a list of results, as non-determinism comes into play at every step. The signatures have been slightly simplified from the actual implementation where, for example, the result is parametrised by a monad, making it more general.
 
-We will only present the signatures of the functions in this section as it allows us to simplify some details of the implementation. The bodies of each function will be replaced by a short description which, given the types introduced up to this point and the supplied signature, will hopefully make it easy to fill in the gaps. 
+For some functions, we will only present the signatures of the functions in this section, as it allows us to simplify some details of the implementation. The bodies of each function will be replaced by a short description which, given the types introduced up to this point and the supplied signature, will hopefully make it easy to fill in the gaps.  The full implementation, which fills in the details for the missing functions, can be found at \cite{repo}. 
 The diff function for atoms should have the following signature
 \begin{minted}[breaklines]{haskell}
 diffAt ::  (forall r . IsRecEl r => 
@@ -724,7 +711,7 @@ other case, when the element is non recursive, we can simply pair up the two
 constant atoms with a \mintinline{haskell}{Diagonal} and build the non-recursive \mintinline{haskell}{At}.
 
 We need to define a function that given a pair of singletons produces all the spines between those two singletons. Remember that spines are parametrised by the alignment that handles the product structure, for this reason we will end up with as many spines as the number of valid alignments.
-Recall that in a \toHaskell{Spine al at u}, \toHaskell{al} and \toHaskell{at} are respectively two functions that respectively describe how to handle the paired atoms in case the external constructor hasn't changed (\scns), and how to handle the products in the case where the external constructor has changed (\schg). These parameters are of kind \toHaskell{at :: U -> *} and \toHaskell{al :: [U] -> [U] -> *}. In the most simple case we can imagine that the treatment of atoms and products consists of simply pairing them up. We can define "trivial" alignments for atoms and products which simply consist of this pairing up. For atoms we can reuse the \toHaskell{Diagonal} type we introduced earlier, for products we need to define a custom \toHaskell{Pair} type.
+Recall that in a \toHaskell{Spine al at u}, \toHaskell{al} and \toHaskell{at} are respectively two functions that respectively describe how to handle the paired atoms in case the external constructor has not changed (\scns), and how to handle the products in the case where the external constructor has changed (\schg). These parameters are of kind \toHaskell{at :: U -> *} and \toHaskell{al :: [U] -> [U] -> *}. In the most simple case we can imagine that the treatment of atoms and products consists of simply pairing them up. We can define ``trivial" alignments for atoms and products which simply consist of this pairing up. For atoms we can reuse the \toHaskell{Diagonal} type we introduced earlier, for products we need to define a custom \toHaskell{Pair} type.
 
 \begin{minted}{haskell}
 type TrivialA = Diagonal Usingl
@@ -763,7 +750,7 @@ align (a1 `Ac` p1) (a2 `Ac` p2) = case testEquality a1 a2 of
 \end{minted}
 % $
 
-The implementation is straight forward as we simply non-deterministically explore all the possible choices, the only exception being that we choose to pair-up two elements only if the \toHaskell{testEquality} test succeeds.
+The implementation is straight forward as we non-deterministically explore all the possible choices, the only exception being that we choose to pair-up two elements only if the \toHaskell{testEquality} test succeeds, which indicates the elements belong to the same member of the family of data types.
 Finally we can define \toHaskell{diffS}. The definitions of \toHaskell{mapAlM} and \toHaskell{mapSpineM} are omitted, these combinators are used to map the recursive functions over their trivial counterparts.
 \begin{minted}{haskell}
 diffS :: IsRecEl a => (forall r . IsRecEl r => 
@@ -787,7 +774,8 @@ We finally have to define a function that computes the diff in terms of \mintinl
 This function will have the following signature
 
 \begin{minted}{haskell}
-  diffAlmu :: (IsRecEl u, IsRecEl v) => Usingl u -> Usingl v -> [Almu u v]
+diffAlmu :: (IsRecEl u, IsRecEl v) 
+	 => Usingl u -> Usingl v -> [Almu u v]
 \end{minted}
 
 As is the case for the alignment between products, here we will simply proceed by enumerating all possible recursive alignments, attempting at each level the alignment of spines, insertions and deletions.
@@ -903,10 +891,10 @@ finds and only calling the recursive application once it finds the corresponding
 hole.
 
 \subsection{Disjointedness}\label{disj}
-We can define a predicate to decide disjointedness between patches. We want to define this notion only for pair of patches that share the same source, as patches from completely different sources are incomparable to each other. 
-The idea that we want to capture with disjointedness is that two disjoint patches should always commute; this means that we can apply them in any order to the source and always get the same result.
-This property is crucial in reconciling patches coming from two different branches. When trying to compute a three way merge, if we can determine that the two patches are disjoint, then we know we can pick an arbitrary order to apply them, and will not end up with a conflict.
 
+The idea that we want to capture with disjointedness is that two disjoint patches should always commute; this means that we can apply them in any order to the source and always get the same result.
+We want to define this notion only for pair of patches that share the same source, as patches from completely different sources are incomparable to each other. 
+This property is crucial in reconciling patches coming from two different branches. When trying to compute a three way merge, if we can determine that the two patches are disjoint, then we know we can pick an arbitrary order to apply them, and will not end up with a conflict.
 In the case of \diffthree, two patches are not disjoint when they modify the same line in two different ways. If that is the case, then the two patches must not commute, as whatever patch is applied last, will overwrite the conflicting line with it's own version.
 
 We can start by attempting to define what disjointedness is on the recursive level.  Disjointedness should model the fact that two patches are acting on different parts of the source. This suggests we want to impose the condition that any patch different from the trivial one, is disjoint from itself.  
@@ -1013,7 +1001,7 @@ disjointAt disjointR (As p) (As p')
 Having developed a general framework to compute patches between typed trees, we know want explore its performance in the context of a real programming language.
 To test this, we developed a parser for Clojure; the implementation of this parser can be somewhat different to one designed to interpret and run Clojure code, this is because in this context we are more concerned with capturing the syntactical structure rather than the semantical one. One further consideration is that the parser should try to capture as much syntactical information as possible, in order to produce code that strives to respect any syntactical convention embraced by the authors.
 
-The AST will be composed by a family of data-types, with the \toHaskell{Expr} type representing the "entry point" for each parse. 
+The AST will be composed by a family of data-types, with the \toHaskell{Expr} type representing the ``entry point" for each parse. 
 
 \begin{minted}{haskell}
 data Expr = Special FormTy Expr
@@ -1064,7 +1052,7 @@ Finally we will have to add \toHaskell{IsRecEl} instances for the recursive elem
 \section{Heuristics}
 
 When moving from our toy language to a more complex one like Clojure, we soon run into the limitations of our non-deterministic approach.
-Non-determinism sneaks in when we have to compute an alignment, either on the recursive or on the atomic level. 
+Non-determinism explodes when we have to compute an alignment, either on the recursive or on the atomic level. 
 
 It is easy to see that in some cases, prioritizing deletions can be more profitable and in other it may be better to do the opposite; this uncertainty stems from the fact that at the time we are calculating the alignment we have no information about the size of the sub-trees we are considering. 
 
@@ -1074,7 +1062,7 @@ us from optimising towards insertions or deletions.
 In this section we will define some heuristics we can use to guide this process of enumeration in order to trim down the amount of computations that need to be carried on.
 These heuristics fall under two categories.
 
-\begin{enumerate}
+\begin{itemize}
 \item One is to explore the possibility of using the standard unix \mintinline{haskell}{diff3} algorithm as an oracle to prune the alignment trees that are being generated. 
 The idea is that instead of enumerating all possible alignments between two trees, we can check and see how \diff3 treats the sequence of lines in which that tree resides in the source. This can allow us to prune the search space based on the information we can derive from \diff3 and may be able to speed up the computation to handle larger inputs. This idea can be taken a step further. We can generalise the approach to add an Oracle which, based on some internal state, generates the next branches that should be explored.
 
@@ -1088,7 +1076,7 @@ With this approach, the question that arises is: what are the properties of patc
 if a patch consists of a copy on a certain sub-tree, we can be sure that we can 
 safely merge this with any patch that modifies that same sub-tree. 
 In other words, want to define an heuristic that picks the patch that maximises the chances of it being disjoint from any other patch from the same source.
-\end{enumerate}
+\end{itemize}
 
 
 
@@ -1114,12 +1102,15 @@ We can now define our Oracle class
 
 \begin{minted}{haskell}
 class Oracle o m where
-  callP :: o -> All Usingl p1 -> All Usingl p2 -> HistoryM m [Path]
+  callP :: o -> All Usingl p1 -> All Usingl p2 
+  	 -> HistoryM m [Path]
   callF :: (IsRecEl u, IsRecEl v) 
 	 => o -> Usingl u -> Usingl v -> HistoryM m [Path]
 \end{minted}
 
-The Oracle class has two functions, one for the choice on the constructor level (\toHaskell{callF}) (we call this the \textit{Fixpoit} too, hence the `F` in the suffix) and one for the choice on the product level (\toHaskell{callP}). At each choice, the oracle has access to the history of paths issued on the branch via the history monad, and  has also access to it's internal state (the $o$ type).
+
+The Oracle class has two functions, one for the choice on the constructor level (\toHaskell{callF}) (we call this the \textit{Fixpoint} too, hence the `F` in the suffix) and one for the choice on the product level (\toHaskell{callP}). At each choice, the oracle has access to the history of paths issued on the branch, and has also access to it's internal state (the $o$ type).
+It is important to keep in mind the difference in role between the two lists of paths. The one that is threaded through by the history monad keeps track of the path taken on the current branch. The output of the oracles, on the other hand, is still a list of paths, but this represents possible paths we can take at each non-deterministic choice. As such, it is actually treated as a set, with each different element appearing at most once, and the empty list representing the fact that the oracle can not make a choice at that step.
 
 Notice that the signatures differ in the arguments they take, \toHaskell{callP} is meant to handle alignments on the product level, as such it takes the two heterogeneous lists that are being aligned. The function \toHaskell{callF} on the other hand, is meant to handle the recursive alignments on the constructor level and takes two singletons as input.
  
@@ -1141,8 +1132,8 @@ This oracle will not contain any global information and will ignore the history 
 
 \subsubsection{NoDupBranches}
 
-The first optimisation we want to encode is to limit the duplicate branches being explored: we avoid performing an insertion if the last step was a deletion and vice-versa.
-It is easy to see that an insertion followed by a deletion is equivalent to a deletion followed by an insertion, furthermore -- if we can match two elements -- then the match will never be worst than an insertion followed by a deletion.
+The first optimisation we want to encode is to limit the duplicate branches being explored. It is based on the observation that the order of sequential insertions and deletions does not matter: we can avoid performing an insertion if the last step was a deletion and vice-versa,
+It is easy to see that an insertion followed by a deletion is equivalent to a deletion followed by an insertion, furthermore -- if we can match two elements -- then the match will never be worst than an insertion followed by a deletion. 
 
 We can define the following function that looks at the history of issued paths to avoid performing an insertion if the last step was a deletion and vice-versa. The last step is attached in front of the list as it is more efficient that traversing the list every time to add it at the end.
 
@@ -1170,7 +1161,7 @@ instance (Monad m) => Oracle NoDupBranches m where
 \subsection{Oracle composition}
 
 With the oracles we gain the possibility to tweak the run-time behaviour of the 
-algorithm without have to change any parts of the actual implementation.
+algorithm without having to change any parts of the actual implementation.
 An advantage of this is that we can define a notion of 
 composition between oracles; this way we can layer different processes, each of 
 which is independent of the other in terms of implementation.
@@ -1202,13 +1193,9 @@ instance (Monad m, Oracle a m, Oracle b m)
 \end{minted}
 
 \subsection{DiffOracle}
-A considerable speedup can be obtained by using \diff to prune the 
-search space. We can define a datatype, which mirrors the definition of a path 
-and identifies which lines are copied, which are deleted and which are inserted 
-according to \diff.
+A considerable speedup can be obtained by using \diff to prune the search space. We can define a data-type, which mirrors the definition of a path and identifies which lines are copied, which are deleted and which are inserted according to \diff.
 
-We will call this datatype \mintinline{haskell}{DiffAction} and it will have the following 
-definition.
+We will call this datatype \mintinline{haskell}{DiffAction} and it will have the following definition.
 
 \begin{minted}{haskell}
   data DiffAction = 
@@ -1243,7 +1230,7 @@ For example, given this pair of source and destination
 \end{minipage}
 \vspace{.6em}
 
-The preprocessing will produce the list \toHaskell{[OIns (1,1), OMod (3,3) (4,5)]}. The first line can be definitely ruled as an insertion, as it is adjacent to a copy on both the source and destination. \emph{Diff} records line 3 of the source as a deletion and lines 4 and 5 of the destination as insertions. This gives us two contiguous regions of insertions and deletions between source and destination and are accordingly recorded as a modification. 
+The pre-processing will produce the list \toHaskell{[OIns (1,1), OMod (3,3) (4,5)]}. The first line can be definitely ruled as an insertion, as it is adjacent to a copy on both the source and destination. \emph{Diff} records line 3 of the source as a deletion and lines 4 and 5 of the destination as insertions. This gives us two contiguous regions of insertions and deletions between source and destination and are accordingly recorded as a modification. 
 
 Since traversing the whole list of \toHaskell{DiffAction} every time we want to call the oracle is not very efficient we can encode the same information in a pair of maps from \toHaskell{Int} to \toHaskell{Path} (one for the source and one for the destination files). 
 Given this pair of maps, the oracle will extract the \toHaskell{LineRange} contained in each \toHaskell{Usingl u} and lookup the line that corresponds to the beginning of the \toHaskell{LineRange} in the corresponding map. We want to only look at the beginning of the \toHaskell{LineRange} as we want to locally exploit the global solution provided by \diff. An alternative approach might be to look at the whole \toHaskell{LineRange} and observe how \diff behaves on the corresponding set of lines. This however, introduces too much noise at the top-level, not giving us enough chances to prune the tree early on which is where we gain the most from the heuristic.
@@ -1262,7 +1249,7 @@ with the corresponding \toHaskell{isIns} and \toHaskell{isDel}, we can finally d
 giveAdvice :: DelInsMap -> Usingl u -> Usingl v -> [Path]
 giveAdvice (srcMap, dstMap) src dst =
   if (isMod srcRange srcMap && isMod dstRange dstMap)
-    then []
+    then [] -- we don't know what to do
   else if (isDel srcRange srcMap || isMod srcRange srcMap)
     then [ D ]
   else if (isIns dstRange dstMap || isMod dstRange dstMap)
@@ -1273,12 +1260,13 @@ giveAdvice (srcMap, dstMap) src dst =
     dstRange = fromJust $ extractRange dst
 \end{minted}
 
-In case in which the ranges do not match with anything in our maps, we simply want to emit an \toHaskell{M}, as these expressions lie in lines that \diffthree identified as copies (we will later see how this may give rise to some problems, as \diff can copy in a way that our algorithm does not support). 
+In case in which the ranges do not match with anything in our maps, we simply want to emit an \toHaskell{M}, as these expressions lie in lines that \diff identified as copies (we will later see how this may give rise to some problems, as \diff can copy in a way that our algorithm does not support). 
 When changes in the source and destination overlap, we are essentially in a range where we know that \diff can not reconcile the changes between them; it will simply delete everything in the source and insert everything in the destination. 
 This is the case where we can attempt to generate a more efficient patch, so we return an empty list to fall back to any underlying oracle that will compute a more precise solution in that range. 
 
 Alternatively, if the source is marked as a deletion, or the destination is marked as an insertions, we will emit the corresponding instruction.
-In the else cases we also check if either the source or the destination is marked as modification (but the other one isn't as the first check was already showed to be false at this point). We have to handle the case that when transforming a source into the destination, we end up on a branch that has inserted (resp. deleted) everything it had to, and it simply needs to delete (rep. insert) the remaining range.
+In the else cases we also check if either the source or the destination is marked as modification (but the other one isn't as the first condition was already showed to be false at this point). We have to handle the case that when transforming a source into the destination, we end up on a branch that has inserted (resp. deleted) everything it had to, and it simply needs to delete (rep. insert) the remaining range.
+
 
 Finally, the full oracle can be defined as follows:
 
@@ -1302,18 +1290,21 @@ askOracle (DiffOracle diffActions) src dst
 
 With this definition, we exploit the fact that the \toHaskell{LineRange} is only defined for the recursive elements of the family, which means that in the case we can not extract it, we can short-circuit the computation since we never pair up non-recursive elements with recursive ones.
 
-\subsubsection{Shortcomings}
-One of the issues with this optimisation is that not every modification between source and destination file is correctly identified by this procedure. Some problems arise when changes in the resulting AST are invisible to \diff. Suppose that we didn't include empty expressions in our AST and modeled the top-level parse as either a single expression or a sequence of multiple ones. 
+\subsubsection{Corner cases}
+
+One of the issues with this optimisation is that not every modification between source and destination file is correctly identified by this procedure. Since the changes detected by \diff on the lines do not always map directly to changes on the AST there are some corner cases we have to account for.
+
+Suppose that we didn't include empty expressions in our AST and modeled the top-level parse as either a single expression or a sequence of multiple ones. 
 What happens when try to compute the patch between the following files?
 
 \vspace{.6em}
-\begin{minipage}[t]{0.5\textwidth}
+\begin{minipage}[t]{0.45\textwidth}
 \begin{minted}[linenos]{clojure}
 (keep
   old keep)
 \end{minted}
 \end{minipage}
-\begin{minipage}{0.5\textwidth}
+\begin{minipage}{0.45\textwidth}
 \begin{minted}[linenos]{clojure}
 (keep
   new keep)
@@ -1322,45 +1313,62 @@ What happens when try to compute the patch between the following files?
 \end{minipage}
 \vspace{.6em}
 
-The preprocessing will produce \toHaskell{[OMod (2,2) (2,3)]}. 
+The pre-processing will produce \toHaskell{[OMod (2,2) (2,3)]}. 
 However, to perform the optimal patch between these two programs we clearly want to insert a \mintinline{haskell}{Seq} on the first line and proceed calculating the diff from there, but our \toHaskell{DiffAction} does not contain any insertion there. 
 By following the \diff instead, we realize we had to change the external node when it is too late, we are now looking at line 2 and have already decided to copy over the first line. 
 At its core, the problem lies in the fact that the external change is invisible to \diff, since it only deals with lines, and the addition of lines at the end does not influence in any way the lines at the beginning of the file. 
 In our case, we have the whole expression tree, and adding a line at the end of the file does not necessarily only trigger changes on the leaves of the tree, but changes may bubble up to the root, as in the example shown. 
 
-\subsubsection*{Possible Solutions}
-There are different ways we can solve this problem. 
-One is to carefully think about which nodes have this "non-local influence" and treat them in a special way. 
-For example, the problem presented in the previous snippet arises from the fact that -- when transforming a top level expression from a single \toHaskell{Expr} to a \toHaskell{Seq} -- we only realize that this change has to be made when we get to the second \toHaskell{Expr}. 
+The problem presented in the previous snippet arises from the fact that -- when transforming a top level expression from a single \toHaskell{Expr} to a \toHaskell{Seq} -- we only realize that this change has to be made when we get to the second \toHaskell{Expr}. 
 Whenever we change a single expression to a sequence of two by adding one at the end, we will inevitably mark the first expression as a copy, and the second as an insertion. This means it will be ``too late'' when we get to the inserted line: we already decided to copy a node which leaves us no space to insert the new expression.
 
-One solution is to design the AST in a way that prevents this problem from ever coming up. If we modelled the top-level of a program so that the top level is always a \toHaskell{Seq}, and we add an \toHaskell{Empty} constructor to \toHaskell{Expr} an example like the previous one, would not be problematic anymore. 
+A possible solution is to design the AST in a way that prevents this problem from ever coming up. If we modeled the top-level of a program so that the top level is always a \toHaskell{Seq}, and we add an \toHaskell{Empty} constructor to \toHaskell{Expr} an example like the previous one, would not be problematic anymore. 
 Indeed, when we get to the second line, we don't have to change the previous constructor anymore, as the source will conveniently contain an \toHaskell{Empty} expression slot in which we can insert our new expression.
 This solution has the problem of being very ad-hoc. We have to modify the parser and add support for the new constructors throughout the implementation. Empty expressions turned out to be useful in any case, as we need them to model the patch that inserts into an empty file, but the solution is clearly not satisfactory as it requires us to model our AST in a very ad-hoc way.
 
 A better solution would be to design oracles that can deal with the problematic cases. 
 Sticking to the example presented earlier, we could define a simple oracle which ignores everything, except the case when it gets as input a single expression from the source and a sequence of multiple ones in the destination. In that case we know that -- no matter what the other oracles say -- we must insert a \toHaskell{Seq} node on the top-level; in that situation we can directly return \toHaskell{I} and skip the other oracles. 
 
-This solution is better than the previous one, as it is less invasive. It is still troublesome however that the correctness of the oracle depends on other oracles being present. Also, if we want to add support for other languages in the future we will have to carefully re-implement the ad-hoc oracles for the new languages. To solve these last lingering issues, we can adopt a different strategy. 
+This approach is better than the previous one, as it is less invasive. It is still troublesome however that the correctness of the oracle depends on other oracles being present. Also, if we want to add support for other languages in the future we will have to carefully re-implement the ad-hoc oracles for the new languages. To solve these last lingering issues, we can adopt a different strategy. 
+Ultimately the problem lies in the fact that there are two distinct actors at play: on one hand we have the AST, on the other the lines of code, which can be thought of as a pretty-printed representation of the AST. We are using the line based solution over the pretty-printed AST to derive a solution on the original AST. Our problems arise from the fact that changes to the pretty-printed AST don't always map one-to-one to changes in the AST. If we could somehow run the line based diff on the AST directly there would be no discrepancies.
+We can obtain a printable representation of the AST that does not collapse the representation of changes like the pretty-printed version does. Since every element of the AST is annotated with the line range which tells us on what line it appears, we can simply traverse the tree and print every constructor on the line the corresponding syntactical element originally appeared.
+We can now run \diff to pre-process the ASTs printed in this way. Each change that was detected by running on the original files will also be detected by looking at the ASTs, as they are representations of the content of those files. 
+Below we show the results of printing the ASTs from the two previous examples with this strategy.
 
-Ultimately the problem lies in the fact that there are two distinct actors at play: on one hand we have the AST, on the other the lines of code, which can be thought of as a pretty-printed representation of the AST. We are using the line based solution over the pretty-printed AST to derive a solution on the original AST. Our problems arise from the fact that changes to the pretty-printed AST don't always map one-to-one to changes in the AST. If we could somehow run the line based diff on the AST directly there would be no discrepancies. To do so, we can print the AST to a file and, since every constructor is annotated with a line range which tell us on what line it appears, we can print each sub-tree on the lines the elements it contains appear in. 
-We can now run \diff to preprocess the ASTs printed in this way. Each change that was detected by running on the original files will also be detected by looking at the ASTs, as they are representations of the content of those files. The converse, is not true though, by running \diff on the AST we know exactly on which levels of the tree, modifications on certain lines reflect.
-The problematic case we showed earlier will now be correctly recognized. Indeed, by printing the ASTs of the two files showed earlier, we will immediately detect that on line 1 the constructor has changed from \toHaskell{Collection} to \toHaskell{Seq}.
+\vspace{.6em}
+\begin{minipage}{0.95\textwidth}
+\begin{minted}[fontsize=\footnotesize, linenos]{clojure}
+(Collection Parens (Cons (Term (TaggedString "keep" ...  NewLine
+(Cons (Term (TaggedString Var "old")) ... )
+\end{minted}
+\end{minipage}
 
-\subsubsection{Further Shortcomings}
+\vspace{.6em}
+
+\begin{minipage}{0.95\textwidth}
+\begin{minted}[fontsize=\footnotesize, linenos]{clojure}
+(Seq (Collection Parens (Cons (Term (TaggedString "keep" ... NewLine
+(Cons (Term (TaggedString Var "new")) ... )
+(Collection Parens (Cons (Term (TaggedString "new" ... )
+\end{minted}
+\end{minipage}
+\vspace{.6em}
+
+The problematic case we showed earlier will now be correctly recognized. Indeed, by printing the ASTs of the two files showed earlier, we will immediately detect that on line 1 the constructor has changed from \toHaskell{Collection} to \toHaskell{Seq}. Running the pre-processing on this representation of the AST nets us the desired \toHaskell{[OMod (1,2) (1,3)]}
+
 
 Another problem, perhaps even more troubling, is that \diff can mark some parts as copies even though these copies are illegal for our algorithm. 
 Imagine a case where we have this pair of source and destination files
 
 \vspace{.6em}
-\begin{minipage}{0.5\textwidth}
+\begin{minipage}{0.45\textwidth}
 \begin{minted}[linenos]{clojure}
 ((keep
   del
 keep))
 \end{minted}
 \end{minipage}
-\begin{minipage}{0.5\textwidth}
+\begin{minipage}{0.45\textwidth}
 \begin{minted}[linenos]{clojure}
 ((keep
   ins)(
@@ -1369,87 +1377,87 @@ keep))
 \end{minipage}
 \vspace{.6em}
 
-In this case, according to \mintinline{haskell}{diff3} we are supposed to copy lines 1 and 3 
-and modify line 2. The problem is that -- in the source file -- we have a \toHaskell{Cons} node 
-that contains all the copied lines in one of its children. In the destination 
-however, some of these lines are copied to the left child of a Cons, and others 
-to the right. In the example above this can be seen on the \toClojure{keep} appearing on line 3, which will end up in a different expression than the one on the first line. 
+In this case, according to \mintinline{haskell}{diff3} we are supposed to copy lines 1 and 3 and modify line 2. The problem is that -- in the source file -- we have a \toHaskell{Cons} node 
+that contains all of the copied lines in one of its children. In the destination however, some of these lines are copied to the left child and others to the right. 
+In the example above this can be seen with the \toClojure{keep} appearing on line 1 and 3 in the source. Despite belonging to the same expression in the source, they will end up in two different ones in the destination.
 What happens is that \diff3 can copy nodes across adjacent sub-trees, but our algorithm does not: we have to pick one of the two sub-trees and attempt the copies only into that.
 
-When we are transforming a \toHaskell{Cons} \toHaskell{a} \toHaskell{Nil} into a \toHaskell{Cons} \toHaskell{c} \toHaskell{d} the only option we have is to insert \toHaskell{d} in the place of \toHaskell{Nil}. 
-However, according to \diff, lines in the sub-tree \toHaskell{a} get copied both to \toHaskell{c} and \toHaskell{d}. In practice this means that when we are at the step in which we have to calculate the patch between \toHaskell{a} and \toHaskell{c}, we are left with inconsistent information, in particular we marked some nodes as copies into \toHaskell{d} when we actually want to delete them.
-
-\subsubsection*{Possible Solutions}
-
-To solve this problem we must find a way of detecting when a situation like the 
-one described above arises. We can formulate the problem as follows:
-given the following source and destination nodes
-
-\begin{minted}{haskell}
-src = Seq a b
-dst = Seq c d
-\end{minted}
+For example, when we are transforming a \toHaskell{Cons} \toHaskell{a} \toHaskell{Nil} into a \toHaskell{Cons} \toHaskell{c} \toHaskell{d} the only option we have is to insert \toHaskell{d} in the place of \toHaskell{Nil}. 
+However, according to \diff, lines in the sub-tree \toHaskell{a} may get copied both to \toHaskell{c} and \toHaskell{d}. In practice this means that when we are at the step in which we have to calculate the patch between \toHaskell{a} and \toHaskell{c}, we are left with inconsistent information, in particular we marked some nodes as copies into \toHaskell{d} when we actually want to delete them.
 
 
-\begin{itemize}
-  \item Let $CopyPairs(P)$ be the set of pairs of lines $(s,t)$ that are marked as copies by \diff3 in the program $P$.
+The problem may occur when matching any two expressions that have multiple children, these expressions will be referred to as sub-trees in this section. In the most simple case we can consider only binary sub-trees, but the same approach can be generalized for arbitrary sub-trees.
 
-\item Let $CopySet(e)$ be the function that extracts all the lines marked as copies 
-contained in an expression $e$ (A line is marked as copy if it appears in one of the pairs resulting from $CopyPairs(P)$).
-\end{itemize}
+\vspace{.6em}
+\begin{minipage}{0.4\linewidth}
+\centering
+\includegraphics[scale=0.6]{shortcomings-src.png}
+\end{minipage}
+\begin{minipage}{0.4\linewidth}
+\centering
+\includegraphics[scale=0.6]{shortcomings-dst.png}
+\end{minipage}
+\vspace{.6em}
 
-Then, if we can find an $s \in CopySet(a)$ such that $t \in CopySet(c)$, where $(s,t) \in CopyPairs(P)$ and we can find $s' \in CopySet(a)$ such that $t' \in CopySet(d)$, where $(s',t') \in CopyPairs(P)$ then we know we are in a conflicting situation. 
+To solve this problem we must find a way of detecting when a situation like the one described above arises. 
 
-This condition deals with the case where we had to insert a sub-tree which 
-contains at least one expression marked as copy, to deal with the deletion as well, we 
-must also check that the converse condition does not hold going from $c$ to $a$ 
-and $b$.
+Let $CopyLines(P,P')$ be the set of pairs of lines $(s,t)$ that are marked as copies by \diff when calculating a patch between $P$ and $P'$.
+If we can find a pair of lines $s \in a$ and $t \in c$, where $(s,t) \in CopyLines(P,P')$ together with another pair $s' \in a$ and $t' \in d$, where $(s',t') \in CopyLines(P,P')$ then we know we are in a conflicting situation. 
+This condition deals with the case where we had to insert a sub-tree which contains at least one expression marked as copy, to deal with the deletion as well, we must also check that the converse condition does not hold going from $c$ to $a$ and $b$.
 
-Once we detected the conflicting copy across sub-trees, we can simply remove pairs from the set $CopyPairs(P)$ until the previous condition is satisfied. In other words, after we detect that a node contains copies over sub-trees, we pick one of the sub-trees and remove all the copies contained in it.
-
-
-The only step that is still missing is about which criteria can be used to pair up the nodes we must check. 
-One way to formulate the problem is the following: we run into this issue whenever we have a pair of candidate nodes that are marked as copy on their outer level (resulting in an \mintinline{haskell}{Scns} in our case), but would then later attempt to copy across subtrees.  
+Once we detected the conflicting copy across sub-trees, we can simply remove pairs from the set $CopyLines(P,P')$ until the previous condition is satisfied. In other words, after we detect that a node contains copies over sub-trees, we pick one of the sub-trees and remove all the copies contained in it.
+The only step that is still missing is about which criteria can be used to pair up the sub-trees we must check. 
+One way to formulate the problem is the following: we run into this issue whenever we have a pair of candidate nodes that are marked as copy on their outer level, but would then later attempt to copy across sub-trees.  
 The crucial observation is that the candidate nodes to check will always start on a line that \diff will have marked as copies (this is exactly the issue, \diff can issue a copy there and move across sub-trees later, our algorithm can not). 
 
-
-One solution could be to extend the oracles to add support for a \mintinline{haskell}{De-optimise} operation. The oracle should be able to perform some computation on each branch 
-and decide if it should keep operating on subsequent computations that follow from that branch.
-This could very well consist in performing the check we described earlier to detect when the information contained in the DiffOracle is not trustworthy anymore, and proceed the process ignoring the oracle which is marked as de-opt. 
-Supporting this interface might be also very useful if we plan to write a human-interaction oracle, where we could have it work on the top levels of the tree (e.g. user matches top level expressions) and then turn off as the program takes care of the of the deeper levels. 
-
-
-Another solution, could be to try and solve the problem with some preprocessing.
+A possible solution, could be to try and solve the problem with some pre-processing.
 This criteria identified to match nodes suggests an enumeration strategy that we could use to break any eventual conflicts in the \mintinline{haskell}{[DiffAction]}. 
-The idea is to identify which lines \diff marked as copies and collect all the sub-trees on those lines (from the source and destination respectively) so that we can perform the check on them.
-The final observation we need is that, when collecting sub-trees starting on a pair of lines $(s,r)$ -- where $s$ is a copied line from the source file that ends up on line $d$ in the destination -- then we will collect the same number of sub-trees from $s$ and $d$. 
-This happens because, since the line is a copy, it must contain the same number of sub-trees starting from it, both in the source and destination file. 
+The idea is to identify which lines \diff marked as copies and collect all the expressions that start on lines (from the source and destination respectively) so that we can carry out the check on them.
+The final observation we need is that, when collecting expressions starting on a pair of lines $(s,t)$ -- where $s$ is a copied line from the source file that ends up on line $t$ in the destination -- then we will collect the same number of sub-trees from $s$ and $t$. 
+This happens because, since the line is unchanged between source and destination, it must contain the same number of expressions starting from it, regardless of what happens in subsequent lines. For example, we can see that, in the example presented above, the source file has two sub-trees starting on the first line: the whole expression and the inner one contained in parenthesis. The destination has two sub-expressions as well, with the first one being the same, but the other one stopping on line 2.
 
-Moreover, since the whole line is marked as copy, our algorithm will end up only considering the respective pairs of sub-trees, meaning that we can zip up the two lists and check each pair. 
+Moreover, we observe that by following the DiffOracle we will never pair these expressions with any other expression coming from a different line; meaning that we can zip up the two lists of collected sub-trees and simply check each pair.
 Given, a function \toHaskell{CollectST(P,s)} that takes as input a program \toHaskell{P} and collects all sub-trees starting on line \toHaskell{s} in \toHaskell{P}. 
-For each pair $(s,t) \in CopySet(P)$ we can perform the following steps:
+For each pair $(s,t) \in CopyLines(P,P')$ we can perform the following steps:
+
 \begin{minted}{haskell}
   let src = CollectST(P,s)
-  let dst = CollectST(P,t)
+  let dst = CollectST(P',t)
   map check (zip src dst) 
 \end{minted}
 
 Where \mintinline{haskell}{check} is the predicate we defined earlier to check if two expressions are conflicting.
 At this point, if check fails, we have a pair \mintinline{haskell}{(s,t)} of lines which \diff identified as copies but our algorithm can not. 
-Once identified the critical pairs of lines we can remove pairs from $CopySet(P)$ until the predicate is true. 
+Once identified the critical pairs of lines we can remove pairs from $CopySet(P,P')$ until the predicate is true. 
 
+For example, the set of copied lines in the example showed above is simply $\{(1,1), (3,3)\}$, meaning that line 1 in the source will get copied to line 1 in the destination, the same holds for line 3. 
+By zipping the expressions obtained by \toHaskell{CollectST(source,1)} and \toHaskell{CollectST(dest,1)} we will eventually consider the following pair.
+
+\vspace{.6em}
+\begin{minipage}{0.4\linewidth}
+\centering
+\includegraphics[scale=0.6]{shortcomings-solved-src.png}
+\end{minipage}
+\begin{minipage}{0.4\linewidth}
+\centering
+\includegraphics[scale=0.6]{shortcomings-solved-dst.png}
+\end{minipage}
+\vspace{.6em}
+
+We can easily see that this pair of sub-trees will fail the check as the left child in the source contains lines 1 and 3, and these lines end up to the left and right respectively in the destination.
+ 
 \subsection{Cost}\label{cost}
 Up to this point we have seen how the algorithm generates a list of patches, we have explored some techniques to reduce the size of this output list but we still have never considered the problem of which patch choosing from the output.
 Given the notion of application defined in \ref{app_patches}, we can consider patches as partial functions. That is: a patch \toHaskell{Almu u v} is a partial function where the domain is the set of values of type \toHaskell{Usingl u} and the codomain is \toHaskell{Maybe (Usingl v}, where the function is obtained through patch application.
-A partial function is more accurate than an other, if it succeeds in producing a result to more input data -- if one domain is a subset of the other.
-We can lift the canonical partial order on \mintinline{haskell}{Maybe a} to functions by point-wise comparison over their domain. More formally, we obtain
+A partial function is more accurate than another, if it succeeds in producing a result to more input data -- if one domain is a subset of the other.
+We can formally define this as
 
 \begin{center}
 \begin{align*}
-\forall x . \;\;  \mathrm{Nothing} \leq p \, x \\
-\mathrm{Just} \, p1 \leq \mathrm{Just} \, p2 \iff  \forall x . \; p1 \, x \equiv  p2 \, x \\
+p1 \leq  p2 \iff  \forall x . \; p1 \, x \leq p2 \, x \\
 \end{align*}
 \end{center}
+Where the point-wise comparisons follows the canonical partial order on \toHaskell{Maybe}.
 This definition -- while capturing our intuition faithfully -- is too extensional to be practical. The approach we will take is to assign a natural number to every patch, representing its cost. In this way we can compute this value by just traversing the patch, ideally this ordering should respect the extensional definition. Intuitively the best patch between $x$ and $y$ is the one that fixes as little elements as possible in the domain and range of its application.
 
 We will count the elements that are fixed by performing insertions, deletions or replacement of non-recursive atoms. 
@@ -1529,12 +1537,9 @@ As we move through the solution space we want to keep track of the current quali
 This process is not guaranteed to generate a solution, the upper bound to the solution quality might be too low. For this reason, bounded search implementations usually have some strategy to restart the search in such cases, increasing the bound by a suitable amount. On the other hand, if the bounded search terminates, we know that the optimal solution (where optimal means minimal according to the quality function) must be in the produced results.
 
 A perfect candidate for the quality function is the notion of cost defined above. However we want to adapt it so that it can work on partial solutions, furthermore we want to be sure to apply the pruning as soon as possible and reduce the number of steps performed in a branch that will be pruned.
-
 We can extend our History monad to store an \mintinline{haskell}{Int} which will represent the cost of each branch. Now we just have to change the algorithm to update this local cost at every step and check if the bound hasn't been exceeded at each step. 
-
 We can omit the details of how this cost is assigned, as it mirrors exactly the definition of the cost function over patches presented in \ref{cost}. 
-
-We will thread the current cost across the computation at each alignment step (recursive and non-); we will add the cost of performing that step to the total and, if we exceed the supplied upper bound, prune the branch immediately.
+We will thread the current cost across the computation at each alignment step (recursive and non-recursive); we will add the cost of performing that step to the total and, if we exceed the supplied upper bound, prune the branch immediately.
 
 \subsection{Visualization}\label{viz}
 
@@ -1546,7 +1551,6 @@ Patches on non-recursive elements are represented as a single element if the pat
 Finally, nodes are collapsible, and the visualization defaults to collapse every node that only contains copies among its children. This allows us to keep the size of the visualized tree restrained, and allows us to read off the important information contained in a patch with ease.
 
 This tool has proven to be very useful in the development process, allowing quick analysis and comparison of the produced patches. Deriving \toHaskell{ToJSON} instances can also be automated, making the visualization easily extensible to the treatment of other target languages.
-
 Figure \ref{fig:tree} shows a representation of the patch constructed through section \ref{type-directed-diff}. 
 
 \vspace{.6em}
@@ -1605,10 +1609,10 @@ This process will generate a merge commit with exactly two parents: one of which
 \item For each of these files we want to extract three different versions of it. The original version \mintinline{bash}{O.clj} represents the snapshot of the file at the moment the branches initially diverged. It is the last version the two branches agreed on. We also want to extract the versions \mintinline{bash}{A.clj} and \mintinline{bash}{B.clj}, which capture the current state of the file on each of the two branches.
 \end{enumerate}
 
-From this process we obtained 452 folders -- each containing the three different snapshots of the conflicting file. These files have been shrunk with a pre-processing that relies on \diffthree to remove all top level expressions that are are not involved in a conflict in any way.
+From this process we obtained 652 folders -- each containing the three different snapshots of the conflicting file. These files have been shrunk with a pre-processing that relies on \diffthree to remove all top level expressions that are are not involved in a conflict in any way.
 Each test consists in generating the pair of patches $(OA,OB)$ and checking if they are disjoint. 
 The patch $OA$ is the best patch generated between \mintinline{bash}{O.clj} and \mintinline{bash}{A.clj} according to the cost function, and $OB$ is generated in the same way but with \mintinline{bash}{B.clj} as destination.
-Out of 452 conflicts, 18 timed out either while constructing the $OA$ or the $OB$ patch; the rest are reported in the following table, showing results of running the tests for disjointedness and compatibility, both in the full and the structurally-respecting variations.
+Out of the 652 conflicts some timeout while constructing the $OA$ or the $OB$ patch, by excluding these ones we are left with 452 valid conflicts that are reported in the following table, showing results of running the tests for disjointedness and compatibility, both in the full and the structurally-respecting variations.
 
 Table \ref{table:repo-stats} shows the results of our experiment. The
 first columns describe the number of contributors (Contributors), 
@@ -1620,7 +1624,6 @@ other languages used.
 
 \begin{table*}[!h]
 \begin{adjustwidth}{-2cm}{}
-  % \begin{tabular}{| l | r | r | r | r | r | r | r|}
   \begin{tabular}{ l  r  r  r  r r r  r}
   \toprule
   Name & Contributors & LOC & Commits & Conflicts & A & B & C \\
@@ -1653,7 +1656,7 @@ other languages used.
 \end{table*}
 
 The relatively small size of test data, especially when compared to the impressive amount of research that has gone in a renowned algorithm as \emph{diff3}, suggests caution in interpreting these results. \\
-Having said this, it is certainly encouraging to observe that, given this specific set of conflicts, we perform approximately 20\% better than \diffthree in producing patches that can be safely and automatically merged. We can also see that these numbers drastically increase if we are willing to relax the notion of disjointedness we are investigating. This points to the fact that another strong advantage of this approach -- alongside improving the number of patches which can be automatically merged -- is in the quality of the conflicts that can be produced. Given more accurate information about what is changing between two files enables us to employ stronger conflict resolution rules, which would have been cumbersome, or almost impossible, to express given the "opaque" representation of conflicts from \diffthree
+Having said this, it is certainly encouraging to observe that, given this specific set of conflicts, we perform approximately 35\% better than \diffthree in producing patches that can be safely and automatically merged. We can also see that these numbers drastically increase if we are willing to relax the notion of disjointedness we are investigating. This points to the fact that another strong advantage of this approach -- alongside improving the number of patches which can be automatically merged -- is in the quality of the conflicts that can be produced. Given more accurate information about what is changing between two files enables us to employ stronger conflict resolution rules, which would have been cumbersome, or almost impossible, to express given the "opaque" representation of conflicts from \diffthree
 \section{Conclusion}
 
 \subsection{Related Work}\label{rel-work}
