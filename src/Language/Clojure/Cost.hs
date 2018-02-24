@@ -19,16 +19,16 @@ costUsingl (UTerm t) = 2
 
 costExpr :: Expr -> Int
 {-# INLINE costExpr #-}
-costExpr (Special fty e _) = 1 + costExpr e
-costExpr (Dispatch e _) = costExpr e
-costExpr (Collection cty sel _) = 1 + costSepExprList sel
-costExpr (Term t _) = 2
-costExpr (Comment s _) = 1
-costExpr (Seq e1 e2 _) = costExpr e1 + costExpr e2
-costExpr (Empty _) = 0
+costExpr (Special fty e _) = 2 + costExpr e
+costExpr (Dispatch e _) = 1 + costExpr e
+costExpr (Collection cty sel _) = 2 + costSepExprList sel
+costExpr (Term t _) = 3
+costExpr (Comment s _) = 2
+costExpr (Seq e1 e2 _) = 1 + costExpr e1 + costExpr e2
+costExpr (Empty _) = 1
 
 costSepExprList :: SepExprList -> Int
 {-# INLINE costSepExprList #-}
-costSepExprList (Nil _) = 0
-costSepExprList (Cons e sep sel _) = 1 + costExpr e + costSepExprList sel
+costSepExprList (Nil _) = 1
+costSepExprList (Cons e sep sel _) = 2 + costExpr e + costSepExprList sel
 

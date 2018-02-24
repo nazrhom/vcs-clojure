@@ -23,6 +23,8 @@ import Language.Clojure.Parser
 import Language.Clojure.Cost
 import Language.Clojure.Lang
 
+import Debug.Trace
+
 processConflictFolder :: String -> IO ()
 processConflictFolder folder = do
   a1 <- readFile $ folder ++ "A1.clj"
@@ -131,15 +133,8 @@ computePatchBounded :: (MonadOracle o S.Seq) =>
 computePatchBounded o start incr r x y =
   if (S.null almus)
   then recur
-  else
-    if anyBounded start (toList almus)
-    then (choose (toList almus))
-    else recur
+  else choose (toList almus)
   where
-    anyBounded :: Int -> [Almu u v] -> Bool
-    anyBounded _ [] = False
-    anyBounded i (a:as) = if costAlmu a <= i then True else anyBounded i as
-
     almus = diffAlmu o start (toSing x) (toSing y)
     recur = computePatchBounded o (start+(incr*r)) incr (r+1) x y
 
@@ -162,9 +157,11 @@ printPatchWithCost almu = do
  putStrLn (show $ almu)
 
 estimateParams :: Expr -> Expr -> (Int, Int)
-estimateParams e1 e2 = (initialCost, initialCost `div` 5)
+estimateParams e1 e2 = (toNat initialCost, toNat (initialCost `div` 5))
  where
    initialCost = abs (costExpr e1 - costExpr e2)
+   toNat 0 = 1
+   toNat n = n
 
 readAndParse :: String -> IO Expr
 readAndParse fname

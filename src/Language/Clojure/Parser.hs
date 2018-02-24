@@ -28,8 +28,8 @@ import Data.Proxy
 import Language.Clojure.AST
 
 lexer = makeTokenParser javaStyle
-  { identStart = alphaNum <|> oneOf "_':*-&\\,."
-  , identLetter = alphaNum <|> oneOf ":_.,'-/^?!><*#\"\\" <|> satisfy isSymbol
+  { identStart = alphaNum <|> oneOf "_':*-&."
+  , identLetter = alphaNum <|> oneOf ":_.'-/^?!><*#\"\\" <|> satisfy isSymbol
   }
 
 parseSeq :: Parsec String () Expr
@@ -199,8 +199,8 @@ parseVar = do
   return $ TaggedString Var (T.pack vstring) (mkRange start end)
 
 identifier = do
-  c <- alphaNum <|> oneOf ":!#$%&*+./<=>?@\\^|-~_',"
-  cs <- many (alphaNum <|> oneOf ":!?#$%&*+-/.<=>'?@^|~_,'^\"\\" <|> satisfy isSymbol)
+  c <- alphaNum <|> oneOf ":!#$%&*+./<=>?@\\^|-~_'"
+  cs <- many (alphaNum <|> oneOf ":!?#$%&*+-/.<=>'?@^|~_'^\"\\" <|> satisfy isSymbol)
   return (c:cs)
 
 -- parseMetadata = do
