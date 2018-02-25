@@ -10,7 +10,7 @@ main :: IO ()
 main = do
   op <- execParser optsHelper
   case op of
-    Conflict f -> processConflictFolder f
+    Conflict f -> processConflictFolder f >> return ()
     Patch s d j _ -> patchFiles s d j
     Preprocess f  -> runMinify f
 

@@ -219,7 +219,7 @@ withEqualityOf e p = e \\ instF_ equality (proxy p)
 -- deriving instance Eq (Ctx (AtmuNeg u) p)
 instance (ForallF Eq almu) => Eq (Ctx almu p) where
   (Here al1 rest1) == (Here al2 rest2)
-    = (al1 == al1 \\ instF_ equality (proxy al1)) && rest1 == rest2
+    = (al1 == al2 \\ instF_ equality (proxy al1)) && rest1 == rest2
   (There u1 ctx1)  == (There u2 ctx2)
     = (u1 == u2 && ctx1 == ctx2)
 instance (ForallF Eq u) => Eq (All u l) where

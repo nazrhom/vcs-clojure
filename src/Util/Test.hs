@@ -25,15 +25,23 @@ import Language.Clojure.Lang
 
 import Debug.Trace
 
-processConflictFolder :: String -> IO ()
+data TestResult = Timeout FilePath | Error FilePath |
+  TestResult  { disj :: Bool
+              , sDisj :: Bool
+              , comp :: Bool
+              , sComp :: Bool
+              , tPath :: FilePath }
+  deriving (Show, Eq)
+
+processConflictFolder :: String -> IO TestResult
 processConflictFolder folder = do
-  a1 <- readFile $ folder ++ "A1.clj"
+  a1 <- readFile $ folder ++ "/A1.clj"
   a <- parseFile "A1.clj" a1
 
-  b1 <- readFile $ folder ++ "B1.clj"
+  b1 <- readFile $ folder ++ "/B1.clj"
   b <- parseFile "B1.clj" b1
 
-  o1 <- readFile $ folder ++ "O1.clj"
+  o1 <- readFile $ folder ++ "/O1.clj"
   o <- parseFile "O1.clj" o1
 
   let delInsOA = buildDelInsMap $ preprocessGrouped o1 a1
@@ -47,9 +55,12 @@ processConflictFolder folder = do
 
   let oracleOA = (DiffOracle diffOA) <°> NoDupBranches
   let oracleOB = (DiffOracle diffOB) <°> NoDupBranches
+  let (initialCostOA, incrOA) = estimateParams o a
+  let (initialCostOB, incrOB) = estimateParams o b
 
-  let almuOA = computePatchesBounded oracleOA 25 5 o a
-  let almuOB = computePatchesBounded oracleOB 25 5 o b
+
+  let almuOA = computePatchesBounded oracleOA initialCostOA incrOA o a
+  let almuOB = computePatchesBounded oracleOB initialCostOB incrOB o b
   -- putStrLn $ show almuOA
   -- putStrLn $ show almuOB
 
@@ -63,9 +74,9 @@ processConflictFolder folder = do
   putStrLn $ show comp
   putStrLn $ show sComp
 
-  let res = encode disj sDisj comp sComp
+  let res = encode disj sDisj comp sComp folder
   -- We encode the results in a binary number
-  exitWith (ExitFailure res)
+  return res
   -- putStrLn $ "Patch O-A: " ++ show almuOA
   -- putStrLn $ "Patch O-B: " ++ show almuOB
 
@@ -103,15 +114,16 @@ patchFiles srcFile dstFile jsonOut = do
       printPatchWithCost almu
       B.writeFile path $ encodePretty almu
 
-encode :: Bool -> Bool -> Bool -> Bool -> Int
-encode a b c d = 1 +
-    (convert a) * 2^3 +
-    (convert b) * 2^2 +
-    (convert c) * 2^1 +
-    (convert d) * 2^0
-  where
-  convert True  = 1
-  convert False = 0
+encode :: Bool -> Bool -> Bool -> Bool -> String -> TestResult
+encode disj sdisj comp scomp folder = TestResult {
+     disj = disj
+   , sDisj = sdisj
+   , comp = comp
+   , sComp = scomp
+   , tPath = folder
+   }
+
+
 
 
 choose' :: Almu u v -> Int -> [Almu u v] -> Almu u v

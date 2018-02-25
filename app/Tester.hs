@@ -9,6 +9,7 @@ import Options.Applicative
 import Data.Monoid
 import System.Timeout
 import System.FilePath
+import Control.Exception
 import Data.List
 import Data.List.Split
 import Data.Time.Clock
@@ -26,6 +27,7 @@ import VCS.Diff
 
 import Oracle.Oracle
 import Util.UnixDiff
+import Util.Test
 
 import Debug.Trace
 
@@ -56,7 +58,8 @@ main = do
   results <- mapM (flip withCurrentDirectory checkPredicates) actual_dirs
 
   let timeouts = filter isTimeout results
-  let completed = filter (\b -> not (isTimeout b)) results
+  let errors = filter isError results
+  let completed = filter (\b -> not (errorOrTimeout b)) results
 
   let disj_  = filter (\t -> disj t == True) completed
       sDisj_ = filter (\t -> sDisj t == True) completed
@@ -65,6 +68,7 @@ main = do
 
   putStrLn $ "Number of Tests " ++ show (length results)
   putStrLn $ "Number of Timeouts " ++ show (length timeouts)
+  putStrLn $ "Number of Errors " ++ show (length errors)
 
   putStrLn $ "Disjoint: " ++ show (length disj_)
   putStrLn $ "Structurally-Disjoint: " ++ show (length sDisj_)
@@ -76,6 +80,13 @@ main = do
 isTimeout :: TestResult -> Bool
 isTimeout (Timeout _) = True
 isTimeout _           = False
+
+isError :: TestResult -> Bool
+isError (Error _) = True
+isError _           = False
+
+errorOrTimeout :: TestResult -> Bool
+errorOrTimeout t = isTimeout t || isError t
 
 writeResults :: [TestResult] -> IO ()
 writeResults res = do
@@ -170,27 +181,24 @@ runDiff = do
       putStrLn $ "Process terminated with exitcode " ++ show exitcode
       return True
 
-data TestResult = Timeout FilePath |
-  TestResult  { disj :: Bool
-              , sDisj :: Bool
-              , comp :: Bool
-              , sComp :: Bool
-              , tPath :: FilePath }
-  deriving (Show, Eq)
-
 checkPredicates :: IO TestResult
 checkPredicates = do
   cwd <- getCurrentDirectory
   putStrLn $ "Running in " ++ cwd
-  ph <- spawnProcess executablePath ["-f", cwd ++ "/"]
-  result <- timeout timeout_time (waitForProcess ph)
+  result <- timeout timeout_time
+    (catch (processConflictFolder cwd) logAndReturnError)
   case result of
     Nothing -> do
-      terminateProcess ph
       putStrLn $ "Process Timed out"
       return $ Timeout cwd
-    Just (ExitFailure 0) -> return $ Timeout cwd -- errors count as timeouts
-    Just (ExitFailure c) -> return $ decode c cwd
+    Just r -> return r -- Error or success
+
+logAndReturnError :: IOException -> IO TestResult
+logAndReturnError e = do
+  cwd <- getCurrentDirectory
+  let err = show (e :: IOException)
+  putStrLn err
+  return $ Error cwd
 
 decode :: Int -> FilePath -> TestResult
 decode i p = TestResult {
@@ -242,12 +250,6 @@ checkConflict srcFile dstFile = do
   putStrLn $ "cp" ++ show cp
   putStrLn $ "diff3" ++ show diff3
   return $ checkCopyMaps cp src dst
-
-parseFile :: String -> String -> IO Expr
-parseFile name src = case parse parseTop name src of
-  Left err -> error $ show err
-  Right s' -> return s'
-
 
 
 data Opts = Opts {
