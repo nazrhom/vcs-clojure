@@ -78,7 +78,6 @@ parseSpecial = do
   ident <- parseSpecialIdent
   expr <- parseExpr
   end <- getPosition
-  whiteSpace lexer
   return $ Special ident expr (mkRange start end)
 
 parseSpecialIdent = choice
@@ -96,13 +95,12 @@ parseDispatch = do
   char '#'
   disp <- parseDispatchable
   end <- getPosition
-  whiteSpace lexer
   return $ Dispatch disp (mkRange start end)
   where
     parseDispatchable = choice
-      [ parseRegExp
+      [ parseExpr
+      , parseRegExp
       , parseTaggedLit
-      , parseExpr
       ]
     --- ref: https://yobriefca.se/blog/2014/05/19/the-weird-and-wonderful-characters-of-clojure/
     -- parseParens covers the function marco
@@ -199,7 +197,7 @@ parseVar = do
   return $ TaggedString Var (T.pack vstring) (mkRange start end)
 
 identifier = do
-  c <- alphaNum <|> oneOf ":!#$%&*+./<=>?@\\^|-~_'"
+  c <- alphaNum <|> oneOf ":!#$%&*+./<=>?@\\^|-~_',"
   cs <- many (alphaNum <|> oneOf ":!?#$%&*+-/.<=>'?@^|~_'^\"\\" <|> satisfy isSymbol)
   return (c:cs)
 

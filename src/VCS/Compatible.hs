@@ -91,6 +91,7 @@ matchCtxPos rec (Here (FixPos almu1) rest1) (Here (FixPos almu2) rest2)
   = rec almu1 almu2 && checkAll rest1 rest2
 matchCtxPos rec (There a1 ctx1)             (There a2 ctx2)
   = a1 == a2 && matchCtxPos rec ctx1 ctx2
+matchCtxPos _ _ _ = False
 
 matchCtxNeg :: (forall u v w . Almu u v -> Almu u w -> Bool)
             -> Ctx (AtmuNeg v) l -> Ctx (AtmuNeg w) l -> Bool
@@ -98,6 +99,7 @@ matchCtxNeg rec (Here (FixNeg almu1) rest1) (Here (FixNeg almu2) rest2)
   = rec almu1 almu2 && checkAll rest1 rest2
 matchCtxNeg rec (There a1 ctx1)             (There a2 ctx2)
   = a1 == a2 && matchCtxNeg rec ctx1 ctx2
+matchCtxNeg _ _ _ = False
 
 checkAll :: All Usingl l -> All Usingl l -> Bool
 checkAll An            An            = True

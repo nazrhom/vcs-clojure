@@ -70,7 +70,7 @@ data ConflictResult a = NoConflict | ConflictAt a
 emptyRange :: LineRange
 emptyRange = Range 0 0
 
-data LineRange = Range Int Int
+data LineRange = Range !Int !Int
   deriving (Show, Eq)
 
 mkRange :: SourcePos -> SourcePos -> LineRange
